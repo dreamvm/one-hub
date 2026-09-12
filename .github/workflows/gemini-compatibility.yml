@@ -52,7 +52,7 @@ jobs:
           python3 -m unittest discover -s .github/smoke -p 'test_*.py'
       - name: Run offline signature and tool-call regressions
         run: |
-          test -z "$(gofmt -l providers/claude providers/gemini/stream-tools.go providers/gemini/stream-tools_test.go common/requester/http_requester.go common/requester/http_stream_reader.go common/requester/http_stream_reader_test.go)"
+          test -z "$(gofmt -l providers/claude providers/gemini/stream-tools.go providers/gemini/stream-tools_test.go common/requester/http_requester.go common/requester/http_stream_reader.go common/requester/http_stream_reader_test.go common/requester/stream-error.go)"
           go test -race -count=1 ./types ./providers/gemini ./providers/claude ./common/requester
       - name: Compile all providers and relay code
         run: go build ./providers/... ./relay/...

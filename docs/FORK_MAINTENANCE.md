@@ -63,6 +63,8 @@ Gemini 按候选答案缓冲跨事件的完整函数调用，统一编号，并�
 直接 Gemini/Claude Chat 转换路径启用可选 EOF 校验：Gemini 必须收到候选结束原因，
 Claude 必须完整关闭内容块并收到 `message_delta` 和 `message_stop`。连接提前结束时返回
 不完整响应错误。未选择该校验的其他供应商流读取行为保持不变。
+协议错误与上述断流错误输出 OpenAI 风格 JSON error 事件，不输出不能解析的纯文本；
+内部仍可识别原始错误类型。Gemini 接受 SSE 的 `data:` 有/无空格形式，解析失败立即结束读取。
 
 ## Claude 工具往返
 

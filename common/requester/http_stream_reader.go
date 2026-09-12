@@ -83,6 +83,9 @@ func (stream *streamReader[T]) processLines() {
 					readErr = err
 				}
 			}
+			if stream.endCheck != nil && readErr != io.EOF {
+				readErr = &ProtocolError{Message: "upstream response interrupted or incomplete", Cause: readErr}
+			}
 			select {
 			case stream.ErrChan <- readErr:
 			case <-time.After(1000 * time.Millisecond):
