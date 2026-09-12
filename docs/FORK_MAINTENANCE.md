@@ -57,7 +57,7 @@ GitHub Actions 的 `Gemini compatibility` 工作流只测试和编译，不发�
 - 不包含 Interactions API、文本/图片 part 的签名，或跨多个上游事件拼接增量函数参数的完整支持。
 - 不处理工具 Schema 的 `strict`/`additionalProperties` 等其他兼容性问题。
 - 不修改计费、重试、渠道选择或权限规则；也不代表此前流式中断的所有根因已修复。
-- 本轮只验证源码回归和相关后端包，不构建完整前端/Docker 镜像，也不做线上端到端验收。
+- 首批修复最初只验证源码回归和相关后端包；后续构建和隔离验收记录见下方，不代表线上端到端验收。
 
 ## 后续维护和发布
 
@@ -97,5 +97,32 @@ GitHub Actions 的 `Gemini compatibility` 工作流只测试和编译，不发�
 `publish=false` 的构建主要用于验证可构建性，没有将镜像作为可下载产物导出；
 隔离联调仍需另行准备本地构建或经批准的镜像发布。首次 GHCR 发布后还应检查包的访问权限。
 
-本次只准备流程并执行语法、策略和代码回归检查，未手动触发镜像构建，
-未创建版本标签、镜像或 Release，未更改线上服务。首次完整镜像构建及部署验证仍待后续执行。
+### 首次完整构建记录
+
+2026-09-12 对 `61ef57550fa98dd31eb9b342c2f0f7d55a221889` 创建测试标签
+`v0.14.27-dreamvm.1-buildtest.1`，以 `publish=false` 完成 `linux/amd64` 全镜像构建。
+[构建记录](https://github.com/dreamvm/one-hub/actions/runs/34683724436)包含回归测试、
+前端打包、Go 主程序编译和最终镜像层；未上传镜像、未创建 Release、未部署。
+静态链接 glibc、前端依赖和 chunk 大小提示不是运行验收通过的证明。
+
+### 隔离镜像运行测试
+
+`Isolated image smoke` 在 PR 或手动触发时先通过源码回归，再构建同一提交的 amd64 镜像，
+仅 `load=true` 加载到 GitHub 临时 runner，固定 `push=false`，无登录仓库或部署步骤。
+`.github/smoke/run.py` 创建随机命名的内部 Docker 网络、临时 SQLite 卷和两个受限容器。
+不向宿主机发布任何端口；测试请求通过内部网络中的受限 HTTP 探针发送。
+容器不挂载 Docker socket，不使用主机网络或生产配置。
+模拟上游以同一镜像运行独立静态测试程序，返回虚构 JSON/SSE，绝不调用真实模型或执行工具。
+
+检查范围：
+
+- 启动、SQLite 空库迁移、版本注入、内嵌前端资源、证书包。
+- 使用容器名称解析上游 DNS；HTTP/校验证书的 HTTPS；中文 JSON/SSE 对话及用量。
+- Gemini 双工具 ID、中文参数、各自签名、工具结果的两轮往返；损坏签名负向检查。
+- 普通用户对话/工具与管理接口权限；重启后密码、用户、令牌和渠道仍可使用。
+- 无论成功或失败，移除本次创建的容器、数据库卷和网络；不删除其他资源。
+
+离线测试设置 `DISABLE_TOKEN_ENCODERS=true`，避免启动时联网下载编码文件；这不是生产配置建议。
+测试 HTTPS 使用临时自签测试证书，未关闭证书校验；不等于验证真实供应商证书链。
+目前不覆盖 MySQL/PostgreSQL、Redis、真实模型、Open WebUI/Open Terminal 和 Word 文件生成，
+也不覆盖默认在线 tokenizer 初始化；这些需要后续独立验收。模拟测试通过不能替代真实联调。
