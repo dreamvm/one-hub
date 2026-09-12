@@ -60,6 +60,8 @@ type ClaudeMetadata struct {
 }
 
 type ResContent struct {
+	original   json.RawMessage
+	known      json.RawMessage
 	Text       string `json:"text,omitempty"`
 	Type       string `json:"type"`
 	Name       string `json:"name,omitempty"`
