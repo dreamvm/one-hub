@@ -1,0 +1,41 @@
+name: Gemini compatibility
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches:
+      - main
+      - 'fix/gemini-thought-signature'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gemini-compatibility-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Set up Go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version: '1.25.x'
+          cache: true
+      - name: Check formatting of patched Go files
+        run: |
+          test -z "$(gofmt -l types/chat.go types/chat-tool-metadata_test.go providers/gemini/type.go providers/gemini/thought-signature_test.go)"
+      - name: Run offline signature and tool-call regressions
+        run: go test -race -count=1 ./types ./providers/gemini
+      - name: Compile all providers and relay code
+        run: go build ./providers/... ./relay/...
+      - name: Vet patched packages
+        run: go vet ./types ./providers/gemini
