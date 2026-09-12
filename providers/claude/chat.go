@@ -213,7 +213,7 @@ func ConvertFromChatOpenai(request *types.ChatCompletionRequest) (*ClaudeRequest
 	}
 	if request.ToolChoice != nil || request.FunctionCall != nil || request.ParallelToolCalls != nil {
 		claudeRequest.ToolChoice = ConvertToolChoice(toolType, toolFunc)
-		if request.ParallelToolCalls != nil {
+		if request.ParallelToolCalls != nil && toolType != types.ToolChoiceTypeNone {
 			claudeRequest.ToolChoice.DisableParallelToolUse = !*request.ParallelToolCalls
 		}
 	}

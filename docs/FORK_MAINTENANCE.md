@@ -90,6 +90,7 @@ Chat 兼容路径分别管理 Claude 内容块索引与 OpenAI 工具索引，�
 支持文本、原生 image/document、OpenAI image_url 和 inline PDF file 结果。
 Word/PPT 本身不是直接可视输入，需要客户端先转换为 PDF/图片或提取文本。
 strict、none 和显式禁止并行现在传入 Claude，旧式 function_call 只支持无签名单工具。
+none 只发送 `type`，不附带仅 auto/any/tool 支持的并行控制字段；禁用全部工具已经满足禁止并行。
 原生 Messages 的工具示例、延迟加载、allowed_callers、adaptive thinking/display、
 output_config 和 context_management 字段有独立序列化测试，包含 Vertex/Bedrock 封装。
 仅厂商 `anthropic-beta` 头可从调用方转发，已配置渠道头优先，不转发任意认证头。

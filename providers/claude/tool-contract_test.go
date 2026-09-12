@@ -110,9 +110,20 @@ func TestClaudeToolControls(t *testing.T) {
 	c, e := claude.ConvertFromChatOpenai(r)
 	require.Nil(t, e)
 	require.Equal(t, "none", c.ToolChoice.Type)
-	require.True(t, c.ToolChoice.DisableParallelToolUse)
+	require.False(t, c.ToolChoice.DisableParallelToolUse)
+	choice, _ := json.Marshal(c.ToolChoice)
+	require.JSONEq(t, `{"type":"none"}`, string(choice))
 	b, _ := json.Marshal(c.Tools)
 	require.Contains(t, string(b), `"strict":true`)
+}
+
+func TestClaudeParallelControlOnlyForCallableModes(t *testing.T) {
+	for _, choice := range []string{`"auto"`, `"required"`, `{"type":"function","function":{"name":"read"}}`} {
+		r := request(t, `{"tool_choice":`+choice+`,"parallel_tool_calls":false,"tools":[{"type":"function","function":{"name":"read"}}],"messages":[{"role":"user","content":"test"}]}`)
+		out, e := claude.ConvertFromChatOpenai(r)
+		require.Nil(t, e)
+		require.True(t, out.ToolChoice.DisableParallelToolUse)
+	}
 }
 
 func TestClaudeToolHistory(t *testing.T) {
