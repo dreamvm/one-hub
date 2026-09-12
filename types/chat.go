@@ -60,6 +60,8 @@ type ChatCompletionMessage struct {
 	Image            []MultimediaData                 `json:"image,omitempty"`
 	Images           []ChatMessagePart                `json:"images,omitempty"`
 	CacheControl     any                              `json:"cache_control,omitempty"`
+	ExtraContent     json.RawMessage                  `json:"extra_content,omitempty"`
+	IsError          *bool                            `json:"is_error,omitempty"`
 }
 
 func (m ChatCompletionMessage) StringContent() string {
@@ -397,6 +399,7 @@ func (f *ChatCompletionToolCallsFunction) Split(c *ChatCompletionStreamChoice, s
 }
 
 type ChatCompletionStreamChoiceDelta struct {
+	ExtraContent     json.RawMessage                  `json:"extra_content,omitempty"`
 	Content          string                           `json:"content,omitempty"`
 	Role             string                           `json:"role,omitempty"`
 	FunctionCall     *ChatCompletionToolCallsFunction `json:"function_call,omitempty"`

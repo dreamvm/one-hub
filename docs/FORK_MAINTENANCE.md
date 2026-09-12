@@ -53,12 +53,36 @@ none 不注入内置工具。工具执行和权限仍由客户端负责。
 共享 Chat/Responses 的并行开关改为可空布尔值，保留未设置、false、true 三种状态。
 新增检查解析仅由 Gemini/Claude 适配按需使用，不改写其他供应商的 Schema。
 
+## Claude 工具往返
+
+Chat 兼容路径分别管理 Claude 内容块索引与 OpenAI 工具索引，一条回答始终使用
+同一个响应 ID 和 choice 0。工具参数在独立缓冲区累积，完成时校验 JSON 对象；
+空参数输出 `{}`，截断、乱序或未知工具增量不会作为成功工具结果继续。
+非流式回答的多个文本/工具块合并为一条 choice，保留说明文字。
+
+原始 assistant 内容以 `extra_content.anthropic.content` 保留，并同时放在首个工具的
+`extra_content` 中供已有工具元数据客户端使用。流式元数据在最终 delta 才完整，
+客户端必须合并该末尾元数据并在下一轮回传；只保存首分片或 reasoning 文本不够。
+服务端检查回传调用 ID、名称、参数和说明文字是否与元数据一致，拒绝过期编辑数据。
+签名及 redacted data 不解码、不伪造、不持久化到日志。
+
+连续工具结果合并为一个 user turn；检查缺失、重复和未知结果 ID，保留错误标记，
+支持文本、原生 image/document、OpenAI image_url 和 inline PDF file 结果。
+Word/PPT 本身不是直接可视输入，需要客户端先转换为 PDF/图片或提取文本。
+strict、none 和显式禁止并行现在传入 Claude，旧式 function_call 只支持无签名单工具。
+原生 Messages 的工具示例、延迟加载、allowed_callers、adaptive thinking/display、
+output_config 和 context_management 字段有独立序列化测试，包含 Vertex/Bedrock 封装。
+仅厂商 `anthropic-beta` 头可从调用方转发，已配置渠道头优先，不转发任意认证头。
+
+不宣称支持所有服务端工具和未来未知块；兼容路径遇到未知内容明确报错并建议原生接口。
+这些是离线契约测试，不是云平台真实凭据验收，也不能代替 Open WebUI 客户端验收。
+
 ## 回归测试
 
 使用 Go 1.25.x。在仓库根目录运行：
 
 ```sh
-go test -race -count=1 ./types ./providers/gemini
+go test -race -count=1 ./types ./providers/gemini ./providers/claude
 go test -race -count=1 ./.github/smoke/...
 go build ./providers/... ./relay/...
 go vet ./types ./providers/gemini

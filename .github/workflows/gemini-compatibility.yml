@@ -51,8 +51,10 @@ jobs:
           go test -race -count=1 ./.github/smoke/...
           python3 -m unittest discover -s .github/smoke -p 'test_*.py'
       - name: Run offline signature and tool-call regressions
-        run: go test -race -count=1 ./types ./providers/gemini
+        run: |
+          test -z "$(gofmt -l providers/claude)"
+          go test -race -count=1 ./types ./providers/gemini ./providers/claude
       - name: Compile all providers and relay code
         run: go build ./providers/... ./relay/...
       - name: Vet patched packages
-        run: go vet ./types ./providers/gemini
+        run: go vet ./types ./providers/gemini ./providers/claude

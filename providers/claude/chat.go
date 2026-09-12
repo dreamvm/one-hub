@@ -3,7 +3,6 @@ package claude
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"one-api/common"
 	"one-api/common/config"
@@ -28,6 +27,7 @@ type ClaudeStreamHandler struct {
 	Request     *types.ChatCompletionRequest
 	StreamTolls int
 	Prefix      string
+	state       *streamState
 }
 
 func (p *ClaudeProvider) CreateChatCompletion(request *types.ChatCompletionRequest) (*types.ChatCompletionResponse, *types.OpenAIErrorWithStatusCode) {
@@ -100,11 +100,11 @@ func (p *ClaudeProvider) getChatRequest(claudeRequest *ClaudeRequest) (*http.Req
 		headers["Accept"] = "text/event-stream"
 	}
 
-	if strings.HasPrefix(claudeRequest.Model, "claude-3-5-sonnet") {
+	if headers["anthropic-beta"] == "" && strings.HasPrefix(claudeRequest.Model, "claude-3-5-sonnet") {
 		headers["anthropic-beta"] = "max-tokens-3-5-sonnet-2024-07-15"
 	}
 
-	if strings.HasPrefix(claudeRequest.Model, "claude-3-7-sonnet") {
+	if headers["anthropic-beta"] == "" && strings.HasPrefix(claudeRequest.Model, "claude-3-7-sonnet") {
 		headers["anthropic-beta"] = "output-128k-2025-02-19"
 	}
 
@@ -142,8 +142,6 @@ func ConvertFromChatOpenai(request *types.ChatCompletionRequest) (*ClaudeRequest
 
 	// 处理 system 字段（支持 cache_control）
 	systemMessage := ""
-	mgsLen := len(request.Messages) - 1
-	isThink := (request.OneOtherArg == "thinking" || request.Reasoning != nil)
 
 	// 如果请求中已经有 system 字段（如数组格式带 cache_control），直接使用
 	if request.System != nil {
@@ -156,12 +154,8 @@ func ConvertFromChatOpenai(request *types.ChatCompletionRequest) (*ClaudeRequest
 	}
 
 	// 处理 messages
-	for index, msg := range request.Messages {
-		if isThink && index == mgsLen && (msg.Role == types.ChatMessageRoleAssistant || msg.Role == types.ChatMessageRoleSystem) {
-			msg.Role = types.ChatMessageRoleUser
-		}
-
-		if msg.Role == types.ChatMessageRoleSystem {
+	for _, msg := range request.Messages {
+		if msg.IsSystemRole() {
 			// 如果没有预设的 system 字段，从 messages 中提取
 			if request.System == nil {
 				systemMessage += msg.StringContent()
@@ -182,18 +176,46 @@ func ConvertFromChatOpenai(request *types.ChatCompletionRequest) (*ClaudeRequest
 		claudeRequest.System = systemMessage
 	}
 
-	for _, tool := range request.Tools {
+	functions, controlErr := request.CheckedFunctions()
+	if controlErr != nil {
+		return nil, common.ErrorWrapperLocal(controlErr, "invalid_tools", 400)
+	}
+	for _, f := range functions {
 		tool := Tools{
-			Name:        tool.Function.Name,
-			Description: tool.Function.Description,
-			InputSchema: tool.Function.Parameters,
+			Name:        f.Name,
+			Description: f.Description,
+			InputSchema: f.Parameters,
+			Strict:      f.Strict,
+		}
+		if tool.InputSchema == nil {
+			tool.InputSchema = map[string]any{"type": "object", "properties": map[string]any{}}
 		}
 		claudeRequest.Tools = append(claudeRequest.Tools, tool)
 	}
 
-	if request.ToolChoice != nil {
-		toolType, toolFunc := request.ParseToolChoice()
+	toolType, toolFunc, controlErr := request.CheckedToolChoice()
+	if controlErr != nil {
+		return nil, common.ErrorWrapperLocal(controlErr, "invalid_tool_choice", 400)
+	}
+	if toolType == types.ToolChoiceTypeRequired && len(functions) == 0 {
+		return nil, common.StringErrorWrapperLocal("required tool choice needs tools", "invalid_tool_choice", 400)
+	}
+	if toolType == types.ToolChoiceTypeFunction {
+		found := false
+		for _, f := range functions {
+			if f.Name == toolFunc {
+				found = true
+			}
+		}
+		if !found {
+			return nil, common.StringErrorWrapperLocal("selected function is not declared", "invalid_tool_choice", 400)
+		}
+	}
+	if request.ToolChoice != nil || request.FunctionCall != nil || request.ParallelToolCalls != nil {
 		claudeRequest.ToolChoice = ConvertToolChoice(toolType, toolFunc)
+		if request.ParallelToolCalls != nil {
+			claudeRequest.ToolChoice.DisableParallelToolUse = !*request.ParallelToolCalls
+		}
 	}
 
 	if claudeRequest.MaxTokens == 0 {
@@ -210,6 +232,12 @@ func ConvertFromChatOpenai(request *types.ChatCompletionRequest) (*ClaudeRequest
 		}
 
 		claudeRequest.TopP = nil
+		if toolType == types.ToolChoiceTypeRequired || toolType == types.ToolChoiceTypeFunction {
+			return nil, common.StringErrorWrapperLocal("manual thinking does not support forced tool choice", "invalid_tool_choice", 400)
+		}
+	}
+	if err := normalizeToolHistory(&claudeRequest); err != nil {
+		return nil, common.ErrorWrapperLocal(err, "invalid_tool_history", 400)
 	}
 
 	return &claudeRequest, nil
@@ -266,23 +294,45 @@ func ConvertToolChoice(toolType, toolFunc string) *ToolChoice {
 		choice.Name = toolFunc
 	case types.ToolChoiceTypeRequired:
 		choice.Type = "any"
+	case types.ToolChoiceTypeNone:
+		choice.Type = "none"
 	}
 
 	return choice
 }
 
 func convertMessageContent(msg *types.ChatCompletionMessage) (*Message, error) {
+	msg.FuncToToolCalls()
 	message := Message{
 		Role: convertRole(msg.Role),
 	}
 
 	content := make([]MessageContent, 0)
+	if replay, err := replayAssistant(msg); err != nil {
+		return nil, err
+	} else if replay != nil {
+		message.Content = replay
+		return &message, nil
+	}
 
 	if msg.ToolCalls != nil {
+		if text := msg.StringContent(); text != "" {
+			content = append(content, MessageContent{Type: "text", Text: text})
+		}
 		for _, toolCall := range msg.ToolCalls {
+			if toolCall == nil || toolCall.Function == nil || toolCall.Id == "" || toolCall.Function.Name == "" {
+				return nil, fmt.Errorf("invalid tool call")
+			}
 			inputParam := make(map[string]any)
-			if err := json.Unmarshal([]byte(toolCall.Function.Arguments), &inputParam); err != nil {
+			args := toolCall.Function.Arguments
+			if args == "" {
+				args = "{}"
+			}
+			if err := json.Unmarshal([]byte(args), &inputParam); err != nil {
 				return nil, err
+			}
+			if inputParam == nil {
+				return nil, fmt.Errorf("tool arguments must be an object")
 			}
 			content = append(content, MessageContent{
 				Type:  ContentTypeToolUes,
@@ -296,11 +346,20 @@ func convertMessageContent(msg *types.ChatCompletionMessage) (*Message, error) {
 		return &message, nil
 	}
 
-	if msg.Role == types.ChatMessageRoleTool {
+	if msg.Role == types.ChatMessageRoleTool || msg.Role == types.ChatMessageRoleFunction {
+		id := msg.ToolCallID
+		if id == "" && msg.Role == types.ChatMessageRoleFunction && msg.Name != nil {
+			id = *msg.Name
+		}
+		result, err := toolResultContent(msg.Content)
+		if err != nil {
+			return nil, err
+		}
 		content = append(content, MessageContent{
 			Type:      ContentTypeToolResult,
-			Content:   msg.StringContent(),
-			ToolUseId: msg.ToolCallID,
+			Content:   result,
+			ToolUseId: id,
+			IsError:   msg.IsError,
 		})
 
 		message.Content = content
@@ -357,69 +416,40 @@ func ConvertToChatOpenai(provider base.ProviderInterface, response *ClaudeRespon
 		return
 	}
 
-	choices := make([]types.ChatCompletionChoice, 0)
-	isThinking := false
-	thinkingContent := ""
-
+	choice := types.ChatCompletionChoice{Index: 0, Message: types.ChatCompletionMessage{Role: response.Role}, FinishReason: stopReasonClaude2OpenAI(response.StopReason)}
+	var text, thinking strings.Builder
 	for _, content := range response.Content {
 		switch content.Type {
 		case ContentTypeToolUes:
-			if len(choices) == 0 {
-				choice := types.ChatCompletionChoice{
-					Index: 0,
-					Message: types.ChatCompletionMessage{
-						Role:    response.Role,
-						Content: "",
-					},
-				}
-				choices = append(choices, choice)
-			}
-
-			index := len(choices) - 1
-			lastChoice := choices[index]
-
-			if lastChoice.Message.ToolCalls == nil {
-				lastChoice.Message.ToolCalls = make([]*types.ChatCompletionToolCalls, 0)
-			}
-			lastChoice.Message.ToolCalls = append(lastChoice.Message.ToolCalls, content.ToOpenAITool())
-			lastChoice.FinishReason = types.FinishReasonToolCalls
-			choices[index] = lastChoice
-		case ContentTypeThinking, ContentTypeRedactedThinking:
-			if content.Type == ContentTypeRedactedThinking {
-				continue
-			}
-			isThinking = true
-			thinkingContent = content.Thinking
+			choice.Message.ToolCalls = append(choice.Message.ToolCalls, content.ToOpenAITool())
+		case ContentTypeThinking:
+			thinking.WriteString(content.Thinking)
+		case ContentTypeRedactedThinking:
+		case ContentTypeText:
+			text.WriteString(content.Text)
 		default:
-			choice := types.ChatCompletionChoice{
-				Index: 0,
-				Message: types.ChatCompletionMessage{
-					Role:    response.Role,
-					Content: content.Text,
-				},
-				FinishReason: stopReasonClaude2OpenAI(response.StopReason),
-			}
-
-			if isThinking {
-				choice.Message.ReasoningContent = thinkingContent
-			}
-
-			choices = append(choices, choice)
+			return nil, common.StringErrorWrapperLocal("unsupported Claude content block; use native Messages API", "unsupported_content", 502)
 		}
-
 	}
-
-	if len(choices) == 0 {
-		// 如果没有内容，则返回一个空的响应
-		choices = append(choices, types.ChatCompletionChoice{
-			Index: 0,
-			Message: types.ChatCompletionMessage{
-				Role:    response.Role,
-				Content: "",
-			},
-			FinishReason: stopReasonClaude2OpenAI(response.StopReason),
-		})
+	choice.Message.Content = text.String()
+	choice.Message.ReasoningContent = thinking.String()
+	choice.Message.ExtraContent = packAssistant(response.Content)
+	if len(choice.Message.ToolCalls) > 0 {
+		choice.Message.ToolCalls[0].ExtraContent = choice.Message.ExtraContent
 	}
+	if request.Functions != nil {
+		for _, content := range response.Content {
+			if content.Type == ContentTypeThinking || content.Type == ContentTypeRedactedThinking {
+				return nil, common.StringErrorWrapperLocal("signed thinking requires modern tools/tool_calls", "unsupported_legacy_thinking", 400)
+			}
+		}
+		if len(choice.Message.ToolCalls) > 1 {
+			return nil, common.StringErrorWrapperLocal("legacy function_call cannot represent parallel tools", "unsupported_legacy_tools", 400)
+		}
+		choice.Message.ExtraContent = nil
+	}
+	choice.CheckChoice(request)
+	choices := []types.ChatCompletionChoice{choice}
 
 	openaiResponse = &types.ChatCompletionResponse{
 		ID:      response.Id,
@@ -444,136 +474,4 @@ func ConvertToChatOpenai(provider base.ProviderInterface, response *ClaudeRespon
 	openaiResponse.Usage = usage
 
 	return openaiResponse, nil
-}
-
-// 转换为OpenAI聊天流式请求体
-func (h *ClaudeStreamHandler) HandlerStream(rawLine *[]byte, dataChan chan string, errChan chan error) {
-	// 如果rawLine 前缀不为data:，则直接返回
-	if !strings.HasPrefix(string(*rawLine), h.Prefix) {
-		*rawLine = nil
-		return
-	}
-
-	if strings.HasPrefix(string(*rawLine), "data: ") {
-		// 去除前缀
-		*rawLine = (*rawLine)[6:]
-	}
-
-	var claudeResponse ClaudeStreamResponse
-	err := json.Unmarshal(*rawLine, &claudeResponse)
-	if err != nil {
-		errChan <- common.ErrorToOpenAIError(err)
-		return
-	}
-
-	aiError := errorHandle(claudeResponse.Error)
-	if aiError != nil {
-		errChan <- aiError
-		return
-	}
-
-	if claudeResponse.Type == "message_stop" {
-		errChan <- io.EOF
-		*rawLine = requester.StreamClosed
-		return
-	}
-
-	switch claudeResponse.Type {
-	case "message_start":
-		h.convertToOpenaiStream(&claudeResponse, dataChan)
-		h.Usage.PromptTokens = claudeResponse.Message.Usage.InputTokens
-
-	case "message_delta":
-		h.convertToOpenaiStream(&claudeResponse, dataChan)
-		h.Usage.CompletionTokens = claudeResponse.Usage.OutputTokens
-		h.Usage.TotalTokens = h.Usage.PromptTokens + h.Usage.CompletionTokens
-
-	case "content_block_delta":
-		h.convertToOpenaiStream(&claudeResponse, dataChan)
-		h.Usage.TextBuilder.WriteString(claudeResponse.Delta.Text)
-	case "content_block_start":
-		h.convertToOpenaiStream(&claudeResponse, dataChan)
-
-	default:
-		return
-	}
-}
-
-func (h *ClaudeStreamHandler) convertToOpenaiStream(claudeResponse *ClaudeStreamResponse, dataChan chan string) {
-	choice := types.ChatCompletionStreamChoice{
-		Index: claudeResponse.Index,
-		Delta: types.ChatCompletionStreamChoiceDelta{
-			Role:    claudeResponse.Message.Role,
-			Content: claudeResponse.Delta.Text,
-		},
-	}
-
-	if claudeResponse.ContentBlock.Text != "" {
-		choice.Delta.Content = claudeResponse.ContentBlock.Text
-	}
-
-	var toolCalls []*types.ChatCompletionToolCalls
-
-	if claudeResponse.ContentBlock.Type == ContentTypeToolUes {
-		toolCalls = append(toolCalls, &types.ChatCompletionToolCalls{
-			Id:   claudeResponse.ContentBlock.Id,
-			Type: types.ChatMessageRoleFunction,
-			Function: &types.ChatCompletionToolCallsFunction{
-				Name:      claudeResponse.ContentBlock.Name,
-				Arguments: "",
-			},
-		})
-		h.StreamTolls = StreamTollsUse
-	}
-
-	switch claudeResponse.Delta.Type {
-	case ContentStreamTypeInputJsonDelta:
-		if claudeResponse.Delta.PartialJson == "" {
-			return
-		}
-		toolCalls = append(toolCalls, &types.ChatCompletionToolCalls{
-			Type: types.ChatMessageRoleFunction,
-			Function: &types.ChatCompletionToolCallsFunction{
-				Arguments: claudeResponse.Delta.PartialJson,
-			},
-		})
-		h.StreamTolls = StreamTollsArg
-	case ContentStreamTypeSignatureDelta:
-		// 加密的不处理
-		choice.Delta.ReasoningContent = "\n"
-	case ContentStreamTypeThinking:
-		choice.Delta.ReasoningContent = claudeResponse.Delta.Thinking
-	}
-
-	if claudeResponse.ContentBlock.Type != ContentTypeToolUes && claudeResponse.Delta.Type != "input_json_delta" && h.StreamTolls != StreamTollsNone {
-		if h.StreamTolls == StreamTollsUse {
-			toolCalls = append(toolCalls, &types.ChatCompletionToolCalls{
-				Type: types.ChatMessageRoleFunction,
-				Function: &types.ChatCompletionToolCallsFunction{
-					Arguments: "{}",
-				},
-			})
-		}
-
-		h.StreamTolls = StreamTollsNone
-	}
-
-	if toolCalls != nil {
-		choice.Delta.ToolCalls = toolCalls
-	}
-
-	finishReason := stopReasonClaude2OpenAI(claudeResponse.Delta.StopReason)
-	if finishReason != "" {
-		choice.FinishReason = &finishReason
-	}
-	chatCompletion := types.ChatCompletionStreamResponse{
-		ID:      fmt.Sprintf("chatcmpl-%s", utils.GetUUID()),
-		Object:  "chat.completion.chunk",
-		Created: utils.GetTimestamp(),
-		Model:   h.Request.Model,
-		Choices: []types.ChatCompletionStreamChoice{choice},
-	}
-
-	responseBody, _ := json.Marshal(chatCompletion)
-	dataChan <- string(responseBody)
 }
