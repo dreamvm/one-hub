@@ -39,7 +39,7 @@ jobs:
           cache: true
       - name: Check formatting of patched Go files
         run: |
-          test -z "$(gofmt -l types/chat.go types/chat-tool-metadata_test.go providers/gemini/type.go providers/gemini/thought-signature_test.go .github/tests/release-policy_test.go)"
+          test -z "$(gofmt -l types/chat.go types/responses.go types/tool-contract.go types/tool-contract_test.go types/chat-tool-metadata_test.go providers/gemini/type.go providers/gemini/chat.go providers/gemini/tool-contract.go providers/gemini/tool-contract_test.go providers/gemini/thought-signature_test.go .github/tests/release-policy_test.go)"
       - name: Check workflow syntax
         run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
       - name: Verify manual-release policy

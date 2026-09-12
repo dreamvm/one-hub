@@ -62,7 +62,7 @@ type OpenAIResponsesRequest struct {
 	Instructions       string           `json:"instructions,omitempty"`
 	MaxOutputTokens    int              `json:"max_output_tokens,omitempty"`
 	MaxToolCalls       *int             `json:"max_tool_calls,omitempty"`
-	ParallelToolCalls  bool             `json:"parallel_tool_calls,omitempty"`
+	ParallelToolCalls  *bool            `json:"parallel_tool_calls,omitempty"`
 	PreviousResponseID string           `json:"previous_response_id,omitempty"`
 	Reasoning          *ReasoningEffort `json:"reasoning,omitempty"`
 	Store              *bool            `json:"store,omitempty"` // 是否存储响应结果
@@ -472,7 +472,7 @@ type OpenAIResponsesResponses struct {
 	Model              string            `json:"model"`
 	Object             string            `json:"object"`
 	Output             []ResponsesOutput `json:"output,omitempty"`
-	ParallelToolCalls  bool              `json:"parallel_tool_calls,omitempty"`
+	ParallelToolCalls  *bool             `json:"parallel_tool_calls,omitempty"`
 	PreviousResponseID string            `json:"previous_response_id,omitempty"`
 	Reasoning          *ReasoningEffort  `json:"reasoning,omitempty"`
 	Status             string            `json:"status"`
