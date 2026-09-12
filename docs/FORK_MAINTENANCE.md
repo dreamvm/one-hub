@@ -110,7 +110,8 @@ GitHub Actions 的 `Gemini compatibility` 工作流只测试和编译，不发�
 `Isolated image smoke` 在 PR 或手动触发时先通过源码回归，再构建同一提交的 amd64 镜像，
 仅 `load=true` 加载到 GitHub 临时 runner，固定 `push=false`，无登录仓库或部署步骤。
 `.github/smoke/run.py` 创建随机命名的内部 Docker 网络、临时 SQLite 卷和两个受限容器。
-端口仅绑定 runner 的 `127.0.0.1`；容器不挂载 Docker socket，不使用主机网络或生产配置。
+不向宿主机发布任何端口；测试请求通过内部网络中的受限 HTTP 探针发送。
+容器不挂载 Docker socket，不使用主机网络或生产配置。
 模拟上游以同一镜像运行独立静态测试程序，返回虚构 JSON/SSE，绝不调用真实模型或执行工具。
 
 检查范围：

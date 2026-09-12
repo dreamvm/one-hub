@@ -3,7 +3,7 @@
 
 import argparse
 import copy
-import http.cookiejar
+import http.cookies
 import json
 import os
 from pathlib import Path
@@ -14,8 +14,6 @@ import signal
 import subprocess
 import tempfile
 import time
-import urllib.error
-import urllib.request
 import uuid
 
 
@@ -28,8 +26,8 @@ def require(condition, message):
         raise AssertionError(message)
 
 
-def command(*args, check=True):
-    result = subprocess.run(args, text=True, capture_output=True, timeout=90)
+def command(*args, check=True, input_text=None):
+    result = subprocess.run(args, input=input_text, text=True, capture_output=True, timeout=90)
     if check and result.returncode:
         raise RuntimeError(f"{args[0]} {args[1]} failed: {result.stderr[-1500:]}")
     return result
@@ -43,24 +41,27 @@ def start_container(name, options, created):
 
 
 class Client:
-    def __init__(self, base):
+    def __init__(self, base, container):
         self.base = base
-        self.opener = urllib.request.build_opener(
-            urllib.request.ProxyHandler({}),
-            urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()),
-        )
+        self.container = container
+        self.cookies = http.cookies.SimpleCookie()
 
     def request(self, path, data=None, token=None, method=None):
         headers = {"Content-Type": "application/json"}
         if token:
             headers["Authorization"] = "Bearer " + token
-        body = None if data is None else json.dumps(data, ensure_ascii=False).encode()
-        request = urllib.request.Request(self.base + path, data=body, headers=headers, method=method)
-        try:
-            with self.opener.open(request, timeout=20) as response:
-                return response.status, response.headers, response.read().decode()
-        except urllib.error.HTTPError as exc:
-            return exc.code, exc.headers, exc.read().decode()
+        if self.cookies:
+            headers["Cookie"] = "; ".join(f"{key}={value.value}" for key, value in self.cookies.items())
+        result = command("docker", "exec", "-i", self.container, "/fixture/mock", "request", input_text=json.dumps({
+            "url": self.base + path, "method": method or ("GET" if data is None else "POST"),
+            "headers": headers, "body": "" if data is None else json.dumps(data, ensure_ascii=False),
+        }))
+        response = json.loads(result.stdout)
+        if "error" in response:
+            raise OSError(response["error"])
+        for value in response["headers"].get("Set-Cookie", []):
+            self.cookies.load(value)
+        return response["status"], {key: ", ".join(value) for key, value in response["headers"].items()}, response["body"]
 
     def api(self, path, data=None, method=None):
         status, _, body = self.request(path, data=data, method=method)
@@ -181,18 +182,19 @@ def run(args):
             start_container(mock, [*common, "--user", f"{os.getuid()}:{os.getgid()}",
                     "--network-alias", "mock-provider", "--memory", "128m", "--cpus", "1",
                     "--mount", f"type=bind,source={tmp},target=/fixture,readonly",
-                    "-p", "127.0.0.1::8000", "--entrypoint", "/fixture/mock", args.image], created)
+                    "--entrypoint", "/fixture/mock", args.image], created)
             start_container(gateway, [*common,
+                    "--network-alias", "gateway",
                     "--memory", "1g", "--cpus", "2", "--mount", f"type=volume,source={volume},target=/data",
                     "--mount", f"type=bind,source={tmp / 'server.crt'},target=/fixture-ca.crt,readonly",
                     "-e", "SSL_CERT_FILE=/fixture-ca.crt", "-e", "DISABLE_TOKEN_ENCODERS=true",
                     "-e", "AUTO_PRICE_UPDATES=false", "-e", "RELAY_TIMEOUT=15", "-e", "CONNECT_TIMEOUT=3",
                     "-e", "SESSION_SECRET=" + secrets.token_hex(32), "-e", "USER_TOKEN_SECRET=" + secrets.token_hex(32),
-                    "-p", "127.0.0.1::3000", args.image], created)
-            address = command("docker", "port", gateway, "3000/tcp").stdout.strip()
-            mock_address = command("docker", "port", mock, "8000/tcp").stdout.strip()
-            require(address.startswith("127.0.0.1:") and mock_address.startswith("127.0.0.1:"), "port not loopback-only")
-            client = Client("http://" + address)
+                    args.image], created)
+            for name in (gateway, mock):
+                config = json.loads(command("docker", "inspect", name).stdout)[0]
+                require(not config["HostConfig"]["PortBindings"], "unexpected published port")
+            client = Client("http://gateway:3000", mock)
             require(wait_ready(client)["version"] == args.version, "wrong binary version")
             passed("startup, fresh SQLite migration and binary version")
             command("docker", "exec", gateway, "test", "-s", "/etc/ssl/certs/ca-certificates.crt")
@@ -241,7 +243,7 @@ def run(args):
             passed("negative control: corrupted signature rejected by upstream")
             user_password = secrets.token_hex(8)
             client.api("/api/user/", {"username": "smokeuser", "password": user_password})
-            user = Client(client.base)
+            user = Client(client.base, mock)
             user_info = user.api("/api/user/login", {"username": "smokeuser", "password": user_password})
             require(user_info["role"] == 1, "not a normal user")
             client.api(f"/api/user/quota/{user_info['id']}", {"quota": 1000000, "remark": "synthetic smoke quota"})
@@ -253,11 +255,11 @@ def run(args):
             passed("ordinary-user chat/tools with admin access denied")
             command("docker", "restart", "--time", "10", gateway)
             require(wait_ready(client)["version"] == args.version, "restart version changed")
-            login = Client(client.base)
+            login = Client(client.base, mock)
             login.api("/api/user/login", {"username": "root", "password": password})
             require(chat(user, user_token, "openai-smoke", False)["content"] == "中文对话成功", "persisted user/token/channel failed after restart")
             passed("restart persistence: SQLite, changed password, users, tokens and channels")
-            _, _, stats_raw = Client("http://" + mock_address).request("/stats")
+            _, _, stats_raw = Client("http://mock-provider:8000", mock).request("/stats")
             stats = json.loads(stats_raw)
             for key in ("openai-smoke_false", "openai-smoke_true", "openai-https-smoke_false", "openai-https-smoke_true", "gemini_tools_false", "gemini_tools_true", "gemini_followup_false", "gemini_followup_true", "rejected"):
                 require(stats.get(key, 0) > 0, f"upstream branch not exercised: {key}")
