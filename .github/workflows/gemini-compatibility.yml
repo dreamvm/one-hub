@@ -39,11 +39,15 @@ jobs:
           cache: true
       - name: Check formatting of patched Go files
         run: |
-          test -z "$(gofmt -l types/chat.go types/chat-tool-metadata_test.go providers/gemini/type.go providers/gemini/thought-signature_test.go .github/tests/release-policy_test.go)"
+          test -z "$(gofmt -l types/chat.go types/chat-tool-metadata_test.go providers/gemini/type.go providers/gemini/thought-signature_test.go .github/tests/release-policy_test.go .github/smoke/mockserver)"
       - name: Check workflow syntax
         run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
       - name: Verify manual-release policy
         run: go test -count=1 ./.github/tests
+      - name: Test isolated-smoke fixtures without Docker or external APIs
+        run: |
+          go test -race -count=1 ./.github/smoke/...
+          python3 -m unittest discover -s .github/smoke -p 'test_*.py'
       - name: Run offline signature and tool-call regressions
         run: go test -race -count=1 ./types ./providers/gemini
       - name: Compile all providers and relay code

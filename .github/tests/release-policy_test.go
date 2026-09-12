@@ -28,6 +28,7 @@ type job struct {
 	Uses        string            `yaml:"uses"`
 	Needs       any               `yaml:"needs"`
 	With        map[string]any    `yaml:"with"`
+	Env         map[string]string `yaml:"env"`
 	Permissions map[string]string `yaml:"permissions"`
 	Steps       []step            `yaml:"steps"`
 }
@@ -67,7 +68,7 @@ func TestLegacyPublishWorkflowsAreArchived(t *testing.T) {
 	for _, entry := range entries {
 		active = append(active, entry.Name())
 	}
-	require.ElementsMatch(t, []string{"docker-image.yml", "gemini-compatibility.yml"}, active)
+	require.ElementsMatch(t, []string{"docker-image.yml", "gemini-compatibility.yml", "isolated-image-smoke.yml"}, active)
 }
 
 func TestImagePublicationIsOptInAndTestGated(t *testing.T) {
@@ -113,7 +114,7 @@ func TestImagePublicationIsOptInAndTestGated(t *testing.T) {
 
 func TestActiveActionsArePinned(t *testing.T) {
 	pinned := regexp.MustCompile(`^[A-Za-z0-9_.-]+/[A-Za-z0-9_./-]+@[a-f0-9]{40}$`)
-	for _, name := range []string{"docker-image.yml", "gemini-compatibility.yml"} {
+	for _, name := range []string{"docker-image.yml", "gemini-compatibility.yml", "isolated-image-smoke.yml"} {
 		wf := readWorkflow(t, name)
 		for _, task := range wf.Jobs {
 			for _, item := range task.Steps {
@@ -123,6 +124,36 @@ func TestActiveActionsArePinned(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestIsolatedSmokeCannotPublish(t *testing.T) {
+	wf := readWorkflow(t, "isolated-image-smoke.yml")
+	require.Equal(t, map[string]string{"contents": "read"}, wf.Permissions)
+	require.Contains(t, wf.On, "pull_request")
+	require.NotContains(t, wf.On, "pull_request_target")
+	require.Equal(t, "test", wf.Jobs["smoke"].Needs)
+	require.Empty(t, wf.Jobs["smoke"].If)
+	require.Empty(t, wf.Jobs["smoke"].Permissions)
+	require.Equal(t, "${{ github.event.pull_request.head.sha || github.sha }}", wf.Jobs["test"].With["ref"])
+	require.Equal(t, wf.Jobs["test"].With["ref"], wf.Jobs["smoke"].Env["SOURCE_SHA"])
+	var built, checked bool
+	for _, item := range wf.Jobs["smoke"].Steps {
+		require.NotContains(t, item.Uses, "login-action")
+		require.NotContains(t, item.Run, "secrets.")
+		if strings.HasPrefix(item.Uses, "actions/checkout@") {
+			checked = true
+			require.Equal(t, "${{ env.SOURCE_SHA }}", item.With["ref"])
+			require.Equal(t, false, item.With["persist-credentials"])
+		}
+		if strings.HasPrefix(item.Uses, "docker/build-push-action@") {
+			built = true
+			require.Equal(t, false, item.With["push"])
+			require.Equal(t, true, item.With["load"])
+			require.Equal(t, "linux/amd64", item.With["platforms"])
+			require.Equal(t, "onehub-isolated-smoke:${{ env.SOURCE_SHA }}", item.With["tags"])
+		}
+	}
+	require.True(t, built && checked)
 }
 
 func TestReleaseTagValidation(t *testing.T) {
