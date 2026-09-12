@@ -117,23 +117,27 @@ type Message struct {
 }
 
 type ClaudeRequest struct {
-	Model         string      `json:"model,omitempty"`
-	System        any         `json:"system,omitempty"`
-	Messages      []Message   `json:"messages"`
-	MaxTokens     int         `json:"max_tokens"`
-	StopSequences []string    `json:"stop_sequences,omitempty"`
-	Temperature   *float64    `json:"temperature,omitempty"`
-	TopP          *float64    `json:"top_p,omitempty"`
-	TopK          *int        `json:"top_k,omitempty"`
-	Tools         []Tools     `json:"tools,omitempty"`
-	ToolChoice    *ToolChoice `json:"tool_choice,omitempty"`
-	Thinking      *Thinking   `json:"thinking,omitempty"`
-	McpServers    any         `json:"mcp_servers,omitempty"`
+	OutputConfig      json.RawMessage `json:"output_config,omitempty"`
+	ContextManagement json.RawMessage `json:"context_management,omitempty"`
+	Container         any             `json:"container,omitempty"`
+	Model             string          `json:"model,omitempty"`
+	System            any             `json:"system,omitempty"`
+	Messages          []Message       `json:"messages"`
+	MaxTokens         int             `json:"max_tokens"`
+	StopSequences     []string        `json:"stop_sequences,omitempty"`
+	Temperature       *float64        `json:"temperature,omitempty"`
+	TopP              *float64        `json:"top_p,omitempty"`
+	TopK              *int            `json:"top_k,omitempty"`
+	Tools             []Tools         `json:"tools,omitempty"`
+	ToolChoice        *ToolChoice     `json:"tool_choice,omitempty"`
+	Thinking          *Thinking       `json:"thinking,omitempty"`
+	McpServers        any             `json:"mcp_servers,omitempty"`
 	//ClaudeMetadata    `json:"metadata,omitempty"`
 	Stream bool `json:"stream,omitempty"`
 }
 
 type Thinking struct {
+	Display      string `json:"display,omitempty"`
 	Type         string `json:"type,omitempty"`
 	BudgetTokens int    `json:"budget_tokens,omitempty"`
 }
@@ -144,14 +148,18 @@ type ToolChoice struct {
 }
 
 type Tools struct {
-	Type            string `json:"type,omitempty"`
-	CacheControl    any    `json:"cache_control,omitempty"`
-	Name            string `json:"name,omitempty"`
-	Description     string `json:"description,omitempty"`
-	InputSchema     any    `json:"input_schema,omitempty"`
-	DisplayHeightPx int    `json:"display_height_px,omitempty"`
-	DisplayWidthPx  int    `json:"display_width_px,omitempty"`
-	DisplayNumber   int    `json:"display_number,omitempty"`
+	Strict          *bool    `json:"strict,omitempty"`
+	InputExamples   any      `json:"input_examples,omitempty"`
+	DeferLoading    *bool    `json:"defer_loading,omitempty"`
+	AllowedCallers  []string `json:"allowed_callers,omitempty"`
+	Type            string   `json:"type,omitempty"`
+	CacheControl    any      `json:"cache_control,omitempty"`
+	Name            string   `json:"name,omitempty"`
+	Description     string   `json:"description,omitempty"`
+	InputSchema     any      `json:"input_schema,omitempty"`
+	DisplayHeightPx int      `json:"display_height_px,omitempty"`
+	DisplayWidthPx  int      `json:"display_width_px,omitempty"`
+	DisplayNumber   int      `json:"display_number,omitempty"`
 }
 
 type Usage struct {

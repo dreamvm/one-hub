@@ -69,7 +69,14 @@ func (p *ClaudeProvider) GetRequestHeaders() (headers map[string]string) {
 	p.CommonRequestHeaders(headers)
 
 	headers["x-api-key"] = p.Channel.Key
-	anthropicVersion := p.Context.Request.Header.Get("anthropic-version")
+	anthropicVersion := ""
+	if p.Context != nil && p.Context.Request != nil {
+		anthropicVersion = p.Context.Request.Header.Get("anthropic-version")
+		// Forward only the vendor capability header, never arbitrary client headers.
+		if beta := p.Context.Request.Header.Get("anthropic-beta"); beta != "" && headers["anthropic-beta"] == "" {
+			headers["anthropic-beta"] = beta
+		}
+	}
 	if anthropicVersion == "" {
 		anthropicVersion = "2023-06-01"
 	}
