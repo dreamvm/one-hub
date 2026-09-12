@@ -203,7 +203,7 @@ type ChatCompletionRequest struct {
 	FunctionCall        any                           `json:"function_call,omitempty"`
 	Tools               []*ChatCompletionTool         `json:"tools,omitempty"`
 	ToolChoice          any                           `json:"tool_choice,omitempty"`
-	ParallelToolCalls   bool                          `json:"parallel_tool_calls,omitempty"`
+	ParallelToolCalls   *bool                         `json:"parallel_tool_calls,omitempty"`
 	Modalities          []string                      `json:"modalities,omitempty"`
 	Audio               *ChatAudio                    `json:"audio,omitempty"`
 	ReasoningEffort     *string                       `json:"reasoning_effort,omitempty"`

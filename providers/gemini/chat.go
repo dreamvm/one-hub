@@ -173,12 +173,12 @@ func ConvertFromChatOpenai(request *types.ChatCompletionRequest) (*GeminiChatReq
 
 	if request.Reasoning != nil {
 		thinkingConfig := &ThinkingConfig{}
-		
+
 		// Set ThinkingBudget when MaxTokens >= 0
 		if request.Reasoning.MaxTokens >= 0 {
 			thinkingConfig.ThinkingBudget = &request.Reasoning.MaxTokens
 		}
-		
+
 		// Convert effort to thinkingLevel
 		if request.Reasoning.Effort != "" {
 			effortToLevelMap := map[string]string{
@@ -191,7 +191,7 @@ func ConvertFromChatOpenai(request *types.ChatCompletionRequest) (*GeminiChatReq
 				thinkingConfig.ThinkingLevel = level
 			}
 		}
-		
+
 		// Only set ThinkingConfig if at least one parameter is set
 		if thinkingConfig.ThinkingBudget != nil || thinkingConfig.ThinkingLevel != "" {
 			geminiRequest.GenerationConfig.ThinkingConfig = thinkingConfig
@@ -205,56 +205,8 @@ func ConvertFromChatOpenai(request *types.ChatCompletionRequest) (*GeminiChatReq
 		geminiRequest.GenerationConfig.ThinkingConfig.IncludeThoughts = true
 	}
 
-	functions := request.GetFunctions()
-
-	if functions != nil {
-		var geminiChatTools GeminiChatTools
-		googleSearch := false
-		codeExecution := false
-		urlContext := false
-		for _, function := range functions {
-			if function.Name == "googleSearch" {
-				googleSearch = true
-				continue
-			}
-			if function.Name == "codeExecution" {
-				codeExecution = true
-				continue
-			}
-			if function.Name == "urlContext" {
-				urlContext = true
-				continue
-			}
-
-			if params, ok := function.Parameters.(map[string]interface{}); ok {
-				if properties, ok := params["properties"].(map[string]interface{}); ok && len(properties) == 0 {
-					function.Parameters = nil
-				}
-			}
-
-			geminiChatTools.FunctionDeclarations = append(geminiChatTools.FunctionDeclarations, *function)
-		}
-
-		if codeExecution && len(geminiRequest.Tools) == 0 {
-			geminiRequest.Tools = append(geminiRequest.Tools, GeminiChatTools{
-				CodeExecution: &GeminiCodeExecution{},
-			})
-		}
-		if urlContext && len(geminiRequest.Tools) == 0 {
-			geminiRequest.Tools = append(geminiRequest.Tools, GeminiChatTools{
-				UrlContext: &GeminiCodeExecution{},
-			})
-		}
-
-		if googleSearch {
-			geminiRequest.Tools = append(geminiRequest.Tools, GeminiChatTools{
-				GoogleSearch: &GeminiCodeExecution{},
-			})
-		}
-
-		if len(geminiRequest.Tools) == 0 {
-			geminiRequest.Tools = append(geminiRequest.Tools, geminiChatTools)
-		}
+	if err := convertTools(request, &geminiRequest); err != nil {
+		return nil, common.ErrorWrapperLocal(err, "invalid_tools", http.StatusBadRequest)
 	}
 
 	geminiContent, systemContent, err := OpenAIToGeminiChatContent(request.Messages)
@@ -526,6 +478,9 @@ func ConvertOpenAIUsage(geminiUsage *GeminiUsageMetadata) types.Usage {
 }
 
 func (p *GeminiProvider) pluginHandle(request *GeminiChatRequest) {
+	if request.ToolConfig != nil && request.ToolConfig.FunctionCallingConfig != nil && request.ToolConfig.FunctionCallingConfig.Mode == "NONE" {
+		return
+	}
 	if !p.UseCodeExecution {
 		return
 	}

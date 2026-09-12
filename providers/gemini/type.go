@@ -50,7 +50,7 @@ type GeminiToolConfig struct {
 }
 
 type GeminiFunctionCallingConfig struct {
-	Model                string `json:"model,omitempty"`
+	Mode                 string `json:"mode,omitempty"`
 	AllowedFunctionNames any    `json:"allowedFunctionNames,omitempty"`
 }
 type GeminiInlineData struct {
@@ -343,11 +343,18 @@ type GeminiChatSafetySettings struct {
 }
 
 type GeminiChatTools struct {
-	FunctionDeclarations  []types.ChatCompletionFunction `json:"functionDeclarations,omitempty"`
-	CodeExecution         *GeminiCodeExecution           `json:"codeExecution,omitempty"`
-	GoogleSearch          any                            `json:"googleSearch,omitempty"`
-	UrlContext            any                            `json:"urlContext,omitempty"`
-	GoogleSearchRetrieval any                            `json:"googleSearchRetrieval,omitempty"`
+	FunctionDeclarations  []GeminiFunctionDeclaration `json:"functionDeclarations,omitempty"`
+	CodeExecution         *GeminiCodeExecution        `json:"codeExecution,omitempty"`
+	GoogleSearch          any                         `json:"googleSearch,omitempty"`
+	UrlContext            any                         `json:"urlContext,omitempty"`
+	GoogleSearchRetrieval any                         `json:"googleSearchRetrieval,omitempty"`
+}
+
+// Do not serialize OpenAI-only fields (notably strict) as Gemini fields.
+type GeminiFunctionDeclaration struct {
+	Name                 string `json:"name"`
+	Description          string `json:"description,omitempty"`
+	ParametersJsonSchema any    `json:"parametersJsonSchema,omitempty"`
 }
 
 type GeminiCodeExecution struct {
@@ -484,11 +491,16 @@ func OpenAIToGeminiChatContent(openaiContents []types.ChatCompletionMessage) ([]
 
 		if openaiContent.ToolCalls != nil {
 			for _, toolCall := range openaiContent.ToolCalls {
+				if toolCall == nil || toolCall.Function == nil || strings.TrimSpace(toolCall.Function.Name) == "" {
+					return nil, "", common.StringErrorWrapperLocal("invalid tool call", "invalid_tool_call", http.StatusBadRequest)
+				}
 				toolCallId[toolCall.Id] = toolCall.Function.Name
 
 				args := map[string]interface{}{}
 				if toolCall.Function.Arguments != "" {
-					json.Unmarshal([]byte(toolCall.Function.Arguments), &args)
+					if err := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); err != nil || args == nil {
+						return nil, "", common.StringErrorWrapperLocal("tool arguments must be a valid JSON object", "invalid_tool_arguments", http.StatusBadRequest)
+					}
 				}
 
 				content.Parts = append(content.Parts, GeminiPart{

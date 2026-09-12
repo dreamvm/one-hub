@@ -37,6 +37,22 @@ OpenAI 兼容请求的 `tool` / 旧式 `function` 消息转换为 Gemini
 这只是受控工具调用契约的检查，不是完整 Gemini 协议验证器；
 源码测试通过不等于已发布新镜像或完成 Open WebUI 浏览器端到端验收。
 
+## Gemini 工具定义和调用控制
+
+OpenAI 工具参数使用 Gemini 专用声明的 `parametersJsonSchema` 传送，保留嵌套的
+`additionalProperties`、`examples`、引用与参数名称，不修改请求原对象、不降级删除约束。
+这要求上游实现该原生字段；旧网关若不支持，需要升级上游适配，不能以无限制删字段代替。
+函数参数必须是 JSON 对象；损坏或非对象参数返回本地 400。
+
+支持 `auto` / `none` / `required` / 指定函数及旧式 `function_call` 控制。
+`strict=true` 只在 `ANY`（required/指定函数）或禁止调用时接受；不把 auto 偷换为强制调用。
+Gemini 此适配器不能保证禁止并行，因此显式 `parallel_tool_calls=false`（除 none）返回 400。
+自定义函数与搜索、代码执行、URL 工具均保留，由实际上游验证模型是否支持组合。
+none 不注入内置工具。工具执行和权限仍由客户端负责。
+
+共享 Chat/Responses 的并行开关改为可空布尔值，保留未设置、false、true 三种状态。
+新增检查解析仅由 Gemini/Claude 适配按需使用，不改写其他供应商的 Schema。
+
 ## 回归测试
 
 使用 Go 1.25.x。在仓库根目录运行：
@@ -72,7 +88,7 @@ GitHub Actions 的 `Gemini compatibility` 工作流只测试和编译，不发�
 
 - 本维护版处理函数调用 part 上的签名与工具结果角色转换，不宣称覆盖所有新模型或全部 Gemini 协议。
 - 不包含 Interactions API、文本/图片 part 的签名，或跨多个上游事件拼接增量函数参数的完整支持。
-- 不处理工具 Schema 的 `strict`/`additionalProperties` 等其他兼容性问题。
+- Gemini Schema/strict 的明确支持边界见上文，不保证所有中转供应商实现相同字段。
 - 不修改计费、重试、渠道选择或权限规则；也不代表此前流式中断的所有根因已修复。
 - 首批修复最初只验证源码回归和相关后端包；后续构建和隔离验收记录见下方，不代表线上端到端验收。
 
