@@ -38,10 +38,11 @@ type ChatCompletionToolCallsFunction struct {
 }
 
 type ChatCompletionToolCalls struct {
-	Id       string                           `json:"id,omitempty"`
-	Type     string                           `json:"type,omitempty"`
-	Function *ChatCompletionToolCallsFunction `json:"function"`
-	Index    int                              `json:"index"`
+	Id           string                           `json:"id,omitempty"`
+	Type         string                           `json:"type,omitempty"`
+	Function     *ChatCompletionToolCallsFunction `json:"function"`
+	Index        int                              `json:"index"`
+	ExtraContent json.RawMessage                  `json:"extra_content,omitempty"`
 }
 
 type ChatCompletionMessage struct {
@@ -217,8 +218,8 @@ type ChatCompletionRequest struct {
 	ThinkingBudget *int  `json:"thinking_budget,omitempty"` // qwen3 思考长度，只有enable_thinking开启才生效
 	EnableSearch   *bool `json:"enable_search,omitempty"`   // qwen 搜索开关
 
-  Thinking *interface{} `json:"thinking,omitempty"` // thinking 思考开关，兼容火山引擎
-  
+	Thinking *interface{} `json:"thinking,omitempty"` // thinking 思考开关，兼容火山引擎
+
 	OneOtherArg string `json:"-"`
 }
 
@@ -375,14 +376,16 @@ func (f *ChatCompletionToolCallsFunction) Split(c *ChatCompletionStreamChoice, s
 			choice.Delta.FunctionCall = function
 		} else {
 			toolCalls := &ChatCompletionToolCalls{
-				// Id:       c.Delta.ToolCalls[0].Id,
 				Index:    index,
 				Type:     ChatMessageRoleFunction,
 				Function: function,
 			}
 
 			if fIndex == 0 {
-				toolCalls.Id = c.Delta.ToolCalls[0].Id
+				if index < len(c.Delta.ToolCalls) {
+					toolCalls.Id = c.Delta.ToolCalls[index].Id
+					toolCalls.ExtraContent = c.Delta.ToolCalls[index].ExtraContent
+				}
 			}
 			choice.Delta.ToolCalls = []*ChatCompletionToolCalls{toolCalls}
 		}
