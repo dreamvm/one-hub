@@ -80,7 +80,7 @@ func (p *ClaudeProvider) CreateChatCompletionStream(request *types.ChatCompletio
 
 	eventstream.NewDecoder()
 
-	return requester.RequestStream(p.Requester, resp, chatHandler.HandlerStream)
+	return requester.RequestStream(p.Requester, resp, chatHandler.HandlerStream, chatHandler.EndError)
 }
 
 func (p *ClaudeProvider) getChatRequest(claudeRequest *ClaudeRequest) (*http.Request, *types.OpenAIErrorWithStatusCode) {

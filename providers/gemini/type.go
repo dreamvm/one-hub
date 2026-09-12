@@ -88,8 +88,11 @@ type GeminiPartCodeExecutionResult struct {
 }
 
 type GeminiFunctionCall struct {
-	Name string                 `json:"name,omitempty"`
-	Args map[string]interface{} `json:"args,omitempty"`
+	ID           string                 `json:"id,omitempty"`
+	PartialArgs  json.RawMessage        `json:"partialArgs,omitempty"`
+	WillContinue *bool                  `json:"willContinue,omitempty"`
+	Name         string                 `json:"name,omitempty"`
+	Args         map[string]interface{} `json:"args,omitempty"`
 }
 
 func (candidate *GeminiChatCandidate) ToOpenAIStreamChoice(request *types.ChatCompletionRequest) types.ChatCompletionStreamChoice {
@@ -271,12 +274,12 @@ func (candidate *GeminiChatCandidate) ToOpenAIChoice(request *types.ChatCompleti
 }
 
 type GeminiFunctionResponse struct {
+	ID           string          `json:"id,omitempty"`
 	Name         string          `json:"name,omitempty"`
 	Response     any             `json:"response,omitempty"`
 	WillContinue json.RawMessage `json:"willContinue,omitempty"`
 	Scheduling   json.RawMessage `json:"scheduling,omitempty"`
 	Parts        json.RawMessage `json:"parts,omitempty"`
-	ID           json.RawMessage `json:"id,omitempty"`
 }
 
 type GeminiFunctionResponseContent struct {
@@ -289,6 +292,7 @@ type geminiOpenAIExtraContent struct {
 }
 
 type geminiOpenAIExtraContentGoogle struct {
+	FunctionCallID   string          `json:"function_call_id,omitempty"`
 	ThoughtSignature json.RawMessage `json:"thought_signature,omitempty"`
 }
 
@@ -296,9 +300,9 @@ type geminiOpenAIExtraContentGoogle struct {
 // the OpenAI-compatible response so clients can return it on the next turn.
 func (p *GeminiPart) ToOpenAITool() *types.ChatCompletionToolCalls {
 	toolCall := p.FunctionCall.ToOpenAITool()
-	if len(p.ThoughtSignature) > 0 {
+	if len(p.ThoughtSignature) > 0 || p.FunctionCall.ID != "" {
 		extraContent, err := json.Marshal(geminiOpenAIExtraContent{
-			Google: geminiOpenAIExtraContentGoogle{ThoughtSignature: p.ThoughtSignature},
+			Google: geminiOpenAIExtraContentGoogle{ThoughtSignature: p.ThoughtSignature, FunctionCallID: p.FunctionCall.ID},
 		})
 		if err == nil {
 			toolCall.ExtraContent = extraContent
@@ -319,10 +323,18 @@ func thoughtSignatureFromExtraContent(extraContent json.RawMessage) json.RawMess
 }
 
 func (g *GeminiFunctionCall) ToOpenAITool() *types.ChatCompletionToolCalls {
-	args, _ := json.Marshal(g.Args)
+	input := g.Args
+	if input == nil {
+		input = map[string]any{}
+	}
+	args, _ := json.Marshal(input)
+	id := g.ID
+	if id == "" {
+		id = "call_" + utils.GetRandomString(24)
+	}
 
 	return &types.ChatCompletionToolCalls{
-		Id:    "call_" + utils.GetRandomString(24),
+		Id:    id,
 		Type:  types.ChatMessageRoleFunction,
 		Index: 0,
 		Function: &types.ChatCompletionToolCallsFunction{
@@ -476,6 +488,7 @@ func OpenAIToGeminiChatContent(openaiContents []types.ChatCompletionMessage) ([]
 	// useToolName := ""
 	var systemContent []string
 	toolCallId := make(map[string]string)
+	nativeIDs := make(map[string]string)
 
 	for _, openaiContent := range openaiContents {
 		if openaiContent.IsSystemRole() {
@@ -495,6 +508,9 @@ func OpenAIToGeminiChatContent(openaiContents []types.ChatCompletionMessage) ([]
 					return nil, "", common.StringErrorWrapperLocal("invalid tool call", "invalid_tool_call", http.StatusBadRequest)
 				}
 				toolCallId[toolCall.Id] = toolCall.Function.Name
+				var metadata geminiOpenAIExtraContent
+				_ = json.Unmarshal(toolCall.ExtraContent, &metadata)
+				nativeIDs[toolCall.Id] = metadata.Google.FunctionCallID
 
 				args := map[string]interface{}{}
 				if toolCall.Function.Arguments != "" {
@@ -505,6 +521,7 @@ func OpenAIToGeminiChatContent(openaiContents []types.ChatCompletionMessage) ([]
 
 				content.Parts = append(content.Parts, GeminiPart{
 					FunctionCall: &GeminiFunctionCall{
+						ID:   nativeIDs[toolCall.Id],
 						Name: toolCall.Function.Name,
 						Args: args,
 					},
@@ -530,6 +547,7 @@ func OpenAIToGeminiChatContent(openaiContents []types.ChatCompletionMessage) ([]
 
 			functionPart := GeminiPart{
 				FunctionResponse: &GeminiFunctionResponse{
+					ID:   nativeIDs[openaiContent.ToolCallID],
 					Name: *openaiContent.Name,
 					Response: GeminiFunctionResponseContent{
 						Name:    *openaiContent.Name,

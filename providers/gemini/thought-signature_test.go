@@ -253,7 +253,7 @@ func TestGeminiSSEToolSignatureForwarding(t *testing.T) {
 	errors := make(chan error, 1)
 	handler.HandlerStream(&line, data, errors)
 	require.Empty(t, errors)
-	require.Len(t, data, 4)
+	require.Len(t, data, 3)
 
 	var chunks []types.ChatCompletionStreamResponse
 	for len(data) > 0 {
@@ -271,6 +271,5 @@ func TestGeminiSSEToolSignatureForwarding(t *testing.T) {
 	require.Equal(t, "get_info", call.Function.Name)
 	require.Equal(t, "{}", chunks[1].Choices[0].Delta.ToolCalls[0].Function.Arguments)
 	require.Equal(t, types.FinishReasonToolCalls, chunks[2].Choices[0].FinishReason)
-	require.Equal(t, types.FinishReasonStop, chunks[3].Choices[0].FinishReason)
 	require.Equal(t, 12, handler.Usage.TotalTokens)
 }
