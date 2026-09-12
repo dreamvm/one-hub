@@ -115,7 +115,7 @@ func (candidate *GeminiChatCandidate) ToOpenAIStreamChoice(request *types.ChatCo
 				choice.Delta.ToolCalls = make([]*types.ChatCompletionToolCalls, 0)
 			}
 			isTools = true
-			choice.Delta.ToolCalls = append(choice.Delta.ToolCalls, part.FunctionCall.ToOpenAITool())
+			choice.Delta.ToolCalls = append(choice.Delta.ToolCalls, part.ToOpenAITool())
 		} else if part.InlineData != nil {
 			if strings.HasPrefix(part.InlineData.MimeType, "image/") {
 				images = append(images, types.MultimediaData{
@@ -204,7 +204,7 @@ func (candidate *GeminiChatCandidate) ToOpenAIChoice(request *types.ChatCompleti
 				choice.Message.ToolCalls = make([]*types.ChatCompletionToolCalls, 0)
 			}
 			useTools = true
-			choice.Message.ToolCalls = append(choice.Message.ToolCalls, part.FunctionCall.ToOpenAITool())
+			choice.Message.ToolCalls = append(choice.Message.ToolCalls, part.ToOpenAITool())
 		} else if part.InlineData != nil {
 			if strings.HasPrefix(part.InlineData.MimeType, "image/") {
 
@@ -282,6 +282,40 @@ type GeminiFunctionResponse struct {
 type GeminiFunctionResponseContent struct {
 	Name    string `json:"name,omitempty"`
 	Content string `json:"content,omitempty"`
+}
+
+type geminiOpenAIExtraContent struct {
+	Google geminiOpenAIExtraContentGoogle `json:"google"`
+}
+
+type geminiOpenAIExtraContentGoogle struct {
+	ThoughtSignature json.RawMessage `json:"thought_signature,omitempty"`
+}
+
+// ToOpenAITool carries the opaque signature from a function-call part through
+// the OpenAI-compatible response so clients can return it on the next turn.
+func (p *GeminiPart) ToOpenAITool() *types.ChatCompletionToolCalls {
+	toolCall := p.FunctionCall.ToOpenAITool()
+	if len(p.ThoughtSignature) > 0 {
+		extraContent, err := json.Marshal(geminiOpenAIExtraContent{
+			Google: geminiOpenAIExtraContentGoogle{ThoughtSignature: p.ThoughtSignature},
+		})
+		if err == nil {
+			toolCall.ExtraContent = extraContent
+		}
+	}
+	return toolCall
+}
+
+func thoughtSignatureFromExtraContent(extraContent json.RawMessage) json.RawMessage {
+	if len(extraContent) == 0 {
+		return nil
+	}
+	var extra geminiOpenAIExtraContent
+	if err := json.Unmarshal(extraContent, &extra); err != nil {
+		return nil
+	}
+	return extra.Google.ThoughtSignature
 }
 
 func (g *GeminiFunctionCall) ToOpenAITool() *types.ChatCompletionToolCalls {
@@ -449,6 +483,7 @@ func OpenAIToGeminiChatContent(openaiContents []types.ChatCompletionMessage) ([]
 						Name: toolCall.Function.Name,
 						Args: args,
 					},
+					ThoughtSignature: thoughtSignatureFromExtraContent(toolCall.ExtraContent),
 				})
 
 			}
