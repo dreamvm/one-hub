@@ -35,7 +35,7 @@ def command(*args, check=True, input_text=None):
 
 def start_container(name, options, created):
     # Register the container before start: a failed OCI start still leaves it behind.
-    command("docker", "create", "--name", name, *options)
+    command("docker", "create", "--pull=never", "--name", name, *options)
     created.append(("container", name))
     command("docker", "start", name)
 
@@ -153,12 +153,86 @@ def wait_ready(client):
     raise RuntimeError(f"gateway did not start: {last_error}")
 
 
+def validate_backend(args):
+    require(args.backend in ("sqlite", "mysql-redis"), "unsupported smoke backend")
+    if args.backend == "mysql-redis":
+        for image in (args.mysql_image, args.redis_image):
+            require(isinstance(image, str) and re.fullmatch(r"sha256:[a-f0-9]{64}", image),
+                    "MySQL/Redis require explicit local immutable image IDs; tags and remote pulls are not allowed")
+
+
+class MySQLRedis:
+    """Fresh synthetic services, never a connection to an existing database."""
+
+    def __init__(self, args, prefix, tmp, common, created):
+        self.mysql, self.redis = prefix + "-mysql", prefix + "-redis"
+        self.password, self.redis_password = secrets.token_hex(24), secrets.token_hex(24)
+        volume = prefix + "-mysql-data"
+        command("docker", "volume", "create", volume)
+        created.append(("volume", volume))
+        start_container(self.mysql, [*common, "--user", "999:999", "--network-alias", "database",
+                        "--memory", "1g", "--cpus", "1", "--mount", f"type=volume,source={volume},target=/var/lib/mysql",
+                        "--tmpfs", "/var/run/mysqld:rw,nosuid,size=16m,uid=999,gid=999",
+                        "-e", "MYSQL_ROOT_PASSWORD=" + secrets.token_hex(24), "-e", "MYSQL_DATABASE=onehub_smoke",
+                        "-e", "MYSQL_USER=smoke", "-e", "MYSQL_PASSWORD=" + self.password,
+                        args.mysql_image, "--innodb-buffer-pool-size=128M", "--max-connections=30"], created)
+        config = tmp / "redis.conf"
+        config.write_text('bind 0.0.0.0\nprotected-mode yes\nsave ""\nappendonly no\nmaxmemory 64mb\n'
+                          'maxmemory-policy noeviction\nrequirepass ' + self.redis_password + '\n', encoding="utf-8")
+        config.chmod(0o644)
+        start_container(self.redis, [*common, "--user", "999:999", "--network-alias", "cache",
+                        "--memory", "128m", "--cpus", "0.25", "--tmpfs", "/data:rw,nosuid,size=16m,uid=999,gid=999",
+                        "--mount", f"type=bind,source={config},target=/fixture-redis.conf,readonly",
+                        args.redis_image, "redis-server", "/fixture-redis.conf"], created)
+        self.wait_ready()
+
+    def sql(self, query, check=True):
+        return command("docker", "exec", "-i", "-e", "MYSQL_PWD=" + self.password, self.mysql,
+                       "mysql", "--protocol=tcp", "--host=127.0.0.1", "--user=smoke", "--database=onehub_smoke",
+                       "--batch", "--skip-column-names", check=check, input_text=query)
+
+    def cache(self, *args, check=True):
+        return command("docker", "exec", "-e", "REDISCLI_AUTH=" + self.redis_password, self.redis,
+                       "redis-cli", "--raw", *args, check=check)
+
+    def wait_ready(self):
+        deadline = time.monotonic() + 120
+        while time.monotonic() < deadline:
+            sql = self.sql("SELECT 1;", check=False)
+            cache = self.cache("PING", check=False)
+            if sql.returncode == 0 and sql.stdout.strip() == "1" and cache.stdout.strip() == "PONG":
+                return
+            time.sleep(1)
+        raise RuntimeError("isolated MySQL/Redis did not become ready")
+
+    def environment(self):
+        return ["-e", f"SQL_DSN=smoke:{self.password}@tcp(database:3306)/onehub_smoke?charset=utf8mb4&parseTime=True&loc=Local",
+                "-e", f"REDIS_CONN_STRING=redis://:{self.redis_password}@cache:6379/0",
+                "-e", "SYNC_FREQUENCY=600", "-e", "REDIS_DB=0"]
+
+    def assert_used(self):
+        # Counts only: do not print test tokens or session contents.
+        require(int(self.sql("SELECT COUNT(*) FROM users;").stdout.strip()) >= 2, "users not persisted in MySQL")
+        require(int(self.sql("SELECT COUNT(*) FROM channels;").stdout.strip()) == 3, "channels not persisted in MySQL")
+        require(int(self.cache("DBSIZE").stdout.strip()) > 0, "Redis cache remained empty")
+        stats = dict(line.split(":", 1) for line in self.cache("INFO", "stats").stdout.splitlines() if ":" in line)
+        require(int(stats.get("keyspace_hits", "0")) > 0, "Redis was configured but cache hits were not observed")
+
+    def restart(self):
+        for name in (self.mysql, self.redis):
+            command("docker", "restart", "--time", "15", name)
+        self.wait_ready()
+
+
 def run(args):
     require(re.fullmatch(r"onehub-isolated-smoke:[a-f0-9]{40}", args.image), "only the local smoke image is allowed")
+    validate_backend(args)
     prefix = "onehub-smoke-" + uuid.uuid4().hex[:12]
     gateway, mock = prefix + "-gateway", prefix + "-mock"
     network, volume = prefix + "-net", prefix + "-data"
     created, checks = [], []
+    backend = None
+    print(f"FIXTURE: {prefix}; backend={args.backend}", flush=True)
 
     def passed(label):
         checks.append(label)
@@ -178,27 +252,38 @@ def run(args):
             command("docker", "volume", "create", volume)
             created.append(("volume", volume))
             common = ["--network", network, "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--pids-limit", "256", "--read-only", "--tmpfs", "/tmp:rw,noexec,nosuid,size=64m"]
+            if args.backend == "mysql-redis":
+                backend = MySQLRedis(args, prefix, tmp, common, created)
+                passed("isolated authenticated MySQL/Redis startup, fresh data volume and resource limits")
             # Both containers use the actual built image. Only the mock entrypoint differs.
             start_container(mock, [*common, "--user", f"{os.getuid()}:{os.getgid()}",
-                    "--network-alias", "mock-provider", "--memory", "128m", "--cpus", "1",
+                    "--network-alias", "mock-provider", "--memory", "128m", "--cpus", "0.25",
                     "--mount", f"type=bind,source={tmp},target=/fixture,readonly",
                     "--entrypoint", "/fixture/mock", args.image], created)
             start_container(gateway, [*common,
                     "--network-alias", "gateway",
-                    "--memory", "1g", "--cpus", "2", "--mount", f"type=volume,source={volume},target=/data",
+                    "--memory", "512m", "--cpus", "1", "--mount", f"type=volume,source={volume},target=/data",
                     "--mount", f"type=bind,source={tmp / 'server.crt'},target=/fixture-ca.crt,readonly",
                     "-e", "SSL_CERT_FILE=/fixture-ca.crt", "-e", "DISABLE_TOKEN_ENCODERS=true",
                     "-e", "AUTO_PRICE_UPDATES=false", "-e", "RELAY_TIMEOUT=15", "-e", "CONNECT_TIMEOUT=3",
                     "-e", "SESSION_SECRET=" + secrets.token_hex(32), "-e", "USER_TOKEN_SECRET=" + secrets.token_hex(32),
+                    *(backend.environment() if backend else []),
                     args.image], created)
-            for name in (gateway, mock):
+            for kind, name in created:
+                if kind != "container":
+                    continue
                 config = json.loads(command("docker", "inspect", name).stdout)[0]
                 require(not config["HostConfig"]["PortBindings"], "unexpected published port")
+                require(set(config["NetworkSettings"]["Networks"]) == {network}, "container joined another network")
+                require(config["HostConfig"]["Memory"] > 0 and config["HostConfig"]["NanoCpus"] > 0, "resource limits missing")
             client = Client("http://gateway:3000", mock)
             require(wait_ready(client)["version"] == args.version, "wrong binary version")
-            passed("startup, fresh SQLite migration and binary version")
+            passed(f"startup, fresh {args.backend} migration and binary version")
             command("docker", "exec", gateway, "test", "-s", "/etc/ssl/certs/ca-certificates.crt")
-            command("docker", "exec", gateway, "test", "-s", "/data/one-api.db")
+            if backend:
+                command("docker", "exec", gateway, "test", "!", "-e", "/data/one-api.db")
+            else:
+                command("docker", "exec", gateway, "test", "-s", "/data/one-api.db")
             status, _, body = client.request("/")
             require(status == 200 and '<div id="root"' in body, "frontend index missing")
             scripts = re.findall(r'<script[^>]+src="([^\"]+)"', body)
@@ -253,12 +338,30 @@ def run(args):
             _, _, denied = user.request("/api/channel/")
             require(json.loads(denied).get("success") is False, "ordinary user received admin access")
             passed("ordinary-user chat/tools with admin access denied")
-            command("docker", "restart", "--time", "10", gateway)
+            if backend:
+                backend.assert_used()
+                passed("MySQL user/channel persistence and verified Redis cache hits")
+                command("docker", "stop", "--time", "10", gateway)
+                backend.restart()
+                command("docker", "start", gateway)
+            else:
+                command("docker", "restart", "--time", "10", gateway)
             require(wait_ready(client)["version"] == args.version, "restart version changed")
             login = Client(client.base, mock)
             login.api("/api/user/login", {"username": "root", "password": password})
             require(chat(user, user_token, "openai-smoke", False)["content"] == "中文对话成功", "persisted user/token/channel failed after restart")
-            passed("restart persistence: SQLite, changed password, users, tokens and channels")
+            if backend:
+                # Redis has persistence disabled. A restarted empty cache must refill from MySQL.
+                check_tools(chat(user, user_token, "gemini-smoke", True, initial, tools))
+                backend.assert_used()
+            passed(f"restart persistence: {args.backend}, changed password, users, tokens and channels")
+            if backend:
+                token_id = int(backend.sql(f"SELECT id FROM tokens WHERE user_id={int(user_info['id'])} AND name='sys_playground';").stdout.strip())
+                user.api(f"/api/token/{token_id}", method="DELETE")
+                code, _, _ = user.request("/v1/chat/completions", token=user_token,
+                                           data={"model": "openai-smoke", "messages": [{"role": "user", "content": "revoked token check"}]})
+                require(code in (401, 403), "deleted token was still authorized after Redis cache warmup")
+                passed("revoked ordinary-user token rejected after Redis cache warmup")
             _, _, stats_raw = Client("http://mock-provider:8000", mock).request("/stats")
             stats = json.loads(stats_raw)
             for key in ("openai-smoke_false", "openai-smoke_true", "openai-https-smoke_false", "openai-https-smoke_true", "gemini_tools_false", "gemini_tools_true", "gemini_followup_false", "gemini_followup_true", "rejected"):
@@ -277,10 +380,10 @@ def run(args):
                 if command(*args_rm, check=False).returncode:
                     failures.append(name)
             require(not failures, "cleanup failed: " + ", ".join(failures))
-            print("CLEANUP: removed this run's containers, temporary SQLite volume and internal network", flush=True)
+            print("CLEANUP: removed this run's containers, temporary data volumes and internal network", flush=True)
     passed("temporary resources cleaned up")
     summary = "## Isolated image smoke passed\n\n" + "\n".join("- " + item for item in checks)
-    summary += "\n\nSynthetic upstream only; SQLite only; token encoders disabled for offline startup. No real models, Office generation, production data, registry push or deployment.\n"
+    summary += f"\n\nSynthetic upstream only; backend={args.backend}; token encoders disabled for offline startup. No real models, Office generation, production data, registry push or deployment.\n"
     if os.environ.get("GITHUB_STEP_SUMMARY"):
         with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as report:
             report.write(summary)
@@ -295,4 +398,7 @@ if __name__ == "__main__":
     parser.add_argument("--image", required=True)
     parser.add_argument("--mock-binary", type=Path, required=True)
     parser.add_argument("--version", required=True)
+    parser.add_argument("--backend", choices=("sqlite", "mysql-redis"), default="sqlite")
+    parser.add_argument("--mysql-image", help="Preloaded immutable MySQL image ID; mysql user must have UID 999")
+    parser.add_argument("--redis-image", help="Preloaded immutable Redis image ID; redis user must have UID 999")
     run(parser.parse_args())

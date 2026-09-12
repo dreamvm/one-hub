@@ -1,11 +1,47 @@
 import json
+from pathlib import Path
+import tempfile
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
-from run import SIGNATURES, NAMES, check_tools, parse_chat, start_container
+from run import SIGNATURES, NAMES, MySQLRedis, check_tools, parse_chat, start_container, validate_backend
 
 
 class StreamValidationTests(unittest.TestCase):
+    def test_mysql_redis_rejects_mutable_or_missing_images(self):
+        pinned = "sha256:" + "a" * 64
+        for invalid in (None, "mysql:8.2.0", "redis:latest", "sha256:123", "production-mysql"):
+            for mysql, redis in ((invalid, pinned), (pinned, invalid)):
+                with self.assertRaises(AssertionError):
+                    validate_backend(SimpleNamespace(backend="mysql-redis", mysql_image=mysql, redis_image=redis))
+        validate_backend(SimpleNamespace(backend="mysql-redis", mysql_image=pinned, redis_image=pinned))
+        validate_backend(SimpleNamespace(backend="sqlite"))
+
+    def test_mysql_redis_uses_only_new_volume_and_internal_aliases(self):
+        pinned = "sha256:" + "a" * 64
+        args = SimpleNamespace(mysql_image=pinned, redis_image=pinned)
+        created = []
+        with tempfile.TemporaryDirectory() as tmp, patch("run.command"), \
+                patch("run.start_container") as start, patch.object(MySQLRedis, "wait_ready"):
+            backend = MySQLRedis(args, "onehub-smoke-test", Path(tmp),
+                                 ["--network", "onehub-smoke-test-net", "--cap-drop", "ALL"], created)
+            self.assertEqual(created, [("volume", "onehub-smoke-test-mysql-data")])
+            self.assertEqual(start.call_count, 2)
+            for call in start.call_args_list:
+                name, options, tracked = call.args
+                self.assertTrue(name.startswith("onehub-smoke-test-"))
+                self.assertIs(tracked, created)
+                self.assertNotIn("-p", options)
+                self.assertNotIn("--publish", options)
+                self.assertIn("--memory", options)
+                self.assertIn("--cpus", options)
+                self.assertIn("999:999", options)
+            env = backend.environment()
+            self.assertTrue(any("@tcp(database:3306)/onehub_smoke?" in value for value in env))
+            self.assertTrue(any("@cache:6379/0" in value for value in env))
+            self.assertIn("SYNC_FREQUENCY=600", env)
+
     def test_failed_container_start_remains_tracked_for_cleanup(self):
         created = []
         with patch("run.command", side_effect=[None, RuntimeError("OCI start failed")]):

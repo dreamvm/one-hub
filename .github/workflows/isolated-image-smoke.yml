@@ -21,9 +21,13 @@ jobs:
   smoke:
     needs: test
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     env:
       SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      # Public, immutable fixtures: One Hub v0.14.27, MySQL 8.2.0, Redis 8.8.0.
+      OLD_IMAGE: martialbe/one-api@sha256:a498510e4b847ce59514c60463d505492fc0b627fa278703dba67be7839ae8a7
+      MYSQL_IMAGE: mysql@sha256:212fe73edca5df6ff14826d5eb975c914bfb91f82a2e923f9050568f99525da1
+      REDIS_IMAGE: redis@sha256:2838d5524559494f6f1cd66e97e76b200d64a633a8614200620755ed395daf32
     steps:
       - name: Check out the tested revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -55,9 +59,54 @@ jobs:
           push: false
           tags: onehub-isolated-smoke:${{ env.SOURCE_SHA }}
           cache-from: type=gha
-      - name: Run isolated HTTP and persistence checks
+      - name: Load immutable database and upgrade fixtures
+        id: fixtures
+        timeout-minutes: 5
+        shell: bash
+        run: |
+          set -euo pipefail
+          for variable in OLD_IMAGE MYSQL_IMAGE REDIS_IMAGE; do
+            reference="${!variable}"
+            docker pull --platform linux/amd64 "$reference"
+            image_id="$(docker image inspect --format '{{.Id}}' "$reference")"
+            [[ "$image_id" =~ ^sha256:[a-f0-9]{64}$ ]]
+            printf '%s_ID=%s\n' "$variable" "$image_id" >> "$GITHUB_ENV"
+          done
+          candidate_id="$(docker image inspect --format '{{.Id}}' "onehub-isolated-smoke:$SOURCE_SHA")"
+          [[ "$candidate_id" =~ ^sha256:[a-f0-9]{64}$ ]]
+          printf 'CANDIDATE_IMAGE_ID=%s\n' "$candidate_id" >> "$GITHUB_ENV"
+
+      - name: Run isolated SQLite checks
+        id: sqlite
+        timeout-minutes: 3
         run: |
           python3 .github/smoke/run.py \
             --image "onehub-isolated-smoke:$SOURCE_SHA" \
             --mock-binary "$RUNNER_TEMP/onehub-mock" \
-            --version "v0.0.0-smoke-$SOURCE_SHA"
+            --version "v0.0.0-smoke-$SOURCE_SHA" \
+            --backend sqlite
+
+      - name: Run isolated MySQL and Redis checks
+        id: mysql_redis
+        timeout-minutes: 6
+        run: |
+          python3 .github/smoke/run.py \
+            --image "onehub-isolated-smoke:$SOURCE_SHA" \
+            --mock-binary "$RUNNER_TEMP/onehub-mock" \
+            --version "v0.0.0-smoke-$SOURCE_SHA" \
+            --backend mysql-redis \
+            --mysql-image "$MYSQL_IMAGE_ID" \
+            --redis-image "$REDIS_IMAGE_ID"
+
+      - name: Rehearse upgrade and both rollback paths
+        id: upgrade
+        timeout-minutes: 8
+        run: |
+          python3 .github/smoke/upgrade.py \
+            --old-image "$OLD_IMAGE_ID" \
+            --old-version v0.14.27 \
+            --candidate-image "$CANDIDATE_IMAGE_ID" \
+            --candidate-version "v0.0.0-smoke-$SOURCE_SHA" \
+            --mysql-image "$MYSQL_IMAGE_ID" \
+            --redis-image "$REDIS_IMAGE_ID" \
+            --mock-binary "$RUNNER_TEMP/onehub-mock"
