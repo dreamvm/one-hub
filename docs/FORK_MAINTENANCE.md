@@ -22,12 +22,28 @@
 机器专用的 Node 内存限制，或硬编码的 `v0.14.27` 构建版本。
 Open WebUI 的客户端签名保留补丁属于另一个项目，不包含在本仓库中。
 
+## Gemini 工具结果角色修复
+
+OpenAI 兼容请求的 `tool` / 旧式 `function` 消息转换为 Gemini
+`functionResponse` 时，使用 `user` 角色，不再发送 `function`。
+连续工具结果仍合并到一个结果 turn，保持顺序、函数名、内容及原有调用签名；
+普通用户消息不会因为同为 `user` 角色而与工具结果混合。
+名称缺失或空白时尝试通过 `tool_call_id` 匹配；无法解析时返回本地 HTTP 400，
+不再解引用空指针或向上游发送空函数名。
+
+新增回归先在修复前复现了错误角色、缺失名称异常，以及模拟上游错误放行的情况。
+模拟上游现在检查 `functionCall` 的 `model` 角色与 `functionResponse` 的 `user` 角色，
+并将真实转换器输出序列化后送入模拟处理器，检查 JSON/SSE 两条路径。
+这只是受控工具调用契约的检查，不是完整 Gemini 协议验证器；
+源码测试通过不等于已发布新镜像或完成 Open WebUI 浏览器端到端验收。
+
 ## 回归测试
 
 使用 Go 1.25.x。在仓库根目录运行：
 
 ```sh
 go test -race -count=1 ./types ./providers/gemini
+go test -race -count=1 ./.github/smoke/...
 go build ./providers/... ./relay/...
 go vet ./types ./providers/gemini
 go test -count=1 ./.github/tests
@@ -44,6 +60,7 @@ go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
 - 单工具、多工具、仅第一个工具带签名、不同工具各带独立签名。
 - 无签名工具、旧式 `function_call`、空或不适用的可选扩展内容。
 - Gemini SSE 解析、工具分片、结束事件和用量保留。
+- 工具结果的 `user` 角色、连续多结果合并、普通用户 turn 隔离及无法解析名称时的 HTTP 400。
 
 新增测试在上游基线先复现签名丢失和多工具 ID 重复，再迁入修复。
 GitHub Actions 的 `Gemini compatibility` 工作流只测试和编译，不发布镜像、不部署。
@@ -53,7 +70,7 @@ GitHub Actions 的 `Gemini compatibility` 工作流只测试和编译，不发�
 
 ## 当前边界
 
-- 本补丁只处理函数调用 part 上的签名，不宣称覆盖所有新模型或全部 Gemini 协议。
+- 本维护版处理函数调用 part 上的签名与工具结果角色转换，不宣称覆盖所有新模型或全部 Gemini 协议。
 - 不包含 Interactions API、文本/图片 part 的签名，或跨多个上游事件拼接增量函数参数的完整支持。
 - 不处理工具 Schema 的 `strict`/`additionalProperties` 等其他兼容性问题。
 - 不修改计费、重试、渠道选择或权限规则；也不代表此前流式中断的所有根因已修复。

@@ -80,13 +80,26 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var calls, results []object
 	for _, content := range contents {
 		c, _ := content.(object)
+		role, _ := c["role"].(string)
+		if role != "user" && role != "model" {
+			s.reject(w, "unsupported Gemini content role")
+			return
+		}
 		parts, _ := c["parts"].([]any)
 		for _, part := range parts {
 			p, _ := part.(object)
 			if _, ok := p["functionCall"]; ok {
+				if role != "model" {
+					s.reject(w, "functionCall requires model role")
+					return
+				}
 				calls = append(calls, p)
 			}
 			if value, ok := p["functionResponse"].(object); ok {
+				if role != "user" {
+					s.reject(w, "functionResponse requires user role")
+					return
+				}
 				results = append(results, value)
 			}
 		}

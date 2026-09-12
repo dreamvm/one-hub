@@ -451,6 +451,19 @@ func (g *GeminiChatResponse) GetResponseText() string {
 	return ""
 }
 
+// Only coalesce tool results, never an ordinary user text or image turn.
+func isFunctionResponseContent(content GeminiChatContent) bool {
+	if content.Role != "user" || len(content.Parts) == 0 {
+		return false
+	}
+	for _, part := range content.Parts {
+		if part.FunctionResponse == nil {
+			return false
+		}
+	}
+	return true
+}
+
 func OpenAIToGeminiChatContent(openaiContents []types.ChatCompletionMessage) ([]GeminiChatContent, string, *types.OpenAIErrorWithStatusCode) {
 	contents := make([]GeminiChatContent, 0)
 	// useToolName := ""
@@ -492,10 +505,15 @@ func OpenAIToGeminiChatContent(openaiContents []types.ChatCompletionMessage) ([]
 				contents = append(contents, createSystemResponse(text))
 			}
 		} else if openaiContent.Role == types.ChatMessageRoleFunction || openaiContent.Role == types.ChatMessageRoleTool {
-			if openaiContent.Name == nil {
+			if openaiContent.Name == nil || strings.TrimSpace(*openaiContent.Name) == "" {
 				if toolName, exists := toolCallId[openaiContent.ToolCallID]; exists {
 					openaiContent.Name = &toolName
 				}
+			}
+			if openaiContent.Name == nil || strings.TrimSpace(*openaiContent.Name) == "" {
+				return nil, "", common.StringErrorWrapperLocal(
+					"tool result is missing a function name or a matching tool_call_id",
+					"invalid_tool_result", http.StatusBadRequest)
 			}
 
 			functionPart := GeminiPart{
@@ -508,11 +526,11 @@ func OpenAIToGeminiChatContent(openaiContents []types.ChatCompletionMessage) ([]
 				},
 			}
 
-			if len(contents) > 0 && contents[len(contents)-1].Role == "function" {
+			if len(contents) > 0 && isFunctionResponseContent(contents[len(contents)-1]) {
 				contents[len(contents)-1].Parts = append(contents[len(contents)-1].Parts, functionPart)
 			} else {
 				contents = append(contents, GeminiChatContent{
-					Role:  "function",
+					Role:  "user",
 					Parts: []GeminiPart{functionPart},
 				})
 			}

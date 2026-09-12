@@ -104,6 +104,7 @@ func TestGeminiThoughtSignatureRoundTrip(t *testing.T) {
 				require.Nil(t, apiErr)
 				require.Len(t, contents, 2)
 				require.Equal(t, "model", contents[0].Role)
+				require.Equal(t, "user", contents[1].Role, "Gemini functionResponse uses a user turn")
 				require.Len(t, contents[0].Parts, len(fixture.signatures))
 				require.Len(t, contents[1].Parts, len(fixture.signatures))
 				for i, signature := range fixture.signatures {
@@ -115,6 +116,104 @@ func TestGeminiThoughtSignatureRoundTrip(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+func TestGeminiToolResultTurns(t *testing.T) {
+	for _, fixture := range []struct {
+		name       string
+		messages   string
+		roles      []string
+		partCounts []int
+	}{
+		{
+			name: "legacy_named_function",
+			messages: `[{"role":"assistant","function_call":{"name":"read_file","arguments":"{}"}},
+				{"role":"function","name":"read_file","content":"中文结果"}]`,
+			roles: []string{"model", "user"}, partCounts: []int{1, 1},
+		},
+		{
+			name: "ordinary_user_turns_stay_separate",
+			messages: `[{"role":"user","content":"保留前一条用户消息"},
+				{"role":"function","name":"read_file","content":"中文结果"},
+				{"role":"user","content":"保留后一条用户消息"},
+				{"role":"function","name":"list_files","content":"第二个结果"}]`,
+			roles: []string{"user", "user", "user", "user"}, partCounts: []int{1, 1, 1, 1},
+		},
+		{
+			name: "consecutive_results_merge_but_new_calls_start_new_turns",
+			messages: `[{"role":"assistant","tool_calls":[
+				{"id":"a","type":"function","function":{"name":"read_file","arguments":"{}"}},
+				{"id":"b","type":"function","function":{"name":"list_files","arguments":"{}"}}]},
+				{"role":"tool","tool_call_id":"a","content":"第一个结果"},
+				{"role":"tool","tool_call_id":"b","content":"第二个结果"},
+				{"role":"assistant","tool_calls":[{"id":"c","type":"function","function":{"name":"read_file","arguments":"{}"}}]},
+				{"role":"tool","tool_call_id":"c","content":"下一轮结果"}]`,
+			roles: []string{"model", "user", "model", "user"}, partCounts: []int{2, 2, 1, 1},
+		},
+		{
+			name:     "explicit_name_stays_compatible",
+			messages: `[{"role":"tool","name":"read_file","content":"具名结果"}]`,
+			roles:    []string{"user"}, partCounts: []int{1},
+		},
+		{
+			name: "empty_name_resolves_from_tool_call_id",
+			messages: `[{"role":"assistant","tool_calls":[{"id":"a","type":"function","function":{"name":"read_file","arguments":"{}"}}]},
+				{"role":"tool","name":" ","tool_call_id":"a","content":"按 ID 匹配结果"}]`,
+			roles: []string{"model", "user"}, partCounts: []int{1, 1},
+		},
+	} {
+		t.Run(fixture.name, func(t *testing.T) {
+			var messages []types.ChatCompletionMessage
+			require.NoError(t, json.Unmarshal([]byte(fixture.messages), &messages))
+			contents, _, apiErr := gemini.OpenAIToGeminiChatContent(messages)
+			require.Nil(t, apiErr)
+			require.Len(t, contents, len(fixture.roles))
+			var resultTexts []string
+			for i, content := range contents {
+				require.Equal(t, fixture.roles[i], content.Role)
+				require.Len(t, content.Parts, fixture.partCounts[i])
+				for _, part := range content.Parts {
+					if part.FunctionResponse != nil {
+						require.Equal(t, "user", content.Role)
+						require.NotEmpty(t, part.FunctionResponse.Name)
+						response, ok := part.FunctionResponse.Response.(gemini.GeminiFunctionResponseContent)
+						require.True(t, ok)
+						require.Equal(t, part.FunctionResponse.Name, response.Name)
+						resultTexts = append(resultTexts, response.Content)
+					} else if content.Role == "user" {
+						require.Len(t, content.Parts, 1, "do not append results to an ordinary user message")
+					}
+				}
+			}
+			var expectedTexts []string
+			for _, message := range messages {
+				if message.Role == types.ChatMessageRoleTool || message.Role == types.ChatMessageRoleFunction {
+					expectedTexts = append(expectedTexts, message.StringContent())
+				}
+			}
+			require.Equal(t, expectedTexts, resultTexts, "keep result order and contents")
+		})
+	}
+}
+
+func TestGeminiRejectsUnresolvableToolResults(t *testing.T) {
+	for _, input := range []string{
+		`[{"role":"tool","tool_call_id":"unknown","content":"result"}]`,
+		`[{"role":"function","content":"result"}]`,
+		`[{"role":"tool","name":"","content":"result"}]`,
+		`[{"role":"function","name":"  ","content":"result"}]`,
+	} {
+		t.Run(input, func(t *testing.T) {
+			var messages []types.ChatCompletionMessage
+			require.NoError(t, json.Unmarshal([]byte(input), &messages))
+			require.NotPanics(t, func() {
+				contents, _, apiErr := gemini.OpenAIToGeminiChatContent(messages)
+				require.Empty(t, contents)
+				require.NotNil(t, apiErr)
+				require.Equal(t, 400, apiErr.StatusCode)
+			})
+		})
 	}
 }
 
