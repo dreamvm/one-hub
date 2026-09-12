@@ -45,7 +45,10 @@ OpenAI 工具参数使用 Gemini 专用声明的 `parametersJsonSchema` 传送�
 函数参数必须是 JSON 对象；损坏或非对象参数返回本地 400。
 
 支持 `auto` / `none` / `required` / 指定函数及旧式 `function_call` 控制。
-`strict=true` 只在 `ANY`（required/指定函数）或禁止调用时接受；不把 auto 偷换为强制调用。
+`strict=true` 配合 auto 时使用 `VALIDATED`，required/指定函数使用 `ANY`，none 保持 `NONE`；
+不把 auto 偷换为强制调用。内置工具与自定义函数组合时，auto 也使用 `VALIDATED`。
+依据 [Google 当前模式说明](https://ai.google.dev/gemini-api/docs/generate-content/function-calling?authuser=1&hl=en)，
+VALIDATED 允许自然语言回答并要求函数参数符合 Schema；实际支持仍取决于上游实现和模型。
 Gemini 此适配器不能保证禁止并行，因此显式 `parallel_tool_calls=false`（除 none）返回 400。
 自定义函数与搜索、代码执行、URL 工具均保留，由实际上游验证模型是否支持组合。
 none 不注入内置工具。工具执行和权限仍由客户端负责。

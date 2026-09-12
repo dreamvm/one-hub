@@ -46,6 +46,7 @@ func TestGeminiDoesNotLoseMixedTools(t *testing.T) {
 	for _, value := range []string{"googleSearch", "codeExecution", "urlContext", "write_file"} {
 		require.Contains(t, string(wire), value)
 	}
+	require.Equal(t, "VALIDATED", g.ToolConfig.FunctionCallingConfig.Mode)
 }
 
 func TestGeminiRejectsInvalidToolArguments(t *testing.T) {
@@ -65,7 +66,6 @@ func TestGeminiToolControlErrors(t *testing.T) {
 		`"tool_choice":"required"`,
 		`"parallel_tool_calls":false`,
 		`"tools":[null]`,
-		`"tools":[{"type":"function","function":{"name":"x","strict":true}}]`,
 	} {
 		t.Run(fields, func(t *testing.T) {
 			require.NotPanics(t, func() {
@@ -82,4 +82,15 @@ func TestGeminiToolControlErrors(t *testing.T) {
 		require.NotContains(t, string(b), `"strict"`)
 		require.Equal(t, "ANY", g.ToolConfig.FunctionCallingConfig.Mode)
 	}
+}
+
+func TestGeminiStrictAutoUsesValidated(t *testing.T) {
+	r := geminiRequest(t, `"tool_choice":"auto","tools":[{"type":"function","function":{"name":"x","strict":true,"parameters":{"type":"object","properties":{"value":{"type":"integer"}},"additionalProperties":false}}}]`)
+	g, e := gemini.ConvertFromChatOpenai(r)
+	require.Nil(t, e)
+	require.Equal(t, "VALIDATED", g.ToolConfig.FunctionCallingConfig.Mode)
+	wire, err := json.Marshal(g)
+	require.NoError(t, err)
+	require.NotContains(t, string(wire), `"strict"`)
+	require.Contains(t, string(wire), `"additionalProperties":false`)
 }

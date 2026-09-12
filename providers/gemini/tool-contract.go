@@ -62,6 +62,7 @@ func convertTools(request *types.ChatCompletionRequest, out *GeminiChatRequest) 
 			out.Tools = append(out.Tools, builtin)
 		}
 	}
+	hasBuiltins := len(out.Tools) > 0
 	if len(declarations) > 0 {
 		out.Tools = append(out.Tools, GeminiChatTools{FunctionDeclarations: declarations})
 	}
@@ -81,10 +82,11 @@ func convertTools(request *types.ChatCompletionRequest, out *GeminiChatRequest) 
 		control.Mode = "ANY"
 		control.AllowedFunctionNames = []string{name}
 	}
-	// ANY provides schema-constrained function calls. Do not silently force a
-	// call when the caller requested auto merely to emulate OpenAI strict mode.
-	if strict && control.Mode == "AUTO" {
-		return fmt.Errorf("Gemini strict tools require required or named tool_choice; auto strict is not supported by this adapter")
+	// VALIDATED keeps natural-language replies possible while requiring schema
+	// adherence, unlike ANY which forces a call. It is also the documented
+	// default for combinations of native tools and function declarations.
+	if control.Mode == "AUTO" && (strict || (hasBuiltins && len(declarations) > 0)) {
+		control.Mode = "VALIDATED"
 	}
 	if len(functions) > 0 || request.ToolChoice != nil || request.FunctionCall != nil {
 		out.ToolConfig = &GeminiToolConfig{FunctionCallingConfig: control}
