@@ -63,6 +63,15 @@ class StreamValidationTests(unittest.TestCase):
         self.assertEqual(message["content"], "中文成功")
         self.assertEqual(usage["total_tokens"], 10)
 
+    def test_retains_final_claude_metadata(self):
+        metadata = {"anthropic": {"content": [{"type": "thinking", "thinking": "", "signature": "synthetic"}]}}
+        message, _ = self.parse([
+            {"choices": [{"delta": {"tool_calls": [{"index": 0, "id": "fixture", "function": {"name": "read", "arguments": "{}"}}]}}]},
+            {"choices": [{"delta": {"extra_content": metadata, "tool_calls": [{"index": 0, "extra_content": metadata}]}, "finish_reason": "tool_calls"}]},
+        ])
+        self.assertEqual(message["extra_content"], metadata)
+        self.assertEqual(message["tool_calls"][0]["extra_content"], metadata)
+
     def test_rejects_truncated_stream_and_embedded_errors(self):
         with self.assertRaises(AssertionError):
             self.parse([{"choices": [{"delta": {}, "finish_reason": "stop"}]}], done=False)

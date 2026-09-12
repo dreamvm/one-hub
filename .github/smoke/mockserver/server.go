@@ -67,6 +67,10 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.openai(w, r, request)
 		return
 	}
+	if r.URL.Path == "/v1/messages" {
+		s.claude(w, r, request)
+		return
+	}
 	if r.URL.Path != "/v1beta/models/gemini-smoke:generateContent" && r.URL.Path != "/v1beta/models/gemini-smoke:streamGenerateContent" {
 		s.reject(w, "unexpected upstream path")
 		return
