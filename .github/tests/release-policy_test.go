@@ -34,11 +34,13 @@ type job struct {
 }
 
 type step struct {
-	ID   string         `yaml:"id"`
-	If   string         `yaml:"if"`
-	Uses string         `yaml:"uses"`
-	Run  string         `yaml:"run"`
-	With map[string]any `yaml:"with"`
+	ID              string         `yaml:"id"`
+	If              string         `yaml:"if"`
+	Uses            string         `yaml:"uses"`
+	Run             string         `yaml:"run"`
+	With            map[string]any `yaml:"with"`
+	ContinueOnError any            `yaml:"continue-on-error"`
+	TimeoutMinutes  int            `yaml:"timeout-minutes"`
 }
 
 func readWorkflow(t *testing.T, name string) workflow {
@@ -154,6 +156,56 @@ func TestIsolatedSmokeCannotPublish(t *testing.T) {
 		}
 	}
 	require.True(t, built && checked)
+}
+
+func TestSmokeRunsAllBackendsAndRollbackWithImmutableFixtures(t *testing.T) {
+	wf := readWorkflow(t, "isolated-image-smoke.yml")
+	smoke := wf.Jobs["smoke"]
+	for variable, repository := range map[string]string{
+		"OLD_IMAGE": "martialbe/one-api", "MYSQL_IMAGE": "mysql", "REDIS_IMAGE": "redis",
+	} {
+		require.Regexp(t, "^"+regexp.QuoteMeta(repository)+"@sha256:[a-f0-9]{64}$", smoke.Env[variable])
+	}
+	steps := make(map[string]step)
+	var order []string
+	for _, item := range smoke.Steps {
+		require.Empty(t, item.If, "smoke steps must not skip a test path")
+		require.Nil(t, item.ContinueOnError, "test failures must fail the job")
+		if item.ID != "" {
+			require.NotContains(t, steps, item.ID)
+			steps[item.ID] = item
+			order = append(order, item.ID)
+		}
+	}
+	require.Equal(t, []string{"fixtures", "sqlite", "mysql_redis", "upgrade"}, order)
+	for _, id := range order {
+		require.Positive(t, steps[id].TimeoutMinutes)
+		require.NotContains(t, steps[id].Run, "|| true")
+	}
+	fixtures := steps["fixtures"].Run
+	require.Contains(t, fixtures, "set -euo pipefail")
+	require.Contains(t, fixtures, "for variable in OLD_IMAGE MYSQL_IMAGE REDIS_IMAGE")
+	require.Contains(t, fixtures, `docker pull --platform linux/amd64 "$reference"`)
+	require.Contains(t, fixtures, `docker image inspect --format '{{.Id}}' "$reference"`)
+	require.Contains(t, fixtures, `docker image inspect --format '{{.Id}}' "onehub-isolated-smoke:$SOURCE_SHA"`)
+	require.Contains(t, fixtures, `CANDIDATE_IMAGE_ID=%s`)
+	for _, id := range []string{"sqlite", "mysql_redis"} {
+		require.Contains(t, steps[id].Run, "python3 .github/smoke/run.py")
+		require.Contains(t, steps[id].Run, `--image "onehub-isolated-smoke:$SOURCE_SHA"`)
+		require.Contains(t, steps[id].Run, `--version "v0.0.0-smoke-$SOURCE_SHA"`)
+	}
+	require.Contains(t, steps["sqlite"].Run, "--backend sqlite")
+	require.Contains(t, steps["mysql_redis"].Run, "--backend mysql-redis")
+	for _, id := range []string{"mysql_redis", "upgrade"} {
+		require.Contains(t, steps[id].Run, `--mysql-image "$MYSQL_IMAGE_ID"`)
+		require.Contains(t, steps[id].Run, `--redis-image "$REDIS_IMAGE_ID"`)
+	}
+	upgrade := steps["upgrade"].Run
+	require.Contains(t, upgrade, "python3 .github/smoke/upgrade.py")
+	require.Contains(t, upgrade, `--old-image "$OLD_IMAGE_ID"`)
+	require.Contains(t, upgrade, "--old-version v0.14.27")
+	require.Contains(t, upgrade, `--candidate-image "$CANDIDATE_IMAGE_ID"`)
+	require.Contains(t, upgrade, `--candidate-version "v0.0.0-smoke-$SOURCE_SHA"`)
 }
 
 func TestReleaseTagValidation(t *testing.T) {
