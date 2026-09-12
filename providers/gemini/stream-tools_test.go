@@ -58,6 +58,23 @@ func TestGeminiEOFRequiresFinish(t *testing.T) {
 	require.ErrorIs(t, h.EndError(), io.ErrUnexpectedEOF)
 }
 
+func TestGeminiSSEWhitespaceAndMalformedJSON(t *testing.T) {
+	for _, prefix := range []string{"data:", "data: ", "data:\t"} {
+		h := gemini.GeminiStreamHandler{Request: &types.ChatCompletionRequest{Model: "fixture"}}
+		data, errs := make(chan string, 10), make(chan error, 5)
+		b := []byte(prefix + `{"candidates":[{"content":{"parts":[{"text":"ok"}]},"finishReason":"STOP"}]}`)
+		h.HandlerStream(&b, data, errs)
+		require.Empty(t, errs)
+		require.NoError(t, h.EndError())
+		b = []byte(prefix + `{"invalid`)
+		h.HandlerStream(&b, data, errs)
+		var wire map[string]any
+		require.NoError(t, json.Unmarshal([]byte((<-errs).Error()), &wire))
+		require.Contains(t, wire, "error")
+		require.Equal(t, "stream_closed", string(b))
+	}
+}
+
 func TestGeminiRejectsIncompleteFunctionStream(t *testing.T) {
 	for _, fragment := range []string{`{"name":"write_file","willContinue":true}`, `{"name":"write_file","partialArgs":[{"jsonPath":"$.text","stringValue":"中文"}]}`} {
 		h := gemini.GeminiStreamHandler{Request: &types.ChatCompletionRequest{Model: "fixture"}, Usage: &types.Usage{}}

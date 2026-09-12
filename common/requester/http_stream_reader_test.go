@@ -1,6 +1,7 @@
 package requester_test
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 	"strings"
@@ -8,6 +9,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+
 	"one-api/common/requester"
 )
 
@@ -43,6 +45,11 @@ func TestOptInStreamCompletion(t *testing.T) {
 					received = true
 				case err := <-errs:
 					require.ErrorIs(t, err, tc.want)
+					if tc.check && tc.want != io.EOF {
+						var wire map[string]any
+						require.NoError(t, json.Unmarshal([]byte(err.Error()), &wire))
+						require.Contains(t, wire, "error")
+					}
 					require.True(t, received)
 					return
 				case <-time.After(3 * time.Second):

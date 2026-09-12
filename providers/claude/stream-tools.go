@@ -3,7 +3,6 @@ package claude
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"strings"
 
@@ -56,7 +55,7 @@ func (h *ClaudeStreamHandler) HandlerStream(rawLine *[]byte, dataChan chan strin
 	}
 	fail := func(message string) {
 		s.failed = true
-		errChan <- fmt.Errorf("Claude stream: %s", message)
+		errChan <- &requester.ProtocolError{Message: "Claude stream: " + message}
 		*rawLine = requester.StreamClosed
 	}
 	var event struct {

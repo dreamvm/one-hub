@@ -1,6 +1,7 @@
 package gemini
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"one-api/common"
@@ -312,29 +313,31 @@ func ConvertToChatOpenai(provider base.ProviderInterface, response *GeminiChatRe
 // 转换为OpenAI聊天流式请求体
 func (h *GeminiStreamHandler) HandlerStream(rawLine *[]byte, dataChan chan string, errChan chan error) {
 	// 如果rawLine 前缀不为data:，则直接返回
-	if !strings.HasPrefix(string(*rawLine), "data: ") {
+	if !bytes.HasPrefix(*rawLine, []byte("data:")) {
 		*rawLine = nil
 		return
 	}
 
 	// 去除前缀
-	*rawLine = (*rawLine)[6:]
+	*rawLine = bytes.TrimSpace((*rawLine)[5:])
 
 	var geminiResponse GeminiChatResponse
 	err := json.Unmarshal(*rawLine, &geminiResponse)
 	if err != nil {
-		errChan <- common.ErrorToOpenAIError(err)
+		errChan <- &requester.ProtocolError{Message: "Gemini stream: invalid event JSON", Cause: err}
+		*rawLine = requester.StreamClosed
 		return
 	}
 
 	aiError := errorHandle(&geminiResponse.GeminiErrorResponse, h.key)
 	if aiError != nil {
 		errChan <- aiError
+		*rawLine = requester.StreamClosed
 		return
 	}
 
 	if err := h.convertToOpenaiStream(&geminiResponse, dataChan); err != nil {
-		errChan <- common.ErrorToOpenAIError(err)
+		errChan <- &requester.ProtocolError{Message: "Gemini stream: " + err.Error(), Cause: err}
 		*rawLine = requester.StreamClosed
 	}
 
