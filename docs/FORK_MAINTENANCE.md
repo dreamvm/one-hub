@@ -196,6 +196,14 @@ CI 顺序运行 SQLite、MySQL/Redis 以及下方的升级/回滚演练，任一
 不覆盖 PostgreSQL、真实模型、Open WebUI/Open Terminal 和 Word 文件生成，
 也不覆盖默认在线 tokenizer 初始化；这些需要后续独立验收。模拟测试通过不能替代真实联调。
 
+### Claude 隔离往返验收
+
+模拟上游新增 `/v1/messages`，以严格的虚构签名和内容块检查真实网关转换后的第二轮请求。
+SQLite/MySQL 路径均新增 Claude 渠道，验证 JSON 和 SSE 下的思考、文字、双工具、中文参数分片、
+合并结果 turn 和普通用户两轮调用。客户端测试重组器必须保留最终 delta 的元数据。
+独立负向测试确认修改签名会失败。所有签名和工具名均为测试数据，不访问文档或真实厂商。
+旧版升级脚本仍使用原来的三条渠道，避免用旧版本不支持的新协议作为迁移前置条件。
+
 ### MySQL 与 Redis 隔离验收
 
 同一 `.github/smoke/run.py` 现支持 `--backend mysql-redis`，默认仍为 `sqlite`。

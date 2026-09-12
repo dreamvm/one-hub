@@ -101,6 +101,8 @@ def parse_chat(status, headers, body, stream):
             finished |= bool(choice.get("finish_reason"))
             delta = choice.get("delta", {})
             message["content"] += delta.get("content") or ""
+            if delta.get("extra_content"):
+                message["extra_content"] = delta["extra_content"]
             for part in delta.get("tool_calls", []):
                 index = part["index"]
                 target = calls.setdefault(index, {"type": "function", "function": {"name": "", "arguments": ""}})
@@ -117,14 +119,19 @@ def parse_chat(status, headers, body, stream):
     return message, usage
 
 
-def check_tools(message):
+def check_tools(message, provider="google"):
     calls = message.get("tool_calls", [])
     require(len(calls) == 2, "expected two tool calls")
     require(len({c.get("id") for c in calls}) == 2 and all(c.get("id") for c in calls), "tool IDs lost or duplicated")
     for i, call in enumerate(calls):
         require(call["function"]["name"] == NAMES[i], "tool name changed")
         require(json.loads(call["function"]["arguments"]) == {"file": "中文测试.docx"}, "tool arguments changed")
-        require(call.get("extra_content", {}).get("google", {}).get("thought_signature") == SIGNATURES[i], "signature changed")
+        if provider == "google":
+            require(call.get("extra_content", {}).get("google", {}).get("thought_signature") == SIGNATURES[i], "signature changed")
+    if provider == "anthropic":
+        blocks = calls[0].get("extra_content", {}).get("anthropic", {}).get("content", [])
+        require(len(blocks) == 4, "Claude signed blocks missing")
+        require(blocks[0] == {"type": "thinking", "thinking": "synthetic thought", "signature": "fixture-claude-signature"}, "Claude signature changed")
     return calls
 
 
@@ -210,10 +217,10 @@ class MySQLRedis:
                 "-e", f"REDIS_CONN_STRING=redis://:{self.redis_password}@cache:6379/0",
                 "-e", "SYNC_FREQUENCY=600", "-e", "REDIS_DB=0"]
 
-    def assert_used(self):
+    def assert_used(self, channel_count=3):
         # Counts only: do not print test tokens or session contents.
         require(int(self.sql("SELECT COUNT(*) FROM users;").stdout.strip()) >= 2, "users not persisted in MySQL")
-        require(int(self.sql("SELECT COUNT(*) FROM channels;").stdout.strip()) == 3, "channels not persisted in MySQL")
+        require(int(self.sql("SELECT COUNT(*) FROM channels;").stdout.strip()) == channel_count, "channels not persisted in MySQL")
         require(int(self.cache("DBSIZE").stdout.strip()) > 0, "Redis cache remained empty")
         stats = dict(line.split(":", 1) for line in self.cache("INFO", "stats").stdout.splitlines() if ":" in line)
         require(int(stats.get("keyspace_hits", "0")) > 0, "Redis was configured but cache hits were not observed")
@@ -302,12 +309,13 @@ def run(args):
                 ("Mock OpenAI", 1, "openai-smoke", "http://mock-provider:8000", "fixture-openai-key"),
                 ("Mock TLS", 1, "openai-https-smoke", "https://mock-provider:8443", "fixture-openai-key"),
                 ("Mock Gemini", 25, "gemini-smoke", "http://mock-provider:8000", "fixture-gemini-key"),
+                ("Mock Claude", 14, "claude-smoke", "http://mock-provider:8000", "fixture-claude-key"),
             ]:
                 client.api("/api/channel/", {"name": name, "type": kind, "models": model, "key": key, "base_url": base, "group": "default", "status": 1})
             token = client.api("/api/token/playground")
             models_status, _, models_raw = client.request("/v1/models", token=token)
             require(models_status == 200, "model list failed")
-            require({m["id"] for m in json.loads(models_raw)["data"]} == {"openai-smoke", "openai-https-smoke", "gemini-smoke"}, "unexpected model list")
+            require({m["id"] for m in json.loads(models_raw)["data"]} == {"openai-smoke", "openai-https-smoke", "gemini-smoke", "claude-smoke"}, "unexpected model list")
             for model in ("openai-smoke", "openai-https-smoke"):
                 for stream in (False, True):
                     require(chat(client, token, model, stream)["content"] == "中文对话成功", "chat content changed")
@@ -326,6 +334,14 @@ def run(args):
             code, _, raw = client.request("/v1/chat/completions", token=token, data={"model": "gemini-smoke", "messages": broken, "tools": tools})
             require(code >= 400 and "tool signature" in raw, "corrupt signature was accepted")
             passed("negative control: corrupted signature rejected by upstream")
+            def claude_roundtrip(actor, actor_token, stream):
+                assistant = chat(actor, actor_token, "claude-smoke", stream, initial, tools)
+                calls = check_tools(assistant, "anthropic")
+                messages = initial + [assistant] + [{"role": "tool", "tool_call_id": call["id"], "content": '{"ok":true}'} for call in calls]
+                require(chat(actor, actor_token, "claude-smoke", stream, messages, tools)["content"] == "Claude工具往返成功", "Claude follow-up failed")
+            for stream in (False, True):
+                claude_roundtrip(client, token, stream)
+            passed("Claude signed thinking/text/two-tool round-trip with fragmented JSON arguments, JSON and SSE")
             user_password = secrets.token_hex(8)
             client.api("/api/user/", {"username": "smokeuser", "password": user_password})
             user = Client(client.base, mock)
@@ -335,11 +351,12 @@ def run(args):
             user_token = user.api("/api/token/playground")
             require(chat(user, user_token, "openai-smoke", False)["content"] == "中文对话成功", "ordinary user chat failed")
             check_tools(chat(user, user_token, "gemini-smoke", True, initial, tools))
+            claude_roundtrip(user, user_token, True)
             _, _, denied = user.request("/api/channel/")
             require(json.loads(denied).get("success") is False, "ordinary user received admin access")
             passed("ordinary-user chat/tools with admin access denied")
             if backend:
-                backend.assert_used()
+                backend.assert_used(channel_count=4)
                 passed("MySQL user/channel persistence and verified Redis cache hits")
                 command("docker", "stop", "--time", "10", gateway)
                 backend.restart()
@@ -353,7 +370,7 @@ def run(args):
             if backend:
                 # Redis has persistence disabled. A restarted empty cache must refill from MySQL.
                 check_tools(chat(user, user_token, "gemini-smoke", True, initial, tools))
-                backend.assert_used()
+                backend.assert_used(channel_count=4)
             passed(f"restart persistence: {args.backend}, changed password, users, tokens and channels")
             if backend:
                 token_id = int(backend.sql(f"SELECT id FROM tokens WHERE user_id={int(user_info['id'])} AND name='sys_playground';").stdout.strip())
@@ -364,7 +381,7 @@ def run(args):
                 passed("revoked ordinary-user token rejected after Redis cache warmup")
             _, _, stats_raw = Client("http://mock-provider:8000", mock).request("/stats")
             stats = json.loads(stats_raw)
-            for key in ("openai-smoke_false", "openai-smoke_true", "openai-https-smoke_false", "openai-https-smoke_true", "gemini_tools_false", "gemini_tools_true", "gemini_followup_false", "gemini_followup_true", "rejected"):
+            for key in ("openai-smoke_false", "openai-smoke_true", "openai-https-smoke_false", "openai-https-smoke_true", "gemini_tools_false", "gemini_tools_true", "gemini_followup_false", "gemini_followup_true", "claude_tools_false", "claude_tools_true", "claude_followup_false", "claude_followup_true", "rejected"):
                 require(stats.get(key, 0) > 0, f"upstream branch not exercised: {key}")
             print("Synthetic upstream counters:", json.dumps(stats, sort_keys=True), flush=True)
         except BaseException:
