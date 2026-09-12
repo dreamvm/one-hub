@@ -77,6 +77,10 @@ Chat 兼容路径分别管理 Claude 内容块索引与 OpenAI 工具索引，�
 服务端检查回传调用 ID、名称、参数和说明文字是否与元数据一致，拒绝过期编辑数据。
 签名及 redacted data 不解码、不伪造、不持久化到日志。
 
+非流式内容块在未编辑时保留上游原始 JSON，包括空 thinking/text、caller 及未知扩展字段；
+修改 Go 对象后不回放过期原文。该保留也适用于原生 Messages 响应，不会改变云平台请求封装。
+已知内容类型中的新字段可往返，不意味着兼容路径能执行未来未知类型的服务端工具。
+
 连续工具结果合并为一个 user turn；检查缺失、重复和未知结果 ID，保留错误标记，
 支持文本、原生 image/document、OpenAI image_url 和 inline PDF file 结果。
 Word/PPT 本身不是直接可视输入，需要客户端先转换为 PDF/图片或提取文本。
