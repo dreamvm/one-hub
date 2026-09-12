@@ -1,3 +1,4 @@
+# Archived reference only. Files outside .github/workflows are not executed.
 name: Linux Release
 permissions:
   contents: write

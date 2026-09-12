@@ -30,6 +30,8 @@ Open WebUI 的客户端签名保留补丁属于另一个项目，不包含在本
 go test -race -count=1 ./types ./providers/gemini
 go build ./providers/... ./relay/...
 go vet ./types ./providers/gemini
+go test -count=1 ./.github/tests
+go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
 ```
 
 测试使用虚构的签名和本地 JSON/SSE 数据，不调用真实模型、不读取服务配置、
@@ -62,5 +64,36 @@ GitHub Actions 的 `Gemini compatibility` 工作流只测试和编译，不发�
 1. 每项修复使用独立分支和 PR，先写能复现问题的测试。
 2. 同步上游前比较差异，保留本 Fork 的签名回归用例。
 3. 合并源码不等于部署；上线前还需独立构建、备份、隔离联调及回滚验证。
-4. 上游自带的镜像/Release 工作流需要发布凭据和仓库变量；未配置前不要依赖它们发布。
+4. 镜像发布只走下方的手动 GHCR 流程，不再依赖 Docker Hub 变量或私人发布令牌。
 5. 未确认新修复前，不把生产私有文件或整个生产目录复制进公开仓库。
+
+## 手动镜像构建与发布
+
+合并 PR、推送 main、创建版本标签均不会自动发布镜像。
+旧的 Linux/macOS/Windows 二进制 Release 工作流已移出执行目录，归档在
+`.github/legacy-workflows/` 供参考，GitHub 不会执行该目录中的文件。
+如需重新提供二进制发行，必须另行适配与验证，不能直接把旧文件移回执行目录。
+
+镜像目标是 `ghcr.io/dreamvm/one-hub`。工作流使用当前仓库的 `GITHUB_TOKEN`，
+不需要配置 Docker Hub 账号或额外 PAT。发布权限仅授予镜像构建任务；测试任务保持只读。
+
+需要构建或发布时：
+
+1. 对已经合并、经过审阅的提交创建版本标签，格式为 `vX.Y.Z` 或 `vX.Y.Z-suffix`。
+   例如 `v0.14.27-dreamvm.1` 只是格式示例，本次并未创建这个标签。
+2. 在 Actions → **Manual GHCR image** → **Run workflow** 中选择默认分支 `main`。
+3. 填写已有的 `release_tag`。工作流检查标签格式、存在性，并确认其提交属于触发时 main 的历史。
+4. 初次保持 `publish=false`：执行测试并构建镜像，不登录 GHCR、不上传镜像。
+   默认只构建 `linux/amd64`；需要多架构时选择 `linux/amd64,linux/arm64`。
+5. 构建和隔离联调通过、确认需要发布后，再手动以 `publish=true` 运行。
+
+标签解析为固定提交 SHA 后，测试和镜像构建都使用同一个 SHA，避免测试与构建不同版本。
+镜像任务通过 `needs` 依赖测试成功；不绕过失败或取消的测试。发布不自动更新 `latest`，
+只生成版本标签和 `sha-完整提交` 标签，并在运行摘要中记录来源提交和镜像 digest。
+版本标签不要移动或复用；部署时建议固定已验证的镜像 digest。
+
+`publish=false` 的构建主要用于验证可构建性，没有将镜像作为可下载产物导出；
+隔离联调仍需另行准备本地构建或经批准的镜像发布。首次 GHCR 发布后还应检查包的访问权限。
+
+本次只准备流程并执行语法、策略和代码回归检查，未手动触发镜像构建，
+未创建版本标签、镜像或 Release，未更改线上服务。首次完整镜像构建及部署验证仍待后续执行。
