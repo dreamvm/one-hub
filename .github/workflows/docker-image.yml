@@ -120,4 +120,4 @@ jobs:
           SOURCE_SHA: ${{ needs.resolve.outputs.source_sha }}
           PUBLISHED: ${{ inputs.publish }}
         run: |
-          printf 'Image: `%s:%s`\n\nSource: `%s`\n\nDigest: `%s`\n\nPublished: `%s`\n' "$IMAGE_NAME" "$IMAGE_VERSION" "$SOURCE_SHA" "$IMAGE_DIGEST" "$PUBLISHED" >> "$GITHUB_STEP_SUMMARY"
+          printf 'Image: %s:%s\n\nSource: %s\n\nDigest: %s\n\nPublished: %s\n' "$IMAGE_NAME" "$IMAGE_VERSION" "$SOURCE_SHA" "$IMAGE_DIGEST" "$PUBLISHED" >> "$GITHUB_STEP_SUMMARY"
