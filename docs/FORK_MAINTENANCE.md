@@ -53,6 +53,17 @@ none 不注入内置工具。工具执行和权限仍由客户端负责。
 共享 Chat/Responses 的并行开关改为可空布尔值，保留未设置、false、true 三种状态。
 新增检查解析仅由 Gemini/Claude 适配按需使用，不改写其他供应商的 Schema。
 
+## 流式完成与断流检查
+
+Gemini 按候选答案缓冲跨事件的完整函数调用，统一编号，并在正常 STOP 时只发出一次
+工具结束信号；文字与工具并存时不会丢弃文字。原生函数 ID 在调用与结果之间保留，
+无参数调用使用 `{}`。`partialArgs` / `willContinue` 属于另一种平台增量协议，当前明确报错，
+不会将未完成参数误当作空参数执行；不宣称已经兼容 Vertex 的所有增量调用模式。
+
+直接 Gemini/Claude Chat 转换路径启用可选 EOF 校验：Gemini 必须收到候选结束原因，
+Claude 必须完整关闭内容块并收到 `message_delta` 和 `message_stop`。连接提前结束时返回
+不完整响应错误。未选择该校验的其他供应商流读取行为保持不变。
+
 ## Claude 工具往返
 
 Chat 兼容路径分别管理 Claude 内容块索引与 OpenAI 工具索引，一条回答始终使用
@@ -82,10 +93,10 @@ output_config 和 context_management 字段有独立序列化测试，包含 Ver
 使用 Go 1.25.x。在仓库根目录运行：
 
 ```sh
-go test -race -count=1 ./types ./providers/gemini ./providers/claude
+go test -race -count=1 ./types ./providers/gemini ./providers/claude ./common/requester
 go test -race -count=1 ./.github/smoke/...
 go build ./providers/... ./relay/...
-go vet ./types ./providers/gemini
+go vet ./types ./providers/gemini ./providers/claude ./common/requester
 go test -count=1 ./.github/tests
 go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
 ```

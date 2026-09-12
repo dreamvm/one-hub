@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io"
 	"net/http"
 	"one-api/common/logger"
 	"one-api/types"
@@ -33,6 +34,7 @@ type streamReader[T streamable] struct {
 	NoTrim   bool
 
 	handlerPrefix HandlerPrefix[T]
+	endCheck      func() error
 
 	DataChan chan T
 	ErrChan  chan error
@@ -66,6 +68,21 @@ func (stream *streamReader[T]) processLines() {
 	for {
 		rawLine, readErr := stream.reader.ReadBytes('\n')
 		if readErr != nil {
+			if readErr == io.EOF && stream.endCheck != nil {
+				// Opt-in providers can validate the final unterminated SSE line.
+				if len(rawLine) > 0 {
+					if !stream.NoTrim {
+						rawLine = bytes.TrimSpace(rawLine)
+					}
+					stream.handlerPrefix(&rawLine, stream.DataChan, stream.ErrChan)
+					if bytes.Equal(rawLine, StreamClosed) {
+						return
+					}
+				}
+				if err := stream.endCheck(); err != nil {
+					readErr = err
+				}
+			}
 			select {
 			case stream.ErrChan <- readErr:
 			case <-time.After(1000 * time.Millisecond):

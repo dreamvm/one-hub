@@ -25,7 +25,15 @@ type streamState struct {
 	order    []int
 	tools    int
 	finished bool
+	stopped  bool
 	failed   bool
+}
+
+func (h *ClaudeStreamHandler) EndError() error {
+	if h.state == nil || !h.state.finished || !h.state.stopped || h.state.failed {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
 }
 
 // Content-block indices identify native blocks, not OpenAI choices or tools.
@@ -227,6 +235,7 @@ func (h *ClaudeStreamHandler) HandlerStream(rawLine *[]byte, dataChan chan strin
 			fail("message stopped without final delta")
 			return
 		}
+		s.stopped = true
 		errChan <- io.EOF
 		*rawLine = requester.StreamClosed
 		return
