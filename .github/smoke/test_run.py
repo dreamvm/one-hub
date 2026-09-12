@@ -1,10 +1,18 @@
 import json
 import unittest
+from unittest.mock import patch
 
-from run import SIGNATURES, NAMES, check_tools, parse_chat
+from run import SIGNATURES, NAMES, check_tools, parse_chat, start_container
 
 
 class StreamValidationTests(unittest.TestCase):
+    def test_failed_container_start_remains_tracked_for_cleanup(self):
+        created = []
+        with patch("run.command", side_effect=[None, RuntimeError("OCI start failed")]):
+            with self.assertRaises(RuntimeError):
+                start_container("onehub-smoke-fixture", ["fixture-image"], created)
+        self.assertEqual(created, [("container", "onehub-smoke-fixture")])
+
     def stream(self, chunks, done=True):
         return "".join("data: " + json.dumps(c) + "\n\n" for c in chunks) + ("data: [DONE]\n\n" if done else "")
 

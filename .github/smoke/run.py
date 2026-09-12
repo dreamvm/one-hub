@@ -35,6 +35,13 @@ def command(*args, check=True):
     return result
 
 
+def start_container(name, options, created):
+    # Register the container before start: a failed OCI start still leaves it behind.
+    command("docker", "create", "--name", name, *options)
+    created.append(("container", name))
+    command("docker", "start", name)
+
+
 class Client:
     def __init__(self, base):
         self.base = base
@@ -162,6 +169,7 @@ def run(args):
         command("openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "1",
                 "-subj", "/CN=mock-provider", "-addext", "subjectAltName=DNS:mock-provider",
                 "-keyout", str(tmp / "server.key"), "-out", str(tmp / "server.crt"))
+        (tmp / "server.crt").chmod(0o644)
         try:
             command("docker", "network", "create", "--internal", network)
             created.append(("network", network))
@@ -170,19 +178,17 @@ def run(args):
             created.append(("volume", volume))
             common = ["--network", network, "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--pids-limit", "256", "--read-only", "--tmpfs", "/tmp:rw,noexec,nosuid,size=64m"]
             # Both containers use the actual built image. Only the mock entrypoint differs.
-            command("docker", "run", "-d", "--name", mock, *common,
+            start_container(mock, [*common, "--user", f"{os.getuid()}:{os.getgid()}",
                     "--network-alias", "mock-provider", "--memory", "128m", "--cpus", "1",
                     "--mount", f"type=bind,source={tmp},target=/fixture,readonly",
-                    "-p", "127.0.0.1::8000", "--entrypoint", "/fixture/mock", args.image)
-            created.append(("container", mock))
-            command("docker", "run", "-d", "--name", gateway, *common,
+                    "-p", "127.0.0.1::8000", "--entrypoint", "/fixture/mock", args.image], created)
+            start_container(gateway, [*common,
                     "--memory", "1g", "--cpus", "2", "--mount", f"type=volume,source={volume},target=/data",
                     "--mount", f"type=bind,source={tmp / 'server.crt'},target=/fixture-ca.crt,readonly",
                     "-e", "SSL_CERT_FILE=/fixture-ca.crt", "-e", "DISABLE_TOKEN_ENCODERS=true",
                     "-e", "AUTO_PRICE_UPDATES=false", "-e", "RELAY_TIMEOUT=15", "-e", "CONNECT_TIMEOUT=3",
                     "-e", "SESSION_SECRET=" + secrets.token_hex(32), "-e", "USER_TOKEN_SECRET=" + secrets.token_hex(32),
-                    "-p", "127.0.0.1::3000", args.image)
-            created.append(("container", gateway))
+                    "-p", "127.0.0.1::3000", args.image], created)
             address = command("docker", "port", gateway, "3000/tcp").stdout.strip()
             mock_address = command("docker", "port", mock, "8000/tcp").stdout.strip()
             require(address.startswith("127.0.0.1:") and mock_address.startswith("127.0.0.1:"), "port not loopback-only")
@@ -259,7 +265,8 @@ def run(args):
         except BaseException:
             for kind, name in created:
                 if kind == "container":
-                    print(f"Diagnostics for {name}:\n{command('docker', 'logs', '--tail', '60', name, check=False).stdout}", flush=True)
+                    diagnostic = command('docker', 'logs', '--tail', '60', name, check=False)
+                    print(f"Diagnostics for {name}:\n{diagnostic.stdout}{diagnostic.stderr}", flush=True)
             raise
         finally:
             failures = []
