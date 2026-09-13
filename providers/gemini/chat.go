@@ -3,6 +3,7 @@ package gemini
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"one-api/common"
 	"one-api/common/config"
@@ -197,6 +198,18 @@ func ConvertFromChatOpenai(request *types.ChatCompletionRequest) (*GeminiChatReq
 		// Only set ThinkingConfig if at least one parameter is set
 		if thinkingConfig.ThinkingBudget != nil || thinkingConfig.ThinkingLevel != "" {
 			geminiRequest.GenerationConfig.ThinkingConfig = thinkingConfig
+		}
+	} else if request.ReasoningEffort != nil {
+		// Preserve the existing nested reasoning contract when both are set.
+		// Standard OpenAI clients send reasoning_effort instead; do not ignore it
+		// or invent a zero thinking budget while converting an effort-only request.
+		switch *request.ReasoningEffort {
+		case "minimal", "low", "medium", "high":
+			geminiRequest.GenerationConfig.ThinkingConfig = &ThinkingConfig{
+				ThinkingLevel: strings.ToUpper(*request.ReasoningEffort),
+			}
+		default:
+			return nil, common.ErrorWrapperLocal(errors.New("Gemini reasoning_effort must be minimal, low, medium, or high"), "invalid_reasoning_effort", http.StatusBadRequest)
 		}
 	}
 

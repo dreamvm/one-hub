@@ -56,6 +56,27 @@ none 不注入内置工具。工具执行和权限仍由客户端负责。
 共享 Chat/Responses 的并行开关改为可空布尔值，保留未设置、false、true 三种状态。
 新增检查解析仅由 Gemini/Claude 适配按需使用，不改写其他供应商的 Schema。
 
+## Gemini 思考强度与输出长度
+
+原生 Gemini Chat 转换支持 OpenAI 兼容字段 `reasoning_effort`：
+`minimal` / `low` / `medium` / `high` 对应 `thinkingConfig.thinkingLevel`。
+不隐式添加 `thinkingBudget: 0`，不改写请求对象，未设置时保留上游默认行为。
+其他显式值返回本地 400，不静默丢弃。具体等级是否可用仍由所选模型和上游决定，
+例如并非所有 Gemini 模型都支持 minimal；不把 none 偷换成 low。
+原有自定义 `reasoning` 对象在两个字段同时存在时继续优先，保持既有客户端语义。
+此转换只作用于原生 Gemini 适配，不修改其他供应商或 Gemini OpenAI 直通路径。
+
+思考 token 也可能占用输出上限。小 `max_tokens` 不是可靠的节流思考方法：
+上游可能在输出正文或完整工具调用前返回 `MAX_TOKENS`。办公生成宜使用较低思考强度，
+并为脚本/工具参数留足输出空间；4096 是短小验收用例参数，不是长报告的通用上限。
+已有版本可使用 `"reasoning":{"effort":"low","max_tokens":-1}`；
+本修复发布后，支持该字段的客户端可改用 `"reasoning_effort":"low"`。
+参考：[Google 思考与输出限制](https://ai.google.dev/gemini-api/docs/thinking)。
+
+Open Terminal 文件生成与下载还需要客户端闭环：只在实际工具执行成功后交付，
+使用 `display_file` 和文件查看器下载控件，不把普通相对文件路径伪装成 HTTP 下载链接。
+普通用户需分别获得模型资源与终端连接授权；不可通过关闭全局访问控制代替授权。
+
 ## 流式完成与断流检查
 
 Gemini 按候选答案缓冲跨事件的完整函数调用，统一编号，并在正常 STOP 时只发出一次
