@@ -4,6 +4,7 @@ import { useFormikContext } from 'formik';
 import { Autocomplete, Box, Chip, FormControl, FormHelperText, Grid, Paper, TextField, Typography } from '@mui/material';
 import PropTypes from 'prop-types';
 import { useCallback, useMemo } from 'react';
+import unknownModelIcon from 'assets/images/icons/unknown_type.svg';
 
 const groupBy = (option) => option.owned_by;
 const getOptionLabel = (option) => option.name || '';
@@ -47,8 +48,8 @@ const ModelLimitSelector = ({ modelOptions, getModelIcon }) => {
   );
 
   const renderOption = useCallback(
-    (props, option) => (
-      <Box component="li" {...props} key={option.id} sx={{ alignItems: 'flex-start' }}>
+    ({ key, ...props }, option) => (
+      <Box component="li" {...props} key={key || option.id} sx={{ alignItems: 'flex-start' }}>
         <Grid container spacing={1} sx={{ alignItems: 'center' }}>
           <Grid item xs={'auto'}>
             <img
@@ -56,7 +57,10 @@ const ModelLimitSelector = ({ modelOptions, getModelIcon }) => {
               alt={option.owned_by}
               style={{ width: 24, height: 24, borderRadius: '4px' }}
               onError={(e) => {
-                e.target.src = '/src/assets/images/icons/unknown_type.svg';
+                // A failing fallback must not trigger an endless error/reload loop.
+                if (e.currentTarget.getAttribute('src') !== unknownModelIcon) {
+                  e.currentTarget.src = unknownModelIcon;
+                }
               }}
             />
           </Grid>

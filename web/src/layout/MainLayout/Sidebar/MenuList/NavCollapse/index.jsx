@@ -1,11 +1,11 @@
 import PropTypes from 'prop-types';
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useLocation } from 'react-router';
 
 // material-ui
 import { useTheme, alpha } from '@mui/material/styles';
-import { Box, ButtonBase, Collapse, Tooltip, Typography } from '@mui/material';
+import { Box, ButtonBase, Collapse, Popover, Tooltip, Typography } from '@mui/material';
 import { IconChevronDown, IconChevronRight } from '@tabler/icons-react';
 
 // project imports
@@ -24,6 +24,12 @@ const NavCollapse = ({ menu, level, isMini = false }) => {
 
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState(null);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const submenuId = useId();
+
+  useEffect(() => {
+    setAnchorEl(null);
+  }, [isMini]);
 
   const handleClick = () => {
     setOpen(!open);
@@ -41,6 +47,7 @@ const NavCollapse = ({ menu, level, isMini = false }) => {
   };
 
   useEffect(() => {
+    setAnchorEl(null);
     setOpen(false);
     setSelected(null);
     if (menu.children) {
@@ -81,70 +88,94 @@ const NavCollapse = ({ menu, level, isMini = false }) => {
 
   if (isMini) {
     return (
-      <Tooltip title={menu.title} placement="right" arrow>
-        <ButtonBase
-          onClick={handleClick}
-          sx={{
-            width: '100%',
-            borderRadius: `${customization.borderRadius}px`,
-            minHeight: '56px',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            alignItems: 'center',
-            textAlign: 'center',
-            px: 0.5,
-            py: 0.75,
-            color: theme.palette.text.secondary,
-            transition: theme.transitions.create(['background-color', 'color'], {
-              duration: theme.transitions.duration.shortest
-            }),
-            '&:hover': {
-              backgroundColor: theme.palette.action.hover
-            },
-            ...(isActive && {
-              color: theme.palette.primary.main,
-              backgroundColor: alpha(theme.palette.primary.main, 0.08),
-              '&:hover': {
-                backgroundColor: alpha(theme.palette.primary.main, 0.16)
-              }
-            }),
-            ...(isOpen && {
-              color: theme.palette.text.primary,
-              backgroundColor: theme.palette.action.hover
-            })
-          }}
-        >
-          {menuIcon && (
-            <Box
-              component="span"
-              sx={{
-                display: 'inline-flex',
-                width: '22px',
-                height: '22px',
-                mb: 0.5,
-                '& > svg': { width: '100%', height: '100%' }
-              }}
-            >
-              {menuIcon}
-            </Box>
-          )}
-          <Typography
-            variant="caption"
+      <>
+        <Tooltip title={menu.title} placement="right" arrow>
+          <ButtonBase
+            onClick={(event) => setAnchorEl(event.currentTarget)}
+            aria-haspopup="true"
+            aria-expanded={Boolean(anchorEl)}
+            aria-controls={anchorEl ? submenuId : undefined}
             sx={{
-              maxWidth: '100%',
-              overflow: 'hidden',
-              whiteSpace: 'nowrap',
-              textOverflow: 'ellipsis',
-              lineHeight: '16px',
-              fontSize: '0.625rem',
-              fontWeight: isActive ? 700 : 600,
-              color: 'inherit'
+              width: '100%',
+              borderRadius: `${customization.borderRadius}px`,
+              minHeight: '56px',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center',
+              textAlign: 'center',
+              px: 0.5,
+              py: 0.75,
+              color: theme.palette.text.secondary,
+              transition: theme.transitions.create(['background-color', 'color'], {
+                duration: theme.transitions.duration.shortest
+              }),
+              '&:hover': {
+                backgroundColor: theme.palette.action.hover
+              },
+              ...(isActive && {
+                color: theme.palette.primary.main,
+                backgroundColor: alpha(theme.palette.primary.main, 0.08),
+                '&:hover': {
+                  backgroundColor: alpha(theme.palette.primary.main, 0.16)
+                }
+              }),
+              ...(isOpen && {
+                color: theme.palette.text.primary,
+                backgroundColor: theme.palette.action.hover
+              })
             }}
           >
-            {menu.title}
-          </Typography>
-        </ButtonBase>
-      </Tooltip>
+            {menuIcon && (
+              <Box
+                component="span"
+                sx={{
+                  display: 'inline-flex',
+                  width: '22px',
+                  height: '22px',
+                  mb: 0.5,
+                  '& > svg': { width: '100%', height: '100%' }
+                }}
+              >
+                {menuIcon}
+              </Box>
+            )}
+            <Typography
+              variant="caption"
+              sx={{
+                maxWidth: '100%',
+                overflow: 'hidden',
+                whiteSpace: 'nowrap',
+                textOverflow: 'ellipsis',
+                lineHeight: '16px',
+                fontSize: '0.625rem',
+                fontWeight: isActive ? 700 : 600,
+                color: 'inherit'
+              }}
+            >
+              {menu.title}
+            </Typography>
+          </ButtonBase>
+        </Tooltip>
+        <Popover
+          open={Boolean(anchorEl)}
+          anchorEl={anchorEl}
+          onClose={() => setAnchorEl(null)}
+          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+          transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+          PaperProps={{ sx: { p: 1, minWidth: 220, maxWidth: 'calc(100vw - 32px)' } }}
+        >
+          <Box
+            id={submenuId}
+            component="nav"
+            aria-label={menu.title}
+            onClick={(event) => {
+              if (event.target.closest('a')) setAnchorEl(null);
+            }}
+          >
+            {menus}
+          </Box>
+        </Popover>
+      </>
     );
   }
 
@@ -152,6 +183,8 @@ const NavCollapse = ({ menu, level, isMini = false }) => {
     <>
       <ButtonBase
         onClick={handleClick}
+        aria-expanded={open}
+        aria-controls={submenuId}
         sx={{
           width: '100%',
           borderRadius: `${customization.borderRadius}px`,
@@ -229,6 +262,7 @@ const NavCollapse = ({ menu, level, isMini = false }) => {
       </ButtonBase>
 
       <Collapse
+        id={submenuId}
         in={open}
         timeout="auto"
         unmountOnExit

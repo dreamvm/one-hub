@@ -2,7 +2,8 @@ import PropTypes from 'prop-types';
 import * as Yup from 'yup';
 import { Formik } from 'formik'; // 1. 导入 useFormikContext
 import { useTheme } from '@mui/material/styles';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import unknownModelIcon from 'assets/images/icons/unknown_type.svg';
 import dayjs from 'dayjs';
 import ModelLimitSelector from './ModelLimitSelector';
 import {
@@ -11,6 +12,8 @@ import {
   DialogContent,
   DialogActions,
   Button,
+  Box,
+  CircularProgress,
   Divider,
   Alert,
   FormControl,
@@ -85,11 +88,41 @@ const originInputs = {
   }
 };
 
+// Each edit session owns its defaults; never mutate API data or shared settings.
+const tokenInputs = (data = {}) => ({
+  ...originInputs,
+  ...data,
+  setting: {
+    ...originInputs.setting,
+    ...data.setting,
+    heartbeat: { ...originInputs.setting.heartbeat, ...data.setting?.heartbeat },
+    limits: {
+      ...data.setting?.limits,
+      limit_model_setting: {
+        ...originInputs.setting.limits.limit_model_setting,
+        ...data.setting?.limits?.limit_model_setting,
+        models: [...(data.setting?.limits?.limit_model_setting?.models || [])]
+      },
+      limits_ip_setting: {
+        ...originInputs.setting.limits.limits_ip_setting,
+        ...data.setting?.limits?.limits_ip_setting,
+        whitelist: [...(data.setting?.limits?.limits_ip_setting?.whitelist || [])]
+      }
+    }
+  }
+});
+
 const EditModal = ({ open, tokenId, onCancel, onOk, userGroupOptions, adminMode = false }) => {
   const { t } = useTranslation();
   const theme = useTheme();
   const userIsReliable = useIsReliable();
-  const [inputs, setInputs] = useState(originInputs);
+  const [inputs, setInputs] = useState(tokenInputs);
+  const requestKey = `${adminMode ? 'admin' : 'self'}:${tokenId || 0}`;
+  const [loadState, setLoadState] = useState({ key: '', status: 'loading' });
+  const [reloadCount, setReloadCount] = useState(0);
+  const session = useRef(0);
+  const formReady = open && loadState.key === requestKey && loadState.status === 'ready';
+  const loadFailed = loadState.key === requestKey && loadState.status === 'error';
   const [modelOptions, setModelOptions] = useState([]);
   const [ownedByIcons, setOwnedByIcons] = useState({});
   const fetchOwnedByIcons = async () => {
@@ -99,7 +132,7 @@ const EditModal = ({ open, tokenId, onCancel, onOk, userGroupOptions, adminMode 
       if (success) {
         const iconMap = {};
         data.forEach((provider) => {
-          iconMap[provider.name] = provider.icon || '/src/assets/images/icons/unknown_type.svg';
+          iconMap[provider.name] = provider.icon || unknownModelIcon;
         });
         setOwnedByIcons(iconMap);
       }
@@ -128,37 +161,46 @@ const EditModal = ({ open, tokenId, onCancel, onOk, userGroupOptions, adminMode 
   };
 
   const getModelIcon = (ownedBy) => {
-    return ownedByIcons[ownedBy] || '/src/assets/images/icons/unknown_type.svg';
+    return ownedByIcons[ownedBy] || unknownModelIcon;
   };
 
   const submit = async (values, { setErrors, setStatus, setSubmitting }) => {
+    // The target, not a default form field, determines whether this is an edit.
+    if (!formReady || (tokenId && Number(inputs.id) !== Number(tokenId))) {
+      setSubmitting(false);
+      return;
+    }
+    const submittingSession = session.current;
     setSubmitting(true);
-    values.remain_quota = parseInt(values.remain_quota);
-    values.setting.heartbeat.timeout_seconds = parseInt(values.setting.heartbeat.timeout_seconds);
+    const payload = tokenInputs(values);
+    payload.is_edit = Boolean(tokenId);
+    payload.remain_quota = parseInt(values.remain_quota);
+    payload.setting.heartbeat.timeout_seconds = parseInt(values.setting.heartbeat.timeout_seconds);
 
     // 过滤掉空的 IP 行
     if (values.setting?.limits?.limits_ip_setting?.whitelist) {
-      values.setting.limits.limits_ip_setting.whitelist = values.setting.limits.limits_ip_setting.whitelist.filter(
+      payload.setting.limits.limits_ip_setting.whitelist = values.setting.limits.limits_ip_setting.whitelist.filter(
         (ip) => ip.trim() !== ''
       );
     }
     let res;
     try {
-      if (values.is_edit) {
+      if (tokenId) {
         // 管理员模式使用管理员专用接口
         const apiPath = adminMode ? `/api/token/admin` : `/api/token/`;
-        const payload = { ...values, id: parseInt(tokenId) };
+        payload.id = parseInt(tokenId);
         // 管理员模式下传递 user_id
         if (adminMode && values.user_id) {
           payload.user_id = parseInt(values.user_id);
         }
         res = await API.put(apiPath, payload);
       } else {
-        res = await API.post(`/api/token/`, values);
+        res = await API.post(`/api/token/`, payload);
       }
+      if (session.current !== submittingSession) return;
       const { success, message } = res.data;
       if (success) {
-        if (values.is_edit) {
+        if (tokenId) {
           showSuccess('令牌更新成功！');
         } else {
           showSuccess('令牌创建成功，请在列表页面点击复制获取令牌！');
@@ -171,44 +213,38 @@ const EditModal = ({ open, tokenId, onCancel, onOk, userGroupOptions, adminMode 
         setErrors({ submit: message });
       }
     } catch (error) {
-      return;
+      if (session.current === submittingSession) {
+        showError(t('token_index.saveFailed'));
+        setErrors({ submit: t('token_index.saveFailed') });
+      }
+    } finally {
+      if (session.current === submittingSession) setSubmitting(false);
     }
   };
 
-  const loadToken = async () => {
+  const loadToken = async (isCurrent) => {
     try {
       let res;
       if (adminMode) {
         // 管理员模式使用搜索接口通过token_id查询
         res = await API.get(`/api/token/admin/search`, {
-          params: { token_id: tokenId, page: 1, size: 1 }
+          params: { token_id: tokenId, page: 1, size: 1 },
+          timeout: 30000
         });
       } else {
-        res = await API.get(`/api/token/${tokenId}`);
+        res = await API.get(`/api/token/${tokenId}`, { timeout: 30000 });
       }
-      const { success, message, data } = res.data;
-      if (success) {
-        // 管理员搜索接口返回的是分页数据，取第一条
-        const tokenData = adminMode ? data.data[0] : data;
-        if (!tokenData) {
-          showError('令牌不存在');
-          return;
-        }
-        tokenData.is_edit = true;
-        if (!tokenData.setting) tokenData.setting = originInputs.setting;
-        if (!tokenData.setting.limits) tokenData.setting.limits = originInputs.setting.limits;
-        if (!tokenData.setting.limits.limit_model_setting)
-          tokenData.setting.limits.limit_model_setting = originInputs.setting.limits.limit_model_setting;
-        if (!tokenData.setting.limits.limits_ip_setting)
-          tokenData.setting.limits.limits_ip_setting = originInputs.setting.limits.limits_ip_setting;
-        if (!tokenData.setting.limits.limit_model_setting.models) tokenData.setting.limits.limit_model_setting.models = [];
-        if (!tokenData.setting.limits.limits_ip_setting.whitelist) tokenData.setting.limits.limits_ip_setting.whitelist = [];
-        setInputs(tokenData);
+      if (!isCurrent()) return;
+      const { success, data } = res.data;
+      const tokenData = adminMode ? data?.data?.[0] : data;
+      if (success && tokenData && Number(tokenData.id) === Number(tokenId)) {
+        setInputs(tokenInputs({ ...tokenData, is_edit: true }));
+        setLoadState({ key: requestKey, status: 'ready' });
       } else {
-        showError(message);
+        setLoadState({ key: requestKey, status: 'error' });
       }
     } catch (error) {
-      return;
+      if (isCurrent()) setLoadState({ key: requestKey, status: 'error' });
     }
   };
 
@@ -220,13 +256,47 @@ const EditModal = ({ open, tokenId, onCancel, onOk, userGroupOptions, adminMode 
   }, [open]);
 
   useEffect(() => {
-    if (tokenId) {
-      loadToken().then();
-    } else {
-      setInputs(originInputs);
+    const currentSession = ++session.current;
+    setLoadState({ key: requestKey, status: 'loading' });
+    if (open) {
+      if (tokenId) {
+        loadToken(() => session.current === currentSession);
+      } else {
+        setInputs(tokenInputs());
+        setLoadState({ key: requestKey, status: 'ready' });
+      }
     }
+    return () => {
+      session.current = currentSession + 1;
+    };
+    // Reload only for a new session/target or explicit retry, never option refreshes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tokenId, adminMode]);
+  }, [requestKey, open, reloadCount]);
+
+  if (!formReady)
+    return (
+      <Dialog open={open} onClose={onCancel} fullWidth maxWidth="md">
+        <DialogTitle>{tokenId ? t('token_index.editToken') : t('token_index.createToken')}</DialogTitle>
+        <Divider />
+        <DialogContent>
+          {loadFailed ? (
+            <Alert severity="error">{t('token_index.loadFailed')}</Alert>
+          ) : (
+            <Box role="status" sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 3 }}>
+              <CircularProgress size={24} aria-label={t('common.loading')} />
+              <Typography>{t('common.loading')}</Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={onCancel}>{t('token_index.cancel')}</Button>
+          {loadFailed && <Button onClick={() => setReloadCount((count) => count + 1)}>{t('token_index.retryLoad')}</Button>}
+          <Button disabled variant="contained">
+            {t('token_index.submit')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    );
 
   return (
     <Dialog open={open} onClose={onCancel} fullWidth maxWidth={'md'}>

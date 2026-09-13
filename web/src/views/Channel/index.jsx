@@ -40,7 +40,7 @@ const originalKeyword = {
   tag: ''
 };
 
-export async function fetchChannelData(page, rowsPerPage, keyword, order, orderBy) {
+export async function fetchChannelData(page, rowsPerPage, keyword, order, orderBy, isCurrent = () => true) {
   try {
     if (orderBy) {
       orderBy = order === 'desc' ? '-' + orderBy : orderBy;
@@ -53,6 +53,7 @@ export async function fetchChannelData(page, rowsPerPage, keyword, order, orderB
         ...keyword
       }
     });
+    if (!isCurrent()) return false;
     const { success, message, data } = res.data;
     if (success) {
       return data;
@@ -60,7 +61,7 @@ export async function fetchChannelData(page, rowsPerPage, keyword, order, orderB
       showError(message);
     }
   } catch (error) {
-    console.error(error);
+    if (isCurrent()) console.error(error);
   }
 
   return false;
@@ -324,18 +325,6 @@ export default function ChannelList() {
     }
   };
 
-  const fetchData = async (page, rowsPerPage, keyword, order, orderBy) => {
-    setSearching(true);
-    keyword = trims(keyword);
-    const data = await fetchChannelData(page, rowsPerPage, keyword, order, orderBy);
-
-    if (data) {
-      setListCount(data.total_count);
-      setChannels(data.data);
-    }
-    setSearching(false);
-  };
-
   const fetchGroups = async () => {
     try {
       let res = await API.get(`/api/group/`);
@@ -383,7 +372,20 @@ export default function ChannelList() {
   };
 
   useEffect(() => {
-    fetchData(page, rowsPerPage, searchKeyword, order, orderBy);
+    let active = true;
+    setSearching(true);
+    // Only the latest search/page/sort/refresh may update rows or loading state.
+    fetchChannelData(page, rowsPerPage, trims(searchKeyword), order, orderBy, () => active).then((data) => {
+      if (!active) return;
+      if (data) {
+        setListCount(data.total_count);
+        setChannels(data.data);
+      }
+      setSearching(false);
+    });
+    return () => {
+      active = false;
+    };
   }, [page, rowsPerPage, searchKeyword, order, orderBy, refreshFlag]);
 
   useEffect(() => {

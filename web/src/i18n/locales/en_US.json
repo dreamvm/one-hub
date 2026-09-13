@@ -107,6 +107,8 @@
   },
   "channel": "Channel",
   "channel_edit": {
+    "loadFailed": "Channel settings could not be loaded. No editable settings have been loaded. Please retry.",
+    "retryLoad": "Reload",
     "addModelHeader": "Add Custom Header",
     "addModelMapping": "Add model mapping",
     "addModelMappingByJson": "Add model mapping (JSON)",
@@ -1227,6 +1229,9 @@
   },
   "token": "Token",
   "token_index": {
+    "loadFailed": "Token settings could not be loaded. Editing is disabled. Please retry.",
+    "retryLoad": "Reload",
+    "saveFailed": "Could not save the token. Please retry.",
     "actions": "Actions",
     "cancel": "Cancel",
     "chat": "Chat",

@@ -93,8 +93,11 @@ func GetChannelsList(params *SearchChannelsParams) (*DataResult[Channel], error)
 	}
 
 	if params.Name != "" {
-		db = db.Where("name LIKE ?", "%"+params.Name+"%")
-		tagDB = tagDB.Where("tag LIKE ?", "%"+params.Name+"%")
+		// A grouped channel must match its own name as well as its tag. Apply
+		// the same predicate before choosing the group's representative row.
+		pattern := "%" + params.Name + "%"
+		db = db.Where("(name LIKE ? OR tag LIKE ?)", pattern, pattern)
+		tagDB = tagDB.Where("(name LIKE ? OR tag LIKE ?)", pattern, pattern)
 	}
 
 	if params.Group != "" {

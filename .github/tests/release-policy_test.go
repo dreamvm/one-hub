@@ -59,6 +59,23 @@ func TestPublishingRequiresManualDispatch(t *testing.T) {
 	require.Equal(t, "read", wf.Permissions["contents"])
 }
 
+func TestFrontendRegressionGateUsesExactSource(t *testing.T) {
+	wf := readWorkflow(t, "gemini-compatibility.yml")
+	frontend, ok := wf.Jobs["frontend"]
+	require.True(t, ok, "manual image builds must include UI regression checks")
+	var checkout, unit, build, locked bool
+	for _, item := range frontend.Steps {
+		if strings.HasPrefix(item.Uses, "actions/checkout@") {
+			checkout = item.With["ref"] == "${{ inputs.ref || github.sha }}"
+		}
+		unit = unit || strings.Contains(item.Run, "yarn test")
+		build = build || strings.Contains(item.Run, "yarn build")
+		locked = locked || strings.Contains(item.Run, "yarn install --frozen-lockfile")
+		require.Nil(t, item.ContinueOnError, "UI regressions must block a failed release")
+	}
+	require.True(t, checkout && unit && build && locked)
+}
+
 func TestLegacyPublishWorkflowsAreArchived(t *testing.T) {
 	for _, name := range []string{"linux-release.yml", "macos-release.yml", "windows-release.yml"} {
 		require.NoFileExists(t, filepath.Join("..", "workflows", name))
