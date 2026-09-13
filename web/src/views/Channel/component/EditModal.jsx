@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { CHANNEL_OPTIONS } from 'constants/ChannelConstants';
 import { useTheme } from '@mui/material/styles';
 import { API } from 'utils/api';
@@ -9,6 +9,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Alert,
+  CircularProgress,
   TextField,
   Button,
   Divider,
@@ -78,13 +80,17 @@ const EditModal = ({ open, channelId, onCancel, onOk, groupOptions, isTag, model
   const { t: customizeT } = useCustomizeT();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  // const [loading, setLoading] = useState(false);
+  const requestKey = `${isTag ? 'tag' : 'channel'}:${channelId || 0}`;
+  const [loadState, setLoadState] = useState({ key: null, status: 'loading' });
+  const [reloadCount, setReloadCount] = useState(0);
+  const formReady = open && loadState.key === requestKey && loadState.status === 'ready';
+  const loadFailed = loadState.key === requestKey && loadState.status === 'error';
   const [initialInput, setInitialInput] = useState(defaultConfig.input);
   const [inputLabel, setInputLabel] = useState(defaultConfig.inputLabel); //
   const [inputPrompt, setInputPrompt] = useState(defaultConfig.prompt);
   const [batchAdd, setBatchAdd] = useState(false);
   const [hasTag, setHasTag] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+  const [expandedPlugins, setExpandedPlugins] = useState({});
   const [inputValue, setInputValue] = useState('');
   const removeDuplicates = (array) => [...new Set(array)];
   const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
@@ -108,6 +114,7 @@ const EditModal = ({ open, channelId, onCancel, onOk, groupOptions, isTag, model
   };
 
   const handleTypeChange = (setFieldValue, typeValue, values) => {
+    setExpandedPlugins({});
     // 处理插件事务
     if (pluginList[typeValue]) {
       const newPluginValues = {};
@@ -176,6 +183,10 @@ const EditModal = ({ open, channelId, onCancel, onOk, groupOptions, isTag, model
   };
 
   const submit = async (values, { setErrors, setStatus, setSubmitting }) => {
+    if (!formReady) {
+      setSubmitting(false);
+      return;
+    }
     setSubmitting(true);
     values = trims(values);
     if (values.base_url && values.base_url.endsWith('/')) {
@@ -320,7 +331,7 @@ const EditModal = ({ open, channelId, onCancel, onOk, groupOptions, isTag, model
     return modelList;
   }
 
-  const loadChannel = async () => {
+  const loadChannel = async (isCurrent) => {
     try {
       let baseApiUrl = `/api/channel/${channelId}`;
 
@@ -328,8 +339,10 @@ const EditModal = ({ open, channelId, onCancel, onOk, groupOptions, isTag, model
         baseApiUrl = '/api/channel_tag/' + encodeURIComponent(channelId);
       }
 
-      let res = await API.get(baseApiUrl);
-      const { success, message, data } = res.data;
+      // Configuration reads must not leave a writable dialog waiting forever.
+      let res = await API.get(baseApiUrl, { timeout: 30000 });
+      if (!isCurrent()) return;
+      const { success, data } = res.data;
       if (success) {
         if (data.models === '') {
           data.models = [];
@@ -342,34 +355,32 @@ const EditModal = ({ open, channelId, onCancel, onOk, groupOptions, isTag, model
           data.groups = data.group.split(',');
         }
 
-        data.model_mapping =
-          data.model_mapping !== ''
-            ? Object.entries(JSON.parse(data.model_mapping)).map(([key, value], index) => ({
-                index,
-                key,
-                value
-              }))
-            : [];
+        data.model_mapping = data.model_mapping
+          ? Object.entries(JSON.parse(data.model_mapping)).map(([key, value], index) => ({
+              index,
+              key,
+              value
+            }))
+          : [];
         // if (data.model_headers) {
-        data.model_headers =
-          data.model_headers !== ''
-            ? Object.entries(JSON.parse(data.model_headers)).map(([key, value], index) => ({
-                index,
-                key,
-                value
-              }))
-            : [];
+        data.model_headers = data.model_headers
+          ? Object.entries(JSON.parse(data.model_headers)).map(([key, value], index) => ({
+              index,
+              key,
+              value
+            }))
+          : [];
         // }
 
         // Format the custom_parameter JSON for better readability if it's not empty
-        if (data.custom_parameter !== '') {
+        if (data.custom_parameter) {
           try {
             // Parse and then stringify with indentation for formatting
             const parsedJson = JSON.parse(data.custom_parameter);
             data.custom_parameter = JSON.stringify(parsedJson, null, 2);
           } catch (error) {
             // If parsing fails, keep the original string
-            console.log('Error parsing custom_parameter JSON:', error);
+            // Preserve the original value; the editor validates it on submit.
           }
         } else {
           data.custom_parameter = '';
@@ -377,37 +388,77 @@ const EditModal = ({ open, channelId, onCancel, onOk, groupOptions, isTag, model
 
         data.base_url = data.base_url ?? '';
         data.is_edit = true;
-        if (data.plugin === null) {
+        if (data.plugin == null) {
           data.plugin = {};
         }
         initChannel(data.type);
         setInitialInput(data);
 
-        if (!isTag && data.tag) {
-          setHasTag(true);
-        }
+        setHasTag(Boolean(!isTag && data.tag));
+        setLoadState({ key: requestKey, status: 'ready' });
       } else {
-        showError(message);
+        setLoadState({ key: requestKey, status: 'error' });
       }
     } catch (error) {
-      return;
+      if (isCurrent()) setLoadState({ key: requestKey, status: 'error' });
     }
   };
 
   useEffect(() => {
+    let active = true;
+    setLoadState({ key: requestKey, status: 'loading' });
+    setExpandedPlugins({});
+    setModelSelectorOpen(false);
+    setInputValue('');
+    setTempFormikValues(null);
+    setTempSetFieldValue(null);
+    setHasTag(false);
     if (open) {
       setBatchAdd(isTag);
       if (channelId) {
-        loadChannel().then();
+        loadChannel(() => active);
       } else {
-        setHasTag(false);
         initChannel(1);
         setInitialInput({ ...defaultConfig.input, is_edit: false });
+        setLoadState({ key: requestKey, status: 'ready' });
       }
     }
-
+    return () => {
+      active = false;
+    };
+    // Only a new edit session/retry should reload; option list changes must not
+    // overwrite the user's in-progress edits.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [channelId, open]);
+  }, [requestKey, open, reloadCount]);
+
+  if (!formReady)
+    return (
+      <Dialog open={open} onClose={onCancel} fullWidth maxWidth={'md'}>
+        <DialogTitle sx={{ margin: '0px', fontWeight: 700, lineHeight: '1.55556', padding: '24px', fontSize: '1.125rem' }}>
+          {channelId ? t('common.edit') : t('common.create')}
+        </DialogTitle>
+        <Divider />
+        <DialogContent>
+          <>
+            {loadFailed ? (
+              <Alert severity="error">{t('channel_edit.loadFailed')}</Alert>
+            ) : (
+              <Box role="status" sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 3 }}>
+                <CircularProgress size={24} aria-label={t('common.loading')} />
+                <Typography>{t('common.loading')}</Typography>
+              </Box>
+            )}
+            <DialogActions>
+              <Button onClick={onCancel}>{t('common.cancel')}</Button>
+              {loadFailed && <Button onClick={() => setReloadCount((count) => count + 1)}>{t('channel_edit.retryLoad')}</Button>}
+              <Button disabled variant="contained">
+                {t('common.submit')}
+              </Button>
+            </DialogActions>
+          </>
+        </DialogContent>
+      </Dialog>
+    );
 
   return (
     <Dialog open={open} onClose={onCancel} fullWidth maxWidth={'md'}>
@@ -580,6 +631,12 @@ const EditModal = ({ open, channelId, onCancel, onOk, groupOptions, isTag, model
                     }}
                     onBlur={handleBlur}
                     filterSelectedOptions
+                    renderTags={(value, getTagProps) =>
+                      value.map((option, index) => {
+                        const { key, ...tagProps } = getTagProps({ index });
+                        return <Chip key={key} label={option} {...tagProps} />;
+                      })
+                    }
                     renderInput={(params) => (
                       <TextField {...params} name="groups" error={Boolean(errors.groups)} label={customizeT(inputLabel.groups)} />
                     )}
@@ -672,18 +729,18 @@ const EditModal = ({ open, channelId, onCancel, onOk, groupOptions, isTag, model
                         }
                         return filtered;
                       }}
-                      renderOption={(props, option, { selected }) => (
-                        <li {...props}>
+                      renderOption={({ key, ...props }, option, { selected }) => (
+                        <li key={key} {...props}>
                           <Checkbox icon={icon} checkedIcon={checkedIcon} style={{ marginRight: 8 }} checked={selected} />
                           {option.id}
                         </li>
                       )}
                       renderTags={(value, getTagProps) =>
                         value.map((option, index) => {
-                          const tagProps = getTagProps({ index });
+                          const { key, ...tagProps } = getTagProps({ index });
                           return (
                             <Chip
-                              key={index}
+                              key={key}
                               label={option.id}
                               {...tagProps}
                               onClick={() => copy(option.id)}
@@ -759,14 +816,16 @@ const EditModal = ({ open, channelId, onCancel, onOk, groupOptions, isTag, model
                     </Button> */}
                     {inputLabel.provider_models_list && (
                       <Tooltip title={customizeT(inputPrompt.provider_models_list)} placement="top">
-                        <Button
-                          disabled={hasTag}
-                          size="small"
-                          onClick={openModelSelector}
-                          startIcon={!isMobile && <Icon icon="mdi:cloud-download" />}
-                        >
-                          {isMobile ? <Icon icon="mdi:cloud-download" /> : customizeT(inputLabel.provider_models_list)}
-                        </Button>
+                        <span style={{ display: 'inline-flex' }}>
+                          <Button
+                            disabled={hasTag}
+                            size="small"
+                            onClick={openModelSelector}
+                            startIcon={!isMobile && <Icon icon="mdi:cloud-download" />}
+                          >
+                            {isMobile ? <Icon icon="mdi:cloud-download" /> : customizeT(inputLabel.provider_models_list)}
+                          </Button>
+                        </span>
                       </Tooltip>
                     )}
                   </ButtonGroup>
@@ -1094,11 +1153,14 @@ const EditModal = ({ open, channelId, onCancel, onOk, groupOptions, isTag, model
                 {pluginList[values.type] &&
                   Object.keys(pluginList[values.type]).map((pluginId) => {
                     const plugin = pluginList[values.type][pluginId];
+                    const expanded = Boolean(expandedPlugins[pluginId]);
+                    const pluginPanelId = `channel-plugin-${values.type}-${pluginId}`;
                     return (
-                      <>
+                      <Fragment key={pluginId}>
                         <Box
                           sx={{
-                            border: '1px solid #e0e0e0',
+                            border: '1px solid',
+                            borderColor: 'divider',
                             borderRadius: 2,
                             marginTop: 2,
                             marginBottom: 2,
@@ -1118,7 +1180,10 @@ const EditModal = ({ open, channelId, onCancel, onOk, groupOptions, isTag, model
                               <Typography variant="caption">{customizeT(plugin.description)}</Typography>
                             </Box>
                             <Button
-                              onClick={() => setExpanded(!expanded)}
+                              onClick={() => setExpandedPlugins((prev) => ({ ...prev, [pluginId]: !prev[pluginId] }))}
+                              aria-expanded={expanded}
+                              aria-controls={pluginPanelId}
+                              aria-label={`${customizeT(plugin.name)} ${expanded ? t('channel_edit.collapse') : t('channel_edit.expand')}`}
                               endIcon={
                                 expanded ? (
                                   <Icon icon="solar:alt-arrow-up-line-duotone" />
@@ -1132,7 +1197,7 @@ const EditModal = ({ open, channelId, onCancel, onOk, groupOptions, isTag, model
                             </Button>
                           </Box>
 
-                          <Collapse in={expanded}>
+                          <Collapse id={pluginPanelId} in={expanded} unmountOnExit>
                             <Box sx={{ padding: 2, marginTop: -3 }}>
                               {Object.keys(plugin.params).map((paramId) => {
                                 const param = plugin.params[paramId];
@@ -1153,7 +1218,7 @@ const EditModal = ({ open, channelId, onCancel, onOk, groupOptions, isTag, model
                                           }}
                                         />
                                       }
-                                      label={t('channel_edit.isEnable')}
+                                      label={`${customizeT(plugin.name)}：${t('channel_edit.isEnable')}`}
                                     />
                                     <FormHelperText id="helper-tex-channel-key-label"> {customizeT(param.description)} </FormHelperText>
                                   </FormControl>
@@ -1176,7 +1241,7 @@ const EditModal = ({ open, channelId, onCancel, onOk, groupOptions, isTag, model
                             </Box>
                           </Collapse>
                         </Box>
-                      </>
+                      </Fragment>
                     );
                   })}
                 <DialogActions>
@@ -1189,7 +1254,6 @@ const EditModal = ({ open, channelId, onCancel, onOk, groupOptions, isTag, model
             );
           }}
         </Formik>
-
         {/* 模型选择器弹窗 */}
         <ModelSelectorModal
           open={modelSelectorOpen}

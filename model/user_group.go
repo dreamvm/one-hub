@@ -207,7 +207,7 @@ func CheckAndUpgradeUserGroup(userId int, rechargeAmount int) error {
 
 	// Calculate cumulative recharge amount
 	cumulativeAmount := user.Quota + user.UsedQuota + rechargeAmount
-	logger.SysError(fmt.Sprintf("use:%f q:%f  cumulative:%f rechargeAmount:%f", (float64)(user.UsedQuota)/config.QuotaPerUnit, (float64)(user.Quota)/config.QuotaPerUnit, cumulativeAmount, rechargeAmount))
+	logger.SysError(fmt.Sprintf("use:%f q:%f  cumulative:%d rechargeAmount:%d", (float64)(user.UsedQuota)/config.QuotaPerUnit, (float64)(user.Quota)/config.QuotaPerUnit, cumulativeAmount, rechargeAmount))
 	// Get all promotion-enabled user groups
 	var promotionGroups []*UserGroup
 	err = DB.Where("promotion = ? AND enable = ?", true, true).Find(&promotionGroups).Error

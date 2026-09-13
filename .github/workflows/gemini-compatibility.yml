@@ -23,6 +23,28 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    container: node:22.20
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
+      - name: Install locked frontend dependencies
+        working-directory: web
+        run: yarn install --frozen-lockfile --non-interactive
+      - name: Run isolated UI regressions
+        working-directory: web
+        run: yarn test
+      - name: Lint and build frontend
+        working-directory: web
+        run: |
+          yarn lint
+          yarn build
+
   regression:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -56,5 +78,9 @@ jobs:
           go test -race -count=1 ./types ./providers/gemini ./providers/claude ./common/requester
       - name: Compile all providers and relay code
         run: go build ./providers/... ./relay/...
+      - name: Test grouped channel search without external services
+        run: |
+          test -z "$(gofmt -l model/channel.go model/channel-search_test.go model/user_group.go)"
+          go test -race -count=1 ./model
       - name: Vet patched packages
         run: go vet ./types ./providers/gemini ./providers/claude ./common/requester

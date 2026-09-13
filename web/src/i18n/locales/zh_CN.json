@@ -186,6 +186,8 @@
     "batchDelete": "批量删除模型"
   },
   "channel_edit": {
+    "loadFailed": "渠道配置读取失败，未加载任何可编辑配置。请重试。",
+    "retryLoad": "重新加载",
     "customModelTip": "自定义：点击或回车输入",
     "modelListError": "获取模型列表失败",
     "editSuccess": "更新成功!",
@@ -258,6 +260,9 @@
     "clearModelsTip": "重置所有已选择的模型"
   },
   "token_index": {
+    "loadFailed": "令牌读取失败，未加载任何可编辑配置。请重试。",
+    "retryLoad": "重新加载",
+    "saveFailed": "令牌保存失败，请重试。",
     "token": "令牌",
     "createToken": "新建令牌",
     "replaceApiAddress1": "将OpenAI API基础地址https://api.openai.com替换为",

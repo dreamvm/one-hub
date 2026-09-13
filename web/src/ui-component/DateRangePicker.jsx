@@ -16,19 +16,25 @@ export default class DateRangePicker extends React.Component {
   };
 
   handleStartChange = (date) => {
+    if (!date?.isValid()) return;
     // 将 date设置当天的 00:00:00
     date = date.startOf('day');
     this.setState({ startDate: date });
   };
 
   handleEndChange = (date) => {
+    if (!date?.isValid()) return;
     // 将 date设置当天的 23:59:59
     date = date.endOf('day');
     this.setState({ endDate: date });
   };
 
   handleStartOpen = () => {
-    this.setState({ startOpen: true });
+    this.setState({ startOpen: true, endOpen: false });
+  };
+
+  handleEndOpen = () => {
+    this.setState({ startOpen: false, endOpen: true });
   };
 
   handleStartClose = () => {
@@ -55,7 +61,7 @@ export default class DateRangePicker extends React.Component {
           <DatePicker
             label={localeText?.start || ''}
             name="start_date"
-            defaultValue={startDate}
+            value={startDate}
             open={startOpen}
             onChange={this.handleStartChange}
             onOpen={this.handleStartOpen}
@@ -70,7 +76,7 @@ export default class DateRangePicker extends React.Component {
                 sx: { flex: 1 }
               }
             }}
-            views={this.views}
+            views={this.props.views}
             sx={{ flex: 1 }}
           />
           <Typography variant="body" sx={{ px: 1 }}>
@@ -80,10 +86,10 @@ export default class DateRangePicker extends React.Component {
           <DatePicker
             label={localeText?.end || ''}
             name="end_date"
-            defaultValue={endDate}
+            value={endDate}
             open={endOpen}
             onChange={this.handleEndChange}
-            onOpen={this.handleStartOpen}
+            onOpen={this.handleEndOpen}
             onClose={this.handleEndClose}
             minDate={startDate}
             disableFuture
@@ -91,12 +97,12 @@ export default class DateRangePicker extends React.Component {
             slotProps={{
               textField: {
                 readOnly: true,
-                onClick: this.handleStartOpen,
+                onClick: this.handleEndOpen,
                 fullWidth: true,
                 sx: { flex: 1 }
               }
             }}
-            views={this.views}
+            views={this.props.views}
             sx={{ flex: 1 }}
           />
         </LocalizationProvider>

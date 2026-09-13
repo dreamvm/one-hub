@@ -95,6 +95,8 @@
   },
   "channel": "チャネル",
   "channel_edit": {
+    "loadFailed": "チャネル設定を読み込めませんでした。編集可能な設定は読み込まれていません。再試行してください。",
+    "retryLoad": "再読み込み",
     "addModelHeader": "カスタムヘッダーを追加",
     "addModelMapping": "モデルマッピングの追加",
     "addModelMappingByJson": "モデルマッピング（JSON）の追加",
@@ -1216,6 +1218,9 @@
   },
   "token": "トークン",
   "token_index": {
+    "loadFailed": "トークン設定を読み込めませんでした。編集は無効です。再試行してください。",
+    "retryLoad": "再読み込み",
+    "saveFailed": "トークンを保存できませんでした。再試行してください。",
     "actions": "操作",
     "cancel": "キャンセル",
     "chat": "チャット",
