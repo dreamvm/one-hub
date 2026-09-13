@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useSelector } from 'react-redux';
 
 // material-ui
@@ -65,22 +65,20 @@ const MenuCard = () => {
   const { user, userGroup } = useSelector((state) => state.account);
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const [balance, setBalance] = useState(0);
-  const [usedQuota, setUsedQuota] = useState(0);
-  const [requestCount, setRequestCount] = useState(0);
+  const configuredQuotaPerUnit = Number(localStorage.getItem('quota_per_unit'));
+  const quotaPerUnit = Number.isFinite(configuredQuotaPerUnit) && configuredQuotaPerUnit > 0 ? configuredQuotaPerUnit : 500000;
+  const quota = Number(user?.quota) || 0;
+  const consumed = Number(user?.used_quota) || 0;
+  const remainingQuota = Number.isFinite(quota) ? quota : 0;
+  const consumedQuota = Number.isFinite(consumed) ? Math.max(0, consumed) : 0;
+  const balance = (remainingQuota / quotaPerUnit).toFixed(2);
+  const usedQuota = (consumedQuota / quotaPerUnit).toFixed(2);
+  const requestCount = user?.request_count || 0;
 
-  const quotaPerUnit = localStorage.getItem('quota_per_unit') || 500000;
-
-  const totalQuota = parseFloat(balance) + parseFloat(usedQuota);
-  const progressValue = (parseFloat(usedQuota) / totalQuota) * 100;
-
-  useEffect(() => {
-    if (user) {
-      setBalance(((user.quota || 0) / quotaPerUnit).toFixed(2));
-      setUsedQuota(((user.used_quota || 0) / quotaPerUnit).toFixed(2));
-      setRequestCount(user.request_count || 0);
-    }
-  }, [user, quotaPerUnit]);
+  // Calculate from raw quota units: rounding to cents first loses small balances.
+  // Zero/empty accounts and negative balances must still produce a valid MUI percentage.
+  const totalQuota = Math.max(0, remainingQuota) + consumedQuota;
+  const progressValue = totalQuota > 0 ? Math.min(100, (consumedQuota / totalQuota) * 100) : 0;
 
   const getProgressColor = () => {
     if (progressValue < 60) return theme.palette.success.main;
