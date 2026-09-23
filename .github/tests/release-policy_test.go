@@ -76,6 +76,28 @@ func TestFrontendRegressionGateUsesExactSource(t *testing.T) {
 	require.True(t, checkout && unit && build && locked)
 }
 
+func TestPrivacyGateScansExactSourceAndBlocksRelease(t *testing.T) {
+	wf := readWorkflow(t, "gemini-compatibility.yml")
+	privacy, ok := wf.Jobs["privacy"]
+	require.True(t, ok)
+	var checkout, pinnedScanner, history, boundaries bool
+	for _, item := range privacy.Steps {
+		if strings.HasPrefix(item.Uses, "actions/checkout@") {
+			checkout = item.With["ref"] == "${{ inputs.ref || github.sha }}" &&
+				item.With["fetch-depth"] == 0 && item.With["persist-credentials"] == false
+		}
+		pinnedScanner = pinnedScanner || (strings.Contains(item.Run, "v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz") &&
+			strings.Contains(item.Run, "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb") &&
+			strings.Contains(item.Run, "sha256sum --check"))
+		history = history || strings.Contains(item.Run, "check_secrets.py --history")
+		boundaries = boundaries || strings.Contains(item.Run, "unittest discover -s .github/security")
+		require.Nil(t, item.ContinueOnError, "privacy failures must block dependent image jobs")
+	}
+	require.True(t, checkout && pinnedScanner && history && boundaries)
+	require.Empty(t, privacy.If)
+	require.Equal(t, "read", wf.Permissions["contents"])
+}
+
 func TestLegacyPublishWorkflowsAreArchived(t *testing.T) {
 	for _, name := range []string{"linux-release.yml", "macos-release.yml", "windows-release.yml"} {
 		require.NoFileExists(t, filepath.Join("..", "workflows", name))

@@ -1,0 +1,58 @@
+# Git history and local editor/agent state must not enter build caches.
+**/.git
+**/.git/**
+**/.idea
+**/.vscode
+**/.cursor
+**/.claude
+**/.codex
+**/.DS_Store
+
+# Runtime credentials/data, including nested frontend environment files.
+**/.env
+**/.env.*
+**/config.yaml
+**/config.yml
+**/test.yaml
+**/id_rsa*
+**/id_ed25519*
+**/*.key
+**/*.pem
+**/*.p12
+**/*.pfx
+**/secrets
+**/credentials
+**/data
+**/logs
+**/upload
+**/backup
+**/backups
+**/*.db
+**/*.db-*
+**/*.sqlite
+**/*.sqlite-*
+**/*.sqlite3
+**/*.sqlite3-*
+**/*.dump
+**/*.bak
+**/*.sql
+**/*.sql.gz
+!bin/migration_*.sql
+
+# Host dependencies and generated output are rebuilt in the Docker stages.
+**/node_modules
+**/__pycache__
+**/*.pyc
+**/.venv
+**/venv
+**/.cache
+**/coverage
+web/build
+dist
+tmp
+_output
+/one-api
+**/*.exe
+
+# Keep Go/Lua/image assets, config.example.yaml, VERSION, and frontend sources.
+# Dockerfile-action also needs one-api-amd64 / one-api-arm64: do not glob them out.
