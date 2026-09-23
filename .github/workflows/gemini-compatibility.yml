@@ -23,6 +23,36 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  privacy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out exact source with full history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install checksum-pinned secret scanner
+        shell: bash
+        run: |
+          set -euo pipefail
+          tool_dir="$RUNNER_TEMP/gitleaks-8.30.1"
+          mkdir -p "$tool_dir"
+          archive="$tool_dir/gitleaks.tar.gz"
+          curl --fail --location --silent --show-error --proto '=https' --tlsv1.2 \
+            https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz \
+            --output "$archive"
+          printf '551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  %s\n' "$archive" | sha256sum --check -
+          tar -xzf "$archive" -C "$tool_dir" gitleaks
+          printf 'GITLEAKS_BIN=%s/gitleaks\n' "$tool_dir" >> "$GITHUB_ENV"
+      - name: Scan full history without exposing findings
+        run: python3 .github/security/check_secrets.py --history
+      - name: Verify staged-secret and Docker-context boundaries
+        env:
+          ONEHUB_DOCKER_TEST: '1'
+        run: python3 -m unittest discover -s .github/security -p 'test_*.py'
+
   frontend:
     runs-on: ubuntu-latest
     container: node:22.20

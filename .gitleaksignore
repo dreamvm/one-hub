@@ -1,0 +1,9 @@
+# Reviewed upstream documentation examples, predating this fork's maintenance.
+# Exact immutable commit/file/rule/line fingerprints only; no blanket path,
+# fixture or token-prefix exclusions. New commits remain subject to scanning.
+9ff66b085ac21e2620910b930d2f188fc5202265:docs/use/special.md:curl-auth-header:91
+1c7f393ab83631d1d552283c6794d118c149a11c:docs/use/reasoning.md:curl-auth-header:21
+28254ce156ec0b17bb839d0ae27bd98cfe40abac:docs/use/special.md:curl-auth-header:16
+28254ce156ec0b17bb839d0ae27bd98cfe40abac:docs/use/special.md:curl-auth-header:31
+28254ce156ec0b17bb839d0ae27bd98cfe40abac:docs/use/special.md:curl-auth-header:45
+28254ce156ec0b17bb839d0ae27bd98cfe40abac:docs/use/special.md:curl-auth-header:68
