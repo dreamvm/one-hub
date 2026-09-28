@@ -57,12 +57,15 @@ go test -race -count=1 ./.github/smoke/...
 go vet ./types ./providers/gemini ./providers/claude ./common/requester
 go build ./providers/... ./relay/...
 python3 -m unittest discover -s .github/smoke -p 'test_*.py'
+export GITLEAKS_BIN="$(git config --path --get onehub.gitleaksPath)"
 python3 -m unittest discover -s .github/security -p 'test_*.py'
 python3 .github/security/check_secrets.py --staged
 ```
 
 每项修复还须运行它的所属包和新增回归；新增纯离线测试包后纳入 CI。
 隐私检查需先按隐私文档配置固定 Gitleaks；真实 Docker 上下文测试在隔离 CI 中执行。
+隐私 unittest 会创建临时 Git 仓库，必须显式传入 `GITLEAKS_BIN`；仅配置当前仓库路径不足以让临时仓库继承。
+如果安装方式仅使用环境变量，则保留已有的绝对路径，不执行上面从 Git 配置读取的赋值。
 前端变更执行 `cd web && yarn install --frozen-lockfile --non-interactive && yarn test && yarn lint && yarn build`。
 工作流变更执行 `go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12`。
 构建可使用 `task build`，但目前会执行 `go mod tidy` 且可能复用既存前端产物，构建后需检查差异；

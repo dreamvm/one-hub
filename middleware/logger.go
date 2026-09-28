@@ -1,40 +1,80 @@
 package middleware
 
 import (
-	"one-api/common/logger"
-	"one-api/metrics"
+	"errors"
+	"fmt"
+	"net"
+	"net/http"
+	"os"
 	"strings"
+	"syscall"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
-	"github.com/gin-gonic/gin"
+	"one-api/common/logger"
+	"one-api/metrics"
 )
 
 func SetUpLogger(server *gin.Engine) {
+	// Gin redirects before invoking middleware. Its debug redirect message also
+	// needs protection without changing redirect behavior or callback parameters.
+	gin.DebugPrintFunc = func(format string, values ...any) {
+		if strings.HasPrefix(format, "redirecting request ") {
+			logger.Logger.Debug("Gin request redirect (URLs omitted)")
+			return
+		}
+		logger.Logger.Debug(fmt.Sprintf(format, values...))
+	}
+	server.Use(safeRequestRecovery(), GinzapWithConfig())
+}
 
-	server.Use(GinzapWithConfig())
+func safeRequestRecovery() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		defer func() {
+			if value := recover(); value != nil {
+				logRequestPanic(c)
+				metrics.RecordPanic("http")
+				var networkError *net.OpError
+				var syscallError *os.SyscallError
+				if err, ok := value.(error); ok && errors.As(err, &networkError) && errors.As(networkError, &syscallError) &&
+					(errors.Is(syscallError, syscall.EPIPE) || errors.Is(syscallError, syscall.ECONNRESET)) {
+					// Preserve Gin's no-write behavior for a disconnected client,
+					// but retain the safe diagnostic above and never attach the raw error.
+					c.Abort()
+					return
+				}
+				c.AbortWithStatus(http.StatusInternalServerError)
+			}
+		}()
+		c.Next()
+	}
+}
+
+func logRequestPanic(c *gin.Context) {
+	// SysError preserves the root dashboard's log history as well as file/stderr
+	// diagnostics. Stack frames are retained; panic values and request dumps are not.
+	logger.SysError(fmt.Sprintf("HTTP handler panic: method=%s route=%s request_id=%s\n%s",
+		c.Request.Method, requestLogPath(c), c.GetString(logger.RequestIdKey), zap.Stack("stack").String))
+}
+
+func requestLogPath(c *gin.Context) string {
+	if path := c.FullPath(); path != "" {
+		return path
+	}
+	// Disabled integrations and wrong-method requests can still contain tokens.
+	return "[unmatched]"
 }
 
 func GinzapWithConfig() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
-		path := c.Request.URL.Path
-		query := c.Request.URL.RawQuery
-		// 如果query的值包含key=sk-fsdfsdfsdf 则把sk-fsdfsdfsdf脱敏处理
-		if query != "" {
-			if i := strings.Index(query, "key=sk-"); i >= 0 {
-				start := i + 4 // "key=" length
-				end := strings.Index(query[start:], "&")
-				if end == -1 {
-					end = len(query)
-				} else {
-					end += start
-				}
-				query = query[:start] + "sk-***" + query[end:]
-			}
-		}
+		path := requestLogPath(c)
+		// Do not copy query values: OAuth, verification and payment parameters
+		// can contain secrets in addition to the model API's key parameter.
+		hasQuery := c.Request.URL.RawQuery != ""
 		c.Next()
 		end := time.Now()
 		latency := end.Sub(start)
@@ -46,7 +86,7 @@ func GinzapWithConfig() gin.HandlerFunc {
 			zap.String("request_id", requestID),
 			zap.String("method", c.Request.Method),
 			zap.String("path", path),
-			zap.String("query", query),
+			zap.Bool("has_query", hasQuery),
 			zap.String("ip", c.ClientIP()),
 			zap.String("user-agent", c.Request.UserAgent()),
 			zap.Duration("latency", latency),
@@ -59,10 +99,9 @@ func GinzapWithConfig() gin.HandlerFunc {
 		}
 
 		if len(c.Errors) > 0 {
-			// Append error field if this is an erroneous request.
-			for _, e := range c.Errors.Errors() {
-				logger.Logger.Error(e, fields...)
-			}
+			// Error strings may contain an upstream URL or a copy of the request.
+			fields = append(fields, zap.Int("error_count", len(c.Errors)))
+			logger.Logger.Error("GIN request failed", fields...)
 		} else {
 			logger.Logger.Info("GIN request", fields...)
 		}
