@@ -1,6 +1,7 @@
 # 下一版本计划
 
 更新：2026-09-28。计划基线：`76fc8238e2d187a81239d8e8126289efe9460464`。
+首批修复集成提交：`e61c155c4ab4f1b3feb996f2aff95555774766a0`（PR #17–#20 已合并）。
 执行规范见 [RELEASE_PROCESS.md](RELEASE_PROCESS.md)。
 
 ## 已核实的版本与预留编号
@@ -19,10 +20,10 @@ RC 是预发布候选，编号不代表质量验收。后续候选暂按 rc.7、
 
 | 批次 | 范围 | 验收条件 | 状态 |
 |---|---|---|---|
-| 流程基线 | 版本规则、独立修复、验证与发布状态、PR 模板 | 文档一致且不改变自动发布开关 | 本地完成；链接与 diff 检查通过，未合并 |
-| rc.6 / A1 | 管理用户响应字段边界 | 列表/搜索不返回凭据，分页/排序/编辑所需字段正常，个人令牌生成仍可用 | 本地回归与独立审阅通过；CI/合并待完成 |
-| rc.6 / A2 | 会话当前身份和权限 | 封禁/降级/删除后旧 Cookie 拒绝受限操作，正常 Cookie 与 Bearer 正常 | 本地回归与独立审阅通过；CI/合并待完成 |
-| rc.6 / A3 | 请求日志脱敏 | 路径、编码/重复查询参数及失败路径无凭据；正常请求诊断字段保留 | 本地回归通过，审阅问题已修正；CI/合并待完成 |
+| 流程基线 | 版本规则、独立修复、验证与发布状态、PR 模板 | 文档一致且不改变自动发布开关 | PR #17 已合并；分支 CI 与隔离镜像验收通过 |
+| rc.6 / A1 | 管理用户响应字段边界 | 列表/搜索不返回凭据，分页/排序/编辑所需字段正常，个人令牌生成仍可用 | PR #18 已合并；本地回归、独立审阅、分支 CI 与镜像验收通过 |
+| rc.6 / A2 | 会话当前身份和权限 | 封禁/降级/删除后旧 Cookie 拒绝受限操作，正常 Cookie 与 Bearer 正常 | PR #19 已合并；本地回归、独立审阅、分支 CI 与镜像验收通过 |
+| rc.6 / A3 | 请求日志脱敏 | 路径、编码/重复查询参数及失败路径无凭据；正常请求诊断字段保留 | PR #20 已合并；回归、审阅问题修正、分支 CI 与镜像验收通过 |
 | 后续 B | 媒体下载目标策略、Midjourney 回调身份和任务绑定 | 内网/回环/链路本地与恶意跳转拒绝，合法下载和回调正常 | 待实施，阻断正式版 |
 | 后续 C | 有限令牌额度、原子预留、数据库支付幂等 | 并发不超支；缓存不放行耗尽额度；多实例重复回调只入账一次；故障可重试 | 待实施，阻断正式版 |
 | 后续 D | Fork 部署模板、健康检查、构建入口、PostgreSQL/依赖/端到端验收 | 固定 Fork 镜像；健康失败正确退出；三数据库及相关故障路径通过 | 待实施，阻断正式版 |
@@ -37,6 +38,27 @@ rc.6 只覆盖身份与凭据；B/C 未完成前，不把 rc.6 作为整体安�
 每项记录包含：问题编号、分支/PR、最终 SHA、复现与正常对照、命令及结果、独立审阅结论、
 CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执行项保留“未执行”，不得用旧提交的成功代替。
 
+### 远端与合并验收
+
+| 批次 / PR | 通过隔离验收的提交 | 合并提交 | CI（含 privacy、frontend、regression、smoke） |
+|---|---|---|---|
+| 流程 / [#17](https://github.com/dreamvm/one-hub/pull/17) | [672399a2](https://github.com/dreamvm/one-hub/commit/672399a2937f69edd4ca013c41b1c75d58f34162) | [3e017590](https://github.com/dreamvm/one-hub/commit/3e01759082f826c31c33ebc37bc72572c9bfbf4d) | [通过](https://github.com/dreamvm/one-hub/actions/runs/36404912996) |
+| A1 / [#18](https://github.com/dreamvm/one-hub/pull/18) | [633aa602](https://github.com/dreamvm/one-hub/commit/633aa602cfd10abfd3116e6f6bac6fd80483f8c4) | [7417c93a](https://github.com/dreamvm/one-hub/commit/7417c93a91d7205a0e3510558df485b5fd668bae) | [通过](https://github.com/dreamvm/one-hub/actions/runs/36404970153) |
+| A2 / [#19](https://github.com/dreamvm/one-hub/pull/19) | [9a9bddfc](https://github.com/dreamvm/one-hub/commit/9a9bddfc8fe669439ceab476afa40261de33f8a8) | [18273721](https://github.com/dreamvm/one-hub/commit/1827372145b604cf502400559e9168d4a0755b48) | [通过](https://github.com/dreamvm/one-hub/actions/runs/36404980180) |
+| A3 / [#20](https://github.com/dreamvm/one-hub/pull/20) | [cec2278f](https://github.com/dreamvm/one-hub/commit/cec2278f625d799730f783cd97cff15d4ae2832d) | [e61c155c](https://github.com/dreamvm/one-hub/commit/e61c155c4ab4f1b3feb996f2aff95555774766a0) | [通过](https://github.com/dreamvm/one-hub/actions/runs/36404990797) |
+
+- 按 #17 → #18 → #19 → #20 合并，逐项将基线切换至当时的 main，核对准确 SHA 的成功运行，
+  并验证 `git merge-tree` 的结果与已受测提交的文件树一致。未改写原始提交或覆盖标签。
+- 四个分支均完成 SQLite、MySQL＋Redis、实际运行版本、权限控制、工具调用、持久化及升级/回滚验收。
+  最终分支前端 56 项测试、隐私 14 项测试（含真实 Docker 上下文）通过；lint 为 0 错误、33 条既存警告。
+- 隔离最终分支镜像 ID 为 `sha256:58abc2becfbb91528f6d2954778abf8fe0e907d07aa5a9bc688a9bef73e583e2`，
+  只在 CI runner 加载，未发布。镜像回退只对本次合成数据验证有效，备份恢复会丢弃备份后的写入。
+- 上表记录分支验收与合并对应关系；标签必须采用合并后、包含台账更新的最终 main 提交。
+  该提交须另行完成主分支 CI 和隔离镜像复验，将准确 SHA、运行链接及结果记录到台账更新 PR 的验收说明。
+  分支成功不能代替最终主分支的验收，也不代表 rc.6 标签或镜像已经发布。
+- 新增安全用例使用临时 SQLite；MySQL＋Redis smoke 只证明其脚本覆盖路径。
+  PostgreSQL、浏览器端到端、生产运行版本和历史凭据暴露核实仍未完成，后续 B/C/D 阻断项保持开放。
+
 ### A1 本地验收
 
 - 分支：`codex/security-user-responses`，依赖流程分支 `codex/release-process-rc6`。
@@ -44,7 +66,7 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - 修复后：显式响应字段白名单排除管理令牌与验证码；空密码字段保留供现有编辑表单使用。
 - Go 1.25.14：`go test -race -count=1 ./controller ./model ./.github/tests`、
   `go vet ./controller ./model`、修改文件的 gofmt / goimports 与 diff 检查通过。
-- 独立审阅未发现可验证绕过或兼容性回归；运行数据库为临时 SQLite，未验证 MySQL/PostgreSQL、浏览器和远端 CI。
+- 独立审阅未发现可验证绕过或兼容性回归；本地阶段仅使用临时 SQLite。后续远端验收见上表；PostgreSQL 与浏览器未验证。
 - 固定 `actionlint v1.7.12` 检查通过；新增 controller 回归已接入既有 CI，不新增发布触发器。
 - 未改 schema、个人令牌显示/轮换或发布开关。回退代码会重新暴露原问题，不能把回退作为凭据补救。
 - 防止未来响应泄露不等于撤销已复制的令牌；生产暴露核实与必要轮换仍是待执行的独立操作。
@@ -60,7 +82,7 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
   独立审阅未发现可验证绕过或回归；全部数据为临时 SQLite/模拟 OAuth 响应。
 - 每次会话请求增加数据库身份查询；数据库不可用时受限接口拒绝请求，可选身份接口按匿名处理。
   未改 schema 或签名密钥，不强制所有正常用户重新登录；不宣称实现密码修改/注销的全设备会话撤销。
-- 远端 CI、其他数据库运行与生产仍未验证；代码回退会恢复旧会话风险。
+- 后续远端 CI 与 MySQL＋Redis smoke 见上表；PostgreSQL 与生产仍未验证，代码回退会恢复旧会话风险。
 
 ### A3 本地验收
 
@@ -74,5 +96,5 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
   这不代表其他业务日志或反向代理日志已全量审计，历史日志及已泄露凭据不被此修复清理。
 - Go 1.25.14：新增正常、异常、debug 重定向和连接断开回归的 race 检查通过；未调用真实模型或支付。
 - RC6 整体本地检查包含主程序编译、controller/middleware/model 与既有协议回归、vet、工作流策略、
-  actionlint、前端 56 项测试、smoke Python 13 项与隐私 13 项测试（Docker 上下文 1 项待 CI）、历史密钥扫描。
+  actionlint、前端 56 项测试、smoke Python 13 项与隐私 13 项测试（本地跳过的 Docker 上下文已由后续 CI 验证）、历史密钥扫描。
   隐私测试首次因未传扫描器路径而失败，补上固定版本环境变量后通过；流程命令已相应更正。
