@@ -3,14 +3,21 @@
 LLM API aggregation gateway. Go (Gin) backend + React (Vite/MUI) frontend.
 Forked from songquanpeng/one-api. Multi-provider proxy for OpenAI, Claude, Gemini, etc.
 
+## Fork Maintenance Workflow
+
+- Follow `docs/RELEASE_PROCESS.md`; track planned versions and actual progress in `docs/NEXT_RELEASE.md`.
+- Each security fix needs a failing regression first, a legitimate control, focused checks, and independent review.
+- Keep each independent fix in its own commit/PR; explicitly record dependencies between stacked branches.
+- Do not confuse planned versions, local verification, CI, merge, image publication, and production deployment.
+- Ordinary offline checks must not run unfiltered `go test ./...`; some legacy tests call external services.
+- The only maintained image publication path is the manual GHCR workflow. Do not use `task docker` to publish.
+
 ## Build / Run / Test Commands
 
 ### Backend (Go)
 
 ```bash
-# Full build (frontend + backend)
-make all
-# — or via Task runner —
+# Full build (frontend + backend; currently also runs go mod tidy)
 task build
 
 # Backend only (requires web/build/ to exist)
@@ -19,14 +26,14 @@ go build -o dist/one-api
 # Hot-reload development (uses .air.toml)
 air
 
-# Run tests — all
-go test ./...
+# Offline regression set (add the package owned by each change)
+go test -race -count=1 ./model ./types ./providers/gemini ./providers/claude ./common/requester
 
-# Run a single test by name
-go test -run TestDingTalkSend ./common/notify/channel/...
+# Run a single isolated test by name
+go test -run TestChannelNameSearchIncludesGroupedChannels ./model
 
-# Run all tests in a package
-go test ./providers/ali/...
+# Workflow/release policy checks
+go test -count=1 ./.github/tests
 
 # Format
 task gofmt          # runs gofmt -s -w . && goimports -w .
@@ -53,8 +60,7 @@ yarn prettier       # prettier
 
 ```bash
 docker build -t one-api .
-# or
-task docker         # builds linux/amd64 + pushes image
+# Publishing: see docs/RELEASE_PROCESS.md (manual GHCR workflow).
 ```
 
 ## Project Structure
