@@ -3,16 +3,17 @@ package model
 import (
 	"errors"
 	"fmt"
-	"one-api/common"
-	"one-api/common/config"
-	"one-api/common/logger"
-	"one-api/common/redis"
-	"one-api/common/utils"
 	"strings"
 	"time"
 
 	"github.com/go-webauthn/webauthn/webauthn"
 	"gorm.io/gorm"
+
+	"one-api/common"
+	"one-api/common/config"
+	"one-api/common/logger"
+	"one-api/common/redis"
+	"one-api/common/utils"
 )
 
 // User if you add sensitive fields, don't forget to clean them in setupLogin function.
@@ -67,9 +68,9 @@ var allowedUserOrderFields = map[string]bool{
 	"last_login_ip":   true,
 }
 
-func GetUsersList(params *GenericParams) (*DataResult[User], error) {
+func GetUsersList(params *GenericParams) (*DataResult[AdminUserResponse], error) {
 	var users []*User
-	db := DB.Omit("password")
+	db := DB.Omit("password", "access_token")
 	if params.Keyword != "" {
 		groupCol := "`group`"
 		if common.UsingPostgreSQL {
@@ -78,7 +79,17 @@ func GetUsersList(params *GenericParams) (*DataResult[User], error) {
 		db = db.Where("id = ? or username LIKE ? or email LIKE ? or display_name LIKE ? or "+groupCol+" LIKE ?", utils.String2Int(params.Keyword), params.Keyword+"%", params.Keyword+"%", params.Keyword+"%", params.Keyword+"%")
 	}
 
-	return PaginateAndOrder[User](db, &params.PaginationParams, &users, allowedUserOrderFields)
+	page, err := PaginateAndOrder[User](db, &params.PaginationParams, &users, allowedUserOrderFields)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]*AdminUserResponse, 0, len(users))
+	for _, user := range users {
+		responses = append(responses, user.AdminResponse())
+	}
+	return &DataResult[AdminUserResponse]{
+		Data: &responses, Page: page.Page, Size: page.Size, TotalCount: page.TotalCount,
+	}, nil
 }
 
 func GetUserById(id int, selectAll bool) (*User, error) {

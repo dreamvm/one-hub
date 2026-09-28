@@ -6,16 +6,17 @@ import (
 	"fmt"
 	"math"
 	"net/http"
-	"one-api/common"
-	"one-api/common/config"
-	"one-api/common/limit"
-	"one-api/common/utils"
-	"one-api/model"
 	"strconv"
 	"time"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+
+	"one-api/common"
+	"one-api/common/config"
+	"one-api/common/limit"
+	"one-api/common/utils"
+	"one-api/model"
 )
 
 type LoginRequest struct {
@@ -234,7 +235,7 @@ func GetUser(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
-		"data":    user,
+		"data":    user.AdminResponse(),
 	})
 }
 
