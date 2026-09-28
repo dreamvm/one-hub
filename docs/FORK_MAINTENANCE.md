@@ -183,6 +183,9 @@ GitHub Actions 的 `Gemini compatibility` 工作流只测试和编译，不发�
 
 ## 后续维护和发布
 
+当前统一流程见 [RELEASE_PROCESS.md](RELEASE_PROCESS.md)，下一版本与分批进度见
+[NEXT_RELEASE.md](NEXT_RELEASE.md)。下方首次构建/验收记录是历史证据，不代表新候选已验收。
+
 1. 每项修复使用独立分支和 PR，先写能复现问题的测试。
 2. 同步上游前比较差异，保留本 Fork 的签名回归用例。
 3. 合并源码不等于部署；上线前还需独立构建、备份、隔离联调及回滚验证。
@@ -204,7 +207,7 @@ GitHub Actions 的 `Gemini compatibility` 工作流只测试和编译，不发�
 需要构建或发布时：
 
 1. 对已经合并、经过审阅的提交创建版本标签，格式为 `vX.Y.Z` 或 `vX.Y.Z-suffix`。
-   例如 `v0.14.27-dreamvm.1` 只是格式示例，本次并未创建这个标签。
+   正式目标为 `v0.14.27-dreamvm.1`；当前是否已创建标签以版本计划和远端核实为准。
 2. 在 Actions → **Manual GHCR image** → **Run workflow** 中选择默认分支 `main`。
 3. 填写已有的 `release_tag`。工作流检查标签格式、存在性，并确认其提交属于触发时 main 的历史。
 4. 初次保持 `publish=false`：执行测试并构建镜像，不登录 GHCR、不上传镜像。
