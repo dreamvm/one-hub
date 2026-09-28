@@ -112,10 +112,10 @@ jobs:
         run: |
           test -z "$(gofmt -l model/channel.go model/channel-search_test.go model/user_group.go)"
           go test -race -count=1 ./model
-      - name: Test management credential response boundaries
+      - name: Test management credentials and current session authorization
         run: |
-          test -z "$(gofmt -l model/user-response.go controller/user-response_test.go)"
-          go test -race -count=1 ./controller
-          go vet ./controller ./model
+          test -z "$(gofmt -l model/user-response.go controller/user-response_test.go middleware/auth.go middleware/session.go middleware/session-auth_test.go controller/github.go controller/lark.go controller/oauth-session_test.go)"
+          go test -race -count=1 ./controller ./middleware
+          go vet ./controller ./middleware ./model
       - name: Vet patched packages
         run: go vet ./types ./providers/gemini ./providers/claude ./common/requester

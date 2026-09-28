@@ -6,14 +6,16 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"one-api/common/config"
-	"one-api/common/logger"
-	"one-api/model"
 	"strconv"
 	"time"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+
+	"one-api/common/config"
+	"one-api/common/logger"
+	"one-api/middleware"
+	"one-api/model"
 )
 
 type LarkAppAccessTokenResponse struct {
@@ -235,6 +237,11 @@ func LarkBind(c *gin.Context) {
 		})
 		return
 	}
+	currentUser, err := middleware.CurrentSessionUser(c)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": err.Error()})
+		return
+	}
 	code := c.Query("code")
 	larkUser, err := getLarkUserInfoByCode(code)
 	if err != nil {
@@ -254,9 +261,7 @@ func LarkBind(c *gin.Context) {
 		})
 		return
 	}
-	session := sessions.Default(c)
-	id := session.Get("id")
-	user.Id = id.(int)
+	user.Id = currentUser.Id
 	err = user.FillUserById()
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
