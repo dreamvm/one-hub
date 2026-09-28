@@ -3,11 +3,10 @@ package middleware
 import (
 	"fmt"
 	"net/http"
-	"one-api/common/logger"
-	"one-api/metrics"
-	"runtime/debug"
 
 	"github.com/gin-gonic/gin"
+
+	"one-api/metrics"
 )
 
 func RelayPanicRecover() gin.HandlerFunc {
@@ -103,9 +102,8 @@ func RelaySunoPanicRecover() gin.HandlerFunc {
 	}
 }
 
-func handlePanic(c *gin.Context, err interface{}, errorResponse gin.H) {
-	logger.SysError(fmt.Sprintf("panic detected: %v", err))
-	logger.SysError(fmt.Sprintf("stacktrace from panic: %s", string(debug.Stack())))
+func handlePanic(c *gin.Context, _ interface{}, errorResponse gin.H) {
+	logRequestPanic(c)
 	c.JSON(http.StatusInternalServerError, errorResponse)
 	c.Abort()
 }
