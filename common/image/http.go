@@ -1,20 +1,33 @@
 package image
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"io"
+	"net"
 	"net/http"
+	"net/url"
+	"time"
+
 	"one-api/common/config"
 	"one-api/common/utils"
-	"time"
 )
 
 var ImageHttpClients = &http.Client{
+	Transport: newMediaTransport(),
+	Timeout:   15 * time.Second,
+}
+
+// Workers are administrator-configured delegates. Their own outbound policy
+// must be enforced by the Worker; the gateway never follows Worker redirects.
+var workerImageClient = &http.Client{
 	Transport: &http.Transport{
 		DialContext: utils.Socks5ProxyFunc,
 		Proxy:       utils.ProxyFunc,
 	},
-	Timeout: 15 * time.Second,
+	Timeout:       15 * time.Second,
+	CheckRedirect: func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse },
 }
 
 var maxFileSize int64 = 20 * 1024 * 1024 // 20MB
@@ -36,8 +49,15 @@ func RequestFile(url, action string) (*http.Response, error) {
 	reqUrl := url
 	method := http.MethodGet
 	var requestBody any
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	client := ImageHttpClients
 
 	if config.CFWorkerImageUrl != "" {
+		if err := validateWorkerMediaTarget(ctx, url); err != nil {
+			cancel()
+			return nil, err
+		}
+		client = workerImageClient
 		requestBody = &CFRequest{
 			Action: action,
 			APIKey: config.CFWorkerImageKey,
@@ -47,21 +67,28 @@ func RequestFile(url, action string) (*http.Response, error) {
 		method = http.MethodPost
 	}
 
-	res, err := utils.RequestBuilder(utils.SetProxy(config.ChatImageRequestProxy, nil), method, reqUrl, requestBody, nil)
+	res, err := utils.RequestBuilder(utils.SetProxy(config.ChatImageRequestProxy, ctx), method, reqUrl, requestBody, nil)
 
 	if err != nil {
-		return nil, err
+		cancel()
+		return nil, errMediaTarget
 	}
 
-	response, err := ImageHttpClients.Do(res)
+	response, err := client.Do(res)
 	if err != nil {
-		return nil, err
+		cancel()
+		// Client errors include the original URL, including signed query data.
+		if errors.Is(err, errMediaTarget) {
+			return nil, errMediaTarget
+		}
+		return nil, errors.New("media download failed")
 	}
 
-	response.Body = http.MaxBytesReader(nil, response.Body, maxFileSize)
+	response.Body = &mediaResponseBody{ReadCloser: http.MaxBytesReader(nil, response.Body, maxFileSize), cancel: cancel}
 
 	if response.StatusCode != http.StatusOK && config.CFWorkerImageUrl != "" {
-		var cfResp *CFResponse
+		defer response.Body.Close()
+		var cfResp CFResponse
 		err = json.NewDecoder(response.Body).Decode(&cfResp)
 		if err != nil {
 			return nil, err
@@ -70,4 +97,23 @@ func RequestFile(url, action string) (*http.Response, error) {
 	}
 
 	return response, err
+}
+
+func validateWorkerMediaTarget(ctx context.Context, rawURL string) error {
+	target, err := url.Parse(rawURL)
+	if err != nil {
+		return errMediaTarget
+	}
+	_, err = mediaAddresses(ctx, target, net.DefaultResolver.LookupIPAddr)
+	return err
+}
+
+type mediaResponseBody struct {
+	io.ReadCloser
+	cancel context.CancelFunc
+}
+
+func (b *mediaResponseBody) Close() error {
+	b.cancel()
+	return b.ReadCloser.Close()
 }

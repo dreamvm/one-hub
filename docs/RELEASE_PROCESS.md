@@ -7,7 +7,7 @@
 ## 版本规则
 
 - 保留上游基线 `v0.14.27`；本 Fork 的正式目标版本为 `v0.14.27-dreamvm.1`。
-- 下一个候选标签预定为 `v0.14.27-dreamvm.1-rc.6`。RC 编号只递增，已发布标签不移动、不复用。
+- 下一个候选标签由 [NEXT_RELEASE.md](NEXT_RELEASE.md) 提前预留。RC 编号只递增，已发布标签不移动、不复用。
 - 计划号不等于 Git 标签、GitHub Release、镜像或生产版本；这四项分别记录状态。
 - `VERSION` 由现有镜像工作流在构建副本中注入实际标签；不提前把计划版本写成已发布版本。
 - 每次打标签前再次核对远端标签。若编号已占用，递增并更新版本计划，不能覆盖旧标签。
@@ -53,6 +53,7 @@ Go 使用与 CI 一致的 `1.25.x`，前端 Node 22 / Yarn 1；锁文件不因�
 ```sh
 go test -race -count=1 ./model ./types ./providers/gemini ./providers/claude ./common/requester
 go test -count=1 ./.github/tests
+go test -race -count=1 ./common/image -run '^(TestMedia.*|TestParseBase64File)$'
 go test -race -count=1 ./.github/smoke/...
 go vet ./types ./providers/gemini ./providers/claude ./common/requester
 go build ./providers/... ./relay/...
