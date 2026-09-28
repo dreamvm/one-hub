@@ -6,20 +6,22 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"golang.org/x/net/proxy"
 	"net"
 	"net/http"
 	"net/url"
-	"one-api/common/config"
-	"one-api/common/logger"
-	"one-api/common/utils"
-	"one-api/model"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/net/proxy"
+
+	"one-api/common/config"
+	"one-api/common/logger"
+	"one-api/common/utils"
+	"one-api/middleware"
+	"one-api/model"
 )
 
 type GitHubOAuthResponse struct {
@@ -338,6 +340,11 @@ func GitHubBind(c *gin.Context) {
 		})
 		return
 	}
+	currentUser, err := middleware.CurrentSessionUser(c)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": err.Error()})
+		return
+	}
 	code := c.Query("code")
 	githubUser, err := getGitHubUserInfoByCode(code)
 	if err != nil {
@@ -357,10 +364,7 @@ func GitHubBind(c *gin.Context) {
 		})
 		return
 	}
-	session := sessions.Default(c)
-	id := session.Get("id")
-	// id := c.GetInt("id")  // critical bug!
-	user.Id = id.(int)
+	user.Id = currentUser.Id
 	err = user.FillUserById()
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
