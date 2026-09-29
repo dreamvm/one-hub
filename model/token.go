@@ -431,27 +431,9 @@ func PreConsumeTokenQuotaWithInfo(tokenId, userId int, unlimitedQuota bool, quot
 	}
 	var user User
 	err = DB.Transaction(func(tx *gorm.DB) error {
-		result := tx.Model(&User{}).Where("id = ? AND quota >= ?", userId, quota).
-			Update("quota", gorm.Expr("quota - ?", quota))
-		if err := quotaWriteResult(result, "用户额度不足或用户不存在"); err != nil {
-			return err
-		}
-		if unlimitedQuota {
-			var current Token
-			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-				Where("id = ? AND user_id = ? AND unlimited_quota = ?", tokenId, userId, true).
-				First(&current).Error; err != nil {
-				return err
-			}
-		} else {
-			result = tx.Model(&Token{}).
-				Where("id = ? AND user_id = ? AND unlimited_quota = ? AND remain_quota >= ?", tokenId, userId, false, quota).
-				Updates(tokenQuotaDelta(quota))
-			if err := quotaWriteResult(result, "令牌额度不足或令牌已变更"); err != nil {
-				return err
-			}
-		}
-		return tx.First(&user, userId).Error
+		var innerErr error
+		user, innerErr = preConsumeTokenQuotaTx(tx, tokenId, userId, unlimitedQuota, quota)
+		return innerErr
 	})
 	if err != nil {
 		return err
@@ -489,19 +471,7 @@ func PostConsumeTokenQuotaWithInfo(tokenId int, userId int, unlimitedQuota bool,
 		return nil
 	}
 	return DB.Transaction(func(tx *gorm.DB) error {
-		result := tx.Model(&User{}).Where("id = ?", userId).
-			Update("quota", gorm.Expr("quota - ?", quota))
-		if err := quotaWriteResult(result, "用户不存在"); err != nil {
-			return err
-		}
-		if unlimitedQuota {
-			var token Token
-			return tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-				Where("id = ? AND user_id = ?", tokenId, userId).First(&token).Error
-		}
-		result = tx.Model(&Token{}).Where("id = ? AND user_id = ?", tokenId, userId).
-			Updates(tokenQuotaDelta(quota))
-		return quotaWriteResult(result, "令牌不存在或归属已变更")
+		return postConsumeTokenQuotaTx(tx, tokenId, userId, unlimitedQuota, quota)
 	})
 }
 
@@ -521,4 +491,49 @@ func quotaWriteResult(result *gorm.DB, message string) error {
 		return errors.New(message)
 	}
 	return nil
+}
+
+func preConsumeTokenQuotaTx(tx *gorm.DB, tokenId, userId int, unlimitedQuota bool, quota int) (User, error) {
+	var user User
+	result := tx.Model(&User{}).Where("id = ? AND quota >= ?", userId, quota).
+		Update("quota", gorm.Expr("quota - ?", quota))
+	if err := quotaWriteResult(result, "用户额度不足或用户不存在"); err != nil {
+		return user, err
+	}
+	if unlimitedQuota {
+		var current Token
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("id = ? AND user_id = ? AND unlimited_quota = ?", tokenId, userId, true).
+			First(&current).Error; err != nil {
+			return user, err
+		}
+	} else {
+		result = tx.Model(&Token{}).
+			Where("id = ? AND user_id = ? AND unlimited_quota = ? AND remain_quota >= ?", tokenId, userId, false, quota).
+			Updates(tokenQuotaDelta(quota))
+		if err := quotaWriteResult(result, "令牌额度不足或令牌已变更"); err != nil {
+			return user, err
+		}
+	}
+	err := tx.First(&user, userId).Error
+	return user, err
+}
+
+func postConsumeTokenQuotaTx(tx *gorm.DB, tokenId, userId int, unlimitedQuota bool, quota int) error {
+	if quota == 0 {
+		return nil
+	}
+	result := tx.Model(&User{}).Where("id = ?", userId).
+		Update("quota", gorm.Expr("quota - ?", quota))
+	if err := quotaWriteResult(result, "用户不存在"); err != nil {
+		return err
+	}
+	if unlimitedQuota {
+		var token Token
+		return tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("id = ? AND user_id = ?", tokenId, userId).First(&token).Error
+	}
+	result = tx.Model(&Token{}).Where("id = ? AND user_id = ?", tokenId, userId).
+		Updates(tokenQuotaDelta(quota))
+	return quotaWriteResult(result, "令牌不存在或归属已变更")
 }

@@ -1,7 +1,6 @@
 package relay_util
 
 import (
-	"context"
 	"errors"
 	"math"
 	"net/http"
@@ -9,6 +8,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"gorm.io/datatypes"
 
 	"one-api/common"
 	"one-api/common/config"
@@ -34,7 +35,12 @@ type Quota struct {
 	tokenId          int
 	unlimitedQuota   bool
 	HandelStatus     bool
-	finishOnce       sync.Once
+	requestID        string
+	reservationID    string
+	reservationReady bool
+	terminalMu       sync.Mutex
+	terminal         *model.QuotaTerminal
+	terminalErr      error
 
 	startTime         time.Time
 	firstResponseTime time.Time
@@ -45,6 +51,8 @@ func NewQuota(c *gin.Context, modelName string, promptTokens int) *Quota {
 	isBackupGroup := c.GetBool("is_backupGroup")
 
 	quota := &Quota{
+		reservationID:  uuid.NewString(),
+		requestID:      c.GetString(logger.RequestIdKey),
 		modelName:      modelName,
 		promptTokens:   promptTokens,
 		userId:         c.GetInt("id"),
@@ -73,8 +81,12 @@ func (q *Quota) PreQuotaConsumption() *types.OpenAIErrorWithStatusCode {
 	if q.promptTokens < 0 {
 		return common.ErrorWrapper(errors.New("invalid prompt token estimate"), "invalid_quota_estimate", http.StatusBadRequest)
 	}
-	// Explicitly free models and groups do not require a reservation.
+	// Free requests keep a zero-value receipt without reserving funds.
 	if q.inputRatio == 0 && q.outputRatio == 0 {
+		if err := model.ReserveQuota(q.reservationID, q.reservationIdentity(), 0); err != nil {
+			return common.ErrorWrapper(err, "pre_consume_token_quota_failed", http.StatusForbidden)
+		}
+		q.reservationReady = true
 		return nil
 	}
 
@@ -113,11 +125,12 @@ func (q *Quota) PreQuotaConsumption() *types.OpenAIErrorWithStatusCode {
 	// A high account balance does not imply sufficient finite-token quota.
 	// Every positive reservation must pass the model's atomic balance checks.
 	if q.preConsumedQuota > 0 {
-		err := model.PreConsumeTokenQuotaWithInfo(q.tokenId, q.userId, q.unlimitedQuota, q.preConsumedQuota)
+		err := model.ReserveQuota(q.reservationID, q.reservationIdentity(), q.preConsumedQuota)
 		if err != nil {
 			return common.ErrorWrapper(err, "pre_consume_token_quota_failed", http.StatusForbidden)
 		}
 		q.HandelStatus = true
+		q.reservationReady = true
 	}
 
 	return nil
@@ -163,77 +176,67 @@ func (q *Quota) UpdateUserRealtimeQuota(usage *types.UsageEvent, nowUsage *types
 		return errors.New("realtime quota overflow")
 	}
 	target := quota + q.realtimeChunk
-	if err := model.PreConsumeTokenQuotaWithInfo(q.tokenId, q.userId, q.unlimitedQuota, target-q.preConsumedQuota); err != nil {
+	if err := model.ReserveQuota(q.reservationID, q.reservationIdentity(), target); err != nil {
 		return err
 	}
 	q.preConsumedQuota = target
 	return nil
 }
 
-func (q *Quota) completedQuotaConsumption(usage *types.Usage, tokenName string, isStream bool, sourceIp string, ctx context.Context) error {
+func (q *Quota) reservationIdentity() model.QuotaReservationIdentity {
+	return model.QuotaReservationIdentity{UserID: q.userId, TokenID: q.tokenId, UnlimitedQuota: q.unlimitedQuota, ChannelID: q.channelId, ModelName: q.modelName, RequestID: q.requestID}
+}
+
+func (q *Quota) consumeIntent(c *gin.Context, usage *types.Usage, isStream bool) (*model.QuotaTerminal, error) {
 	quota := q.GetTotalQuotaByUsage(usage)
 	if quota < 0 {
-		return errors.New("invalid negative settlement quota")
+		return nil, errors.New("invalid settlement quota; reservation requires reconciliation")
 	}
+	q.startTime = c.GetTime("requestStartTime")
+	log := &model.Log{
+		CreatedAt: time.Now().Unix(), PromptTokens: usage.PromptTokens, CompletionTokens: usage.CompletionTokens,
+		TokenName: c.GetString("token_name"), RequestTime: q.getRequestTime(), IsStream: isStream,
+		SourceIp: c.ClientIP(), Metadata: datatypes.NewJSONType(q.GetLogMeta(usage)),
+	}
+	return &model.QuotaTerminal{Outcome: model.QuotaOutcomeConsume, Quota: quota, Log: log, RecordLog: config.LogConsumeEnabled}, nil
+}
 
-	reserved := 0
-	if q.HandelStatus {
-		reserved = q.preConsumedQuota
+func (q *Quota) finish(c *gin.Context, build func() (*model.QuotaTerminal, error)) {
+	q.terminalMu.Lock()
+	defer q.terminalMu.Unlock()
+	if q.terminal == nil && q.terminalErr == nil {
+		q.terminal, q.terminalErr = build()
 	}
-	if quota > 0 || reserved > 0 {
-		quotaDelta := quota - reserved
-		err := model.PostConsumeTokenQuotaWithInfo(q.tokenId, q.userId, q.unlimitedQuota, quotaDelta)
-		if err != nil {
-			return errors.New("error consuming token remain quota: " + err.Error())
+	if q.terminalErr != nil {
+		logger.LogError(c.Request.Context(), q.terminalErr.Error())
+		return
+	}
+	// The first terminal choice wins in this object; persisted intent is the
+	// cross-process authority. Repeated calls retry that same choice safely.
+	if !q.reservationReady {
+		if err := model.ReserveQuota(q.reservationID, q.reservationIdentity(), 0); err != nil {
+			logger.LogError(c.Request.Context(), "failed to persist quota reservation")
+			return
 		}
-		if quota > 0 {
-			model.UpdateChannelUsedQuota(q.channelId, quota)
-		}
+		q.reservationReady = true
 	}
-
-	model.RecordConsumeLog(
-		ctx,
-		q.userId,
-		q.channelId,
-		usage.PromptTokens,
-		usage.CompletionTokens,
-		q.modelName,
-		tokenName,
-		quota,
-		"",
-		q.getRequestTime(),
-		isStream,
-		q.GetLogMeta(usage),
-		sourceIp,
-	)
-	model.UpdateUserUsedQuotaAndRequestCount(q.userId, quota)
-
-	return nil
+	if err := model.SubmitQuotaTerminal(q.reservationID, *q.terminal); err != nil {
+		logger.LogError(c.Request.Context(), "failed to persist quota terminal intent")
+		return
+	}
+	if err := model.FinalizeQuotaReservation(q.reservationID); err != nil {
+		logger.LogError(c.Request.Context(), "quota terminal intent remains pending recovery")
+	}
 }
 
 func (q *Quota) Undo(c *gin.Context) {
-	q.finishOnce.Do(func() {
-		if q.HandelStatus {
-			// return pre-consumed quota
-			err := model.PostConsumeTokenQuotaWithInfo(q.tokenId, q.userId, q.unlimitedQuota, -q.preConsumedQuota)
-			if err != nil {
-				logger.LogError(c.Request.Context(), "error return pre-consumed quota: "+err.Error())
-			}
-		}
+	q.finish(c, func() (*model.QuotaTerminal, error) {
+		return &model.QuotaTerminal{Outcome: model.QuotaOutcomeRefund}, nil
 	})
 }
 
 func (q *Quota) Consume(c *gin.Context, usage *types.Usage, isStream bool) {
-	// A reservation has one terminal operation. Keep even failed writes terminal:
-	// settlement may have committed before a later side effect failed.
-	q.finishOnce.Do(func() {
-		tokenName := c.GetString("token_name")
-		q.startTime = c.GetTime("requestStartTime")
-		err := q.completedQuotaConsumption(usage, tokenName, isStream, c.ClientIP(), c.Request.Context())
-		if err != nil {
-			logger.LogError(c.Request.Context(), err.Error())
-		}
-	})
+	q.finish(c, func() (*model.QuotaTerminal, error) { return q.consumeIntent(c, usage, isStream) })
 }
 
 func (q *Quota) GetInputRatio() float64 {

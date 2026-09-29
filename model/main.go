@@ -3,13 +3,14 @@ package model
 import (
 	"fmt"
 	"net/url"
+	"strconv"
+	"strings"
+	"time"
+
 	"one-api/common"
 	"one-api/common/config"
 	"one-api/common/logger"
 	"one-api/common/utils"
-	"strconv"
-	"strings"
-	"time"
 
 	"github.com/spf13/viper"
 	"gorm.io/driver/mysql"
@@ -137,6 +138,10 @@ func InitDB() (err error) {
 			return err
 		}
 		err = db.AutoMigrate(&Redemption{})
+		if err != nil {
+			return err
+		}
+		err = db.AutoMigrate(&QuotaReservation{})
 		if err != nil {
 			return err
 		}

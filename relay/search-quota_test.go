@@ -65,7 +65,7 @@ func searchQuotaFixture(t *testing.T, unlimited bool) (*gorm.DB, *gin.Context, *
 	})
 	viper.Set("user_token_secret", "search-quota-fixture-only")
 	require.NoError(t, common.InitUserToken())
-	require.NoError(t, db.AutoMigrate(&model.User{}, &model.Token{}, &model.Channel{}, &model.Log{}))
+	require.NoError(t, db.AutoMigrate(&model.User{}, &model.Token{}, &model.Channel{}, &model.Log{}, &model.QuotaReservation{}))
 	require.NoError(t, db.Create(&model.User{Id: 1, Username: "search-fixture", Quota: 1000}).Error)
 	token := &model.Token{UserId: 1, RemainQuota: 1000, UnlimitedQuota: unlimited}
 	require.NoError(t, db.Create(token).Error)
@@ -253,4 +253,16 @@ func TestSearchQuotaZeroEstimateRejectsBeforeUpstream(t *testing.T) {
 			require.Zero(t, p.calls)
 		})
 	}
+}
+
+func TestSearchQuotaMissingLedgerRejectsBeforeUpstream(t *testing.T) {
+	db, c, p, r := searchQuotaFixture(t, false)
+	require.NoError(t, db.Migrator().DropTable(&model.QuotaReservation{}))
+	p.send = func() (*types.ChatCompletionResponse, *types.OpenAIErrorWithStatusCode) {
+		return &types.ChatCompletionResponse{}, nil
+	}
+	_, err := relay.ExecuteQueryForTest(c, p, r, r.Model)
+	require.Error(t, err)
+	require.Zero(t, p.calls)
+	searchQuotaBalances(t, db, false, 0, 0)
 }

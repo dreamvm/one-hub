@@ -34,7 +34,7 @@ func quotaLifecycleFixture(t *testing.T, batch, unlimited bool, redisMode ...boo
 		model.PricingInstance, config.PreConsumedQuota, config.LogConsumeEnabled = oldPricing, oldPre, oldLogs
 		config.QuotaRemindThreshold = oldThreshold
 	})
-	require.NoError(t, db.AutoMigrate(&model.Channel{}, &model.Log{}, &model.Task{}))
+	require.NoError(t, db.AutoMigrate(&model.Channel{}, &model.Log{}, &model.Task{}, &model.QuotaReservation{}))
 	require.NoError(t, db.Model(&model.User{}).Where("id = 1").Update("quota", 1000).Error)
 	require.NoError(t, db.Model(&token).Update("remain_quota", 1000).Error)
 	require.NoError(t, db.Create(&model.Channel{Id: 1}).Error)
@@ -171,7 +171,7 @@ func TestQuotaLifecycleNormalSettlement(t *testing.T) {
 	}
 }
 
-func TestQuotaLifecycleWriteFailureIsNotReplayed(t *testing.T) {
+func TestQuotaLifecycleWriteFailureKeepsPendingIntent(t *testing.T) {
 	for _, refund := range []bool{false, true} {
 		t.Run(fmt.Sprint(refund), func(t *testing.T) {
 			db, c := quotaLifecycleFixture(t, false, false)
@@ -191,7 +191,7 @@ func TestQuotaLifecycleWriteFailureIsNotReplayed(t *testing.T) {
 			}
 			q.Undo(c)
 			q.Consume(c, &types.Usage{PromptTokens: 7}, false)
-			require.EqualValues(t, 1, attempts.Load(), "failed terminal operations must not be replayed")
+			require.EqualValues(t, 3, attempts.Load(), "retries must attempt the persisted intent without partial charges")
 			var user model.User
 			var token model.Token
 			require.NoError(t, db.First(&user, 1).Error)

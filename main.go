@@ -1,9 +1,12 @@
 package main
 
 import (
+	"context"
 	"embed"
 	"fmt"
 	"net/http"
+	"time"
+
 	"one-api/cli"
 	"one-api/common"
 	"one-api/common/cache"
@@ -24,7 +27,6 @@ import (
 	"one-api/relay/task"
 	"one-api/router"
 	"one-api/safty"
-	"time"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
@@ -68,6 +70,7 @@ func main() {
 	webauthn.InitWebAuthn()
 	model.NewPricing()
 	model.HandleOldTokenMaxId()
+	go model.RunQuotaReservationRecovery(context.Background())
 
 	initMemoryCache()
 	initSync()
