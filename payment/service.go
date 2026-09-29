@@ -30,6 +30,18 @@ func NewPaymentService(uuid string) (*PaymentService, error) {
 		return nil, errors.New("payment not found")
 	}
 
+	return newPaymentService(payment)
+}
+
+func NewPaymentCallbackService(uuid string) (*PaymentService, error) {
+	payment, err := model.GetPaymentForCallback(uuid)
+	if err != nil {
+		return nil, errors.New("payment not found")
+	}
+	return newPaymentService(payment)
+}
+
+func newPaymentService(payment *model.Payment) (*PaymentService, error) {
 	gateway, ok := Gateways[payment.Type]
 	if !ok {
 		return nil, errors.New("payment gateway not found")

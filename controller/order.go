@@ -112,7 +112,7 @@ func CreateOrder(c *gin.Context) {
 }
 
 func PaymentCallback(c *gin.Context) {
-	paymentService, err := payment.NewPaymentService(c.Param("uuid"))
+	paymentService, err := payment.NewPaymentCallbackService(c.Param("uuid"))
 	if err != nil {
 		c.Status(http.StatusServiceUnavailable)
 		return
