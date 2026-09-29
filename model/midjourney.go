@@ -24,28 +24,30 @@
 package model
 
 type Midjourney struct {
-	Id          int    `json:"id"`
-	Code        int    `json:"code"`
-	UserId      int    `json:"user_id" gorm:"index"`
-	Action      string `json:"action" gorm:"type:varchar(40);index"`
-	MjId        string `json:"mj_id" gorm:"index"`
-	Prompt      string `json:"prompt"`
-	PromptEn    string `json:"prompt_en"`
-	Description string `json:"description"`
-	State       string `json:"state"`
-	SubmitTime  int64  `json:"submit_time" gorm:"index"`
-	StartTime   int64  `json:"start_time" gorm:"index"`
-	FinishTime  int64  `json:"finish_time" gorm:"index"`
-	ImageUrl    string `json:"image_url"`
-	Status      string `json:"status" gorm:"type:varchar(20);index"`
-	Progress    string `json:"progress" gorm:"type:varchar(30);index"`
-	FailReason  string `json:"fail_reason"`
-	ChannelId   int    `json:"channel_id"`
-	Quota       int    `json:"quota"`
-	Buttons     string `json:"buttons"`
-	Properties  string `json:"properties"`
-	Mode        string `json:"mode,omitempty"`
-	TokenID     int    `json:"token_id" gorm:"default:0"`
+	ReservationID string `json:"-" gorm:"type:varchar(64);index"`
+	RefundStatus  string `json:"refund_status,omitempty" gorm:"type:varchar(24)"`
+	Id            int    `json:"id"`
+	Code          int    `json:"code"`
+	UserId        int    `json:"user_id" gorm:"index"`
+	Action        string `json:"action" gorm:"type:varchar(40);index"`
+	MjId          string `json:"mj_id" gorm:"index"`
+	Prompt        string `json:"prompt"`
+	PromptEn      string `json:"prompt_en"`
+	Description   string `json:"description"`
+	State         string `json:"state"`
+	SubmitTime    int64  `json:"submit_time" gorm:"index"`
+	StartTime     int64  `json:"start_time" gorm:"index"`
+	FinishTime    int64  `json:"finish_time" gorm:"index"`
+	ImageUrl      string `json:"image_url"`
+	Status        string `json:"status" gorm:"type:varchar(20);index"`
+	Progress      string `json:"progress" gorm:"type:varchar(30);index"`
+	FailReason    string `json:"fail_reason"`
+	ChannelId     int    `json:"channel_id"`
+	Quota         int    `json:"quota"`
+	Buttons       string `json:"buttons"`
+	Properties    string `json:"properties"`
+	Mode          string `json:"mode,omitempty"`
+	TokenID       int    `json:"token_id" gorm:"default:0"`
 }
 
 // TaskQueryParams 用于包含所有搜索条件的结构体，可以根据需求添加更多字段
@@ -171,6 +173,6 @@ func MjBulkUpdate(mjIds []string, params map[string]any) error {
 
 func MjBulkUpdateByTaskIds(taskIDs []int, params map[string]any) error {
 	return DB.Model(&Midjourney{}).
-		Where("id in (?)", taskIDs).
+		Where("id in (?) AND progress <> ?", taskIDs, "100%").
 		Updates(params).Error
 }

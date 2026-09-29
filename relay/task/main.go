@@ -42,9 +42,9 @@ func RelayTaskSubmit(c *gin.Context) {
 		taskAdaptor.HandleError(base.OpenAIErrToTaskErr(errWithOA))
 		return
 	}
-	// Hold the reservation across retries. Consume seals a successful request;
-	// otherwise this releases it once when the entire submission ends.
-	defer quotaInstance.Undo(c)
+	// Each provider attempt owns its receipt, including captured channel/pricing.
+	// The current attempt is released if no successful submission consumes it.
+	defer func() { quotaInstance.Undo(c) }()
 
 	taskErr = taskAdaptor.Relay()
 	if taskErr == nil {
@@ -64,6 +64,7 @@ func RelayTaskSubmit(c *gin.Context) {
 
 	channel := taskAdaptor.GetProvider().GetChannel()
 	for i := retryTimes; i > 0; i-- {
+		quotaInstance.Undo(c)
 		model.ChannelGroup.SetCooldowns(channel.Id, taskAdaptor.GetModelName())
 		taskErr = taskAdaptor.SetProvider()
 		if taskErr != nil {
@@ -72,6 +73,12 @@ func RelayTaskSubmit(c *gin.Context) {
 
 		channel = taskAdaptor.GetProvider().GetChannel()
 		logger.LogError(c.Request.Context(), fmt.Sprintf("using channel #%d(%s) to retry (remain times %d)", channel.Id, channel.Name, i))
+
+		quotaInstance = relay_util.NewQuota(c, taskAdaptor.GetModelName(), 1000)
+		if errWithOA := quotaInstance.PreQuotaConsumption(); errWithOA != nil {
+			taskErr = base.OpenAIErrToTaskErr(errWithOA)
+			break
+		}
 
 		taskErr = taskAdaptor.Relay()
 		if taskErr == nil {
@@ -97,6 +104,7 @@ func CompletedTask(quotaInstance *relay_util.Quota, taskAdaptor base.TaskInterfa
 	quotaInstance.Consume(c, &types.Usage{CompletionTokens: 0, PromptTokens: 1, TotalTokens: 1}, false)
 
 	task := taskAdaptor.GetTask()
+	task.ReservationID = quotaInstance.ReservationID()
 	task.Quota = quotaInstance.GetTotalQuotaByUsage(&types.Usage{PromptTokens: 1, TotalTokens: 1})
 
 	err := task.Insert()

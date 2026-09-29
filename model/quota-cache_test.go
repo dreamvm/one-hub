@@ -135,12 +135,15 @@ func TestQuotaCacheDatabaseErrorCannotUseStaleBalance(t *testing.T) {
 func TestQuotaCacheMJRefundControl(t *testing.T) {
 	for _, unavailable := range []bool{false, true} {
 		t.Run(fmt.Sprint(unavailable), func(t *testing.T) {
-			db, _ := quotaLifecycleFixture(t, false, false, true)
+			db, c := quotaLifecycleFixture(t, false, false, true)
 			require.NoError(t, db.AutoMigrate(&model.Midjourney{}))
 			oldClient := requester.HTTPClient
 			requester.HTTPClient = &http.Client{}
 			t.Cleanup(func() { requester.HTTPClient = oldClient })
-			task := &model.Midjourney{UserId: 1, ChannelId: 1, MjId: "cache-refund", Status: "IN_PROGRESS", Progress: "20%", SubmitTime: time.Now().UnixMilli(), Quota: 20}
+			q := relay_util.NewQuota(c, "quota-fixture", 0)
+			require.Nil(t, q.PreQuotaConsumption())
+			q.Consume(c, &types.Usage{PromptTokens: 20}, false)
+			task := &model.Midjourney{ReservationID: q.ReservationID(), TokenID: c.GetInt("token_id"), UserId: 1, ChannelId: 1, MjId: "cache-refund", Status: "IN_PROGRESS", Progress: "20%", SubmitTime: time.Now().UnixMilli(), Quota: 20}
 			require.NoError(t, db.Create(task).Error)
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				_ = json.NewEncoder(w).Encode([]mjprovider.MidjourneyDto{{MjId: task.MjId, Status: "FAILURE", Progress: "100%", FailReason: "fixture failure", SubmitTime: task.SubmitTime}})
@@ -153,7 +156,8 @@ func TestQuotaCacheMJRefundControl(t *testing.T) {
 			require.NoError(t, controller.MjTaskHandler(channel, []string{task.MjId}, map[string]*model.Midjourney{task.MjId: task}))
 			balance, err := model.CacheGetUserQuota(1)
 			require.NoError(t, err)
-			require.Equal(t, 1020, balance)
+			require.Equal(t, 1000, balance)
+			requireQuotaPair(t, db, c.GetInt("token_id"), 1000, 1000, 0)
 		})
 	}
 }

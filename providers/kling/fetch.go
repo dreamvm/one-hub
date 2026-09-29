@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
 	"one-api/common"
 	"one-api/types"
 
@@ -101,7 +102,12 @@ func (s *KlingProvider) GetFetch(class, action string, id string) (response *typ
 
 	if klResponse.Data != nil {
 		response.Data.Status = switchTaskStatus(klResponse.Data.TaskStatus)
-		response.Data.FailReason = klResponse.Data.TaskStatusMsg
+		if klResponse.Data.TaskID != id {
+			return nil, common.ErrorWrapper(fmt.Errorf("unbound kling task response"), "invalid_task_response", http.StatusBadGateway)
+		}
+		if klResponse.Data.TaskStatus == "failed" {
+			response.Data.FailReason = klResponse.Data.TaskStatusMsg
+		}
 		response.Data.SubmitTime = klResponse.Data.CreatedAt
 		response.Data.StartTime = klResponse.Data.UpdatedAt
 		response.Data.FinishTime = klResponse.Data.UpdatedAt

@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sort"
+
 	"one-api/common"
 	"one-api/common/logger"
 	"one-api/model"
@@ -12,7 +14,6 @@ import (
 	KlingProvider "one-api/providers/kling"
 	"one-api/relay/task/base"
 	"one-api/types"
-	"sort"
 
 	"github.com/gin-gonic/gin"
 	"github.com/samber/lo"
@@ -147,7 +148,7 @@ func updateKlingTaskAll(ctx context.Context, channelId int, taskIds []string, ta
 
 	channel := model.ChannelGroup.GetChannel(channelId)
 	if channel == nil {
-		err := model.TaskBulkUpdate(taskIds, map[string]any{
+		err := model.TaskBulkUpdateForChannel(model.TaskPlatformKling, channelId, taskIds, map[string]any{
 			"fail_reason": fmt.Sprintf("获取渠道信息失败，请联系管理员，渠道ID：%d", channelId),
 			"status":      "FAILURE",
 			"progress":    100,
@@ -161,7 +162,7 @@ func updateKlingTaskAll(ctx context.Context, channelId int, taskIds []string, ta
 	providers := providers.GetProvider(channel, nil)
 	KlingProvider, ok := providers.(*KlingProvider.KlingProvider)
 	if !ok {
-		err := model.TaskBulkUpdate(taskIds, map[string]any{
+		err := model.TaskBulkUpdateForChannel(model.TaskPlatformKling, channelId, taskIds, map[string]any{
 			"fail_reason": "获取供应商失败，请联系管理员",
 			"status":      "FAILURE",
 			"progress":    100,
@@ -172,25 +173,31 @@ func updateKlingTaskAll(ctx context.Context, channelId int, taskIds []string, ta
 		return fmt.Errorf("provider not found")
 	}
 
-	taskActions, err := model.GetTaskActionByTaskIds("Kling", taskIds)
-	if err != nil {
-		return fmt.Errorf("get task action failed: %v", err)
-	}
+	for _, taskID := range taskIds {
+		taskAction := taskM[taskID]
+		if taskAction == nil || taskAction.ChannelId != channelId || taskAction.Platform != model.TaskPlatformKling || taskAction.TaskID != taskID {
+			return fmt.Errorf("invalid kling task binding")
+		}
 
-	for _, taskAction := range taskActions {
 		resp, errWithCode := KlingProvider.GetFetch("videos", taskAction.Action, taskAction.TaskID)
 		if errWithCode != nil {
 			logger.SysError(fmt.Sprintf("Get Task %s Do req error: %v", taskAction.TaskID, errWithCode))
 			continue
 		}
 
+		if resp == nil {
+			continue
+		}
 		if !resp.IsSuccess() || resp.Data == nil {
 			logger.SysError(fmt.Sprintf("Get Task %s Fetch error: %v", taskAction.TaskID, resp.Message))
 			continue
 		}
 
 		responseItem := resp.Data
-		task := taskM[responseItem.TaskID]
+		if responseItem.TaskID != taskID {
+			return fmt.Errorf("unbound kling task response")
+		}
+		task := taskAction
 		if !checkTaskNeedUpdate(task, responseItem) {
 			continue
 		}
@@ -201,18 +208,9 @@ func updateKlingTaskAll(ctx context.Context, channelId int, taskIds []string, ta
 		task.StartTime = lo.If(responseItem.StartTime != 0, responseItem.StartTime).Else(task.StartTime)
 		task.FinishTime = lo.If(responseItem.FinishTime != 0, responseItem.FinishTime).Else(task.FinishTime)
 
-		if responseItem.FailReason != "" || task.Status == model.TaskStatusFailure {
-			logger.LogError(ctx, task.TaskID+" 构建失败，"+task.FailReason)
+		failed := responseItem.FailReason != "" || task.Status == model.TaskStatusFailure
+		if failed {
 			task.Progress = 100
-			quota := task.Quota
-			if quota > 0 {
-				err := model.IncreaseUserQuota(task.UserId, quota)
-				if err != nil {
-					logger.LogError(ctx, "fail to increase user quota: "+err.Error())
-				}
-				logContent := fmt.Sprintf("异步任务执行失败 %s，补偿 %s", task.TaskID, common.LogQuota(quota))
-				model.RecordLog(task.UserId, model.LogTypeSystem, logContent)
-			}
 		}
 
 		if responseItem.Status == model.TaskStatusSuccess {
@@ -220,7 +218,7 @@ func updateKlingTaskAll(ctx context.Context, channelId int, taskIds []string, ta
 		}
 
 		task.Data = responseItem.Data
-		err := task.Update()
+		err := task.UpdateFromPoll(failed)
 		if err != nil {
 			logger.SysError("UpdateTask task error: " + err.Error())
 		}

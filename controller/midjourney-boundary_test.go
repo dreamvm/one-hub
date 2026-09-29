@@ -189,5 +189,8 @@ func TestMJBoundPollingPreservesDuplicateRowsAndNormalUpdates(t *testing.T) {
 	}
 	var user model.User
 	require.NoError(t, db.First(&user, 1).Error)
-	require.Equal(t, 105, user.Quota)
+	require.Equal(t, 100, user.Quota, "legacy task without a charge receipt requires review")
+	var legacy model.Midjourney
+	require.NoError(t, db.First(&legacy, tasks[2].Id).Error)
+	require.Equal(t, model.TaskRefundReviewRequired, legacy.RefundStatus)
 }

@@ -3,12 +3,13 @@ package task
 import (
 	"context"
 	"fmt"
-	"one-api/common"
-	"one-api/common/logger"
-	"one-api/model"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"one-api/common"
+	"one-api/common/logger"
+	"one-api/model"
 )
 
 var (
@@ -77,18 +78,7 @@ func UpdateTaskBulk() {
 			if len(tasks) == 0 {
 				continue
 			}
-			taskChannelM := make(map[int][]string)
-			taskM := make(map[string]*model.Task)
-			nullTaskIds := make([]int64, 0)
-			for _, task := range tasks {
-				if task.TaskID == "" {
-					// 统计失败的未完成任务
-					nullTaskIds = append(nullTaskIds, task.ID)
-					continue
-				}
-				taskM[task.TaskID] = task
-				taskChannelM[task.ChannelId] = append(taskChannelM[task.ChannelId], task.TaskID)
-			}
+			batches, nullTaskIds := groupTaskPollBatches(tasks)
 
 			if len(nullTaskIds) > 0 {
 				err := model.TaskBulkUpdateByID(nullTaskIds, map[string]any{
@@ -101,10 +91,9 @@ func UpdateTaskBulk() {
 					logger.LogInfo(ctx, fmt.Sprintf("Fix null task_id task success: %v", nullTaskIds))
 				}
 			}
-			if len(taskChannelM) == 0 {
-				continue
+			for _, batch := range batches {
+				UpdateTaskByPlatform(ctx, platform, map[int][]string{batch.channelID: batch.ids}, batch.tasks)
 			}
-			UpdateTaskByPlatform(ctx, platform, taskChannelM, taskM)
 		}
 		time.Sleep(time.Duration(15) * time.Second)
 	}
@@ -119,4 +108,36 @@ func UpdateTaskByPlatform(ctx context.Context,
 	}
 
 	taskAdaptor.UpdateTaskStatus(ctx, taskChannelM, taskM)
+}
+
+// Duplicate external IDs, even within one channel, must retain every local row.
+type taskPollBatch struct {
+	channelID int
+	ids       []string
+	tasks     map[string]*model.Task
+}
+
+func groupTaskPollBatches(tasks []*model.Task) ([]taskPollBatch, []int64) {
+	var batches []taskPollBatch
+	var missing []int64
+	for _, task := range tasks {
+		if task.TaskID == "" {
+			missing = append(missing, task.ID)
+			continue
+		}
+		index := -1
+		for i := range batches {
+			if batches[i].channelID == task.ChannelId && batches[i].tasks[task.TaskID] == nil {
+				index = i
+				break
+			}
+		}
+		if index < 0 {
+			batches = append(batches, taskPollBatch{channelID: task.ChannelId, tasks: make(map[string]*model.Task)})
+			index = len(batches) - 1
+		}
+		batches[index].ids = append(batches[index].ids, task.TaskID)
+		batches[index].tasks[task.TaskID] = task
+	}
+	return batches, missing
 }
