@@ -46,7 +46,23 @@ func (s *PaymentService) CreatedPay() error {
 	return s.gateway.CreatedPay(notifyURL, s.Payment)
 }
 
+func (s *PaymentService) ValidatePay(amount float64) error {
+	if _, err := model.PaymentMinorFromAmount(amount); err != nil {
+		return err
+	}
+	if s.Payment.Currency != model.CurrencyTypeCNY && s.Payment.Currency != model.CurrencyTypeUSD {
+		return errors.New("unsupported payment currency")
+	}
+	if (s.Payment.Type == "alipay" || s.Payment.Type == "wxpay") && s.Payment.Currency != model.CurrencyTypeCNY {
+		return errors.New("this payment gateway requires CNY")
+	}
+	return nil
+}
+
 func (s *PaymentService) Pay(tradeNo string, amount float64, user *model.User) (*types.PayRequest, error) {
+	if err := s.ValidatePay(amount); err != nil {
+		return nil, err
+	}
 	config := &types.PayConfig{
 		Money:     amount,
 		TradeNo:   tradeNo,

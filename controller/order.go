@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"one-api/common"
 	"one-api/common/config"
@@ -49,24 +48,29 @@ func CreateOrder(c *gin.Context) {
 		return
 	}
 
-	// 关闭用户未完成的订单
-	go model.CloseUnfinishedOrder()
-
 	paymentService, err := payment.NewPaymentService(orderReq.UUID)
 	if err != nil {
 		common.APIRespondWithError(c, http.StatusOK, err)
 		return
 	}
-	// 获取手续费和支付金额
-	discount, fee, payMoney := calculateOrderAmount(paymentService.Payment, orderReq.Amount)
-	// 开始支付
-	tradeNo := utils.GenerateTradeNo()
-	payRequest, err := paymentService.Pay(tradeNo, payMoney, user)
+	discount, fee, payMoney, err := calculateOrderAmount(paymentService.Payment, orderReq.Amount)
 	if err != nil {
-		common.APIRespondWithError(c, http.StatusOK, errors.New("创建支付失败，请稍后再试"))
+		common.APIRespondWithError(c, http.StatusOK, err)
 		return
 	}
-
+	quota, err := calculateOrderQuota(orderReq.Amount)
+	if err != nil {
+		common.APIRespondWithError(c, http.StatusOK, err)
+		return
+	}
+	if err := paymentService.ValidatePay(payMoney); err != nil {
+		common.APIRespondWithError(c, http.StatusOK, err)
+		return
+	}
+	if err := model.CloseUnfinishedOrder(); err != nil {
+		logger.SysError("failed to close expired payment orders")
+	}
+	tradeNo := utils.GenerateTradeNo()
 	// 创建订单
 	order := &model.Order{
 		UserId:        userId,
@@ -78,12 +82,20 @@ func CreateOrder(c *gin.Context) {
 		Fee:           fee,
 		Discount:      discount,
 		Status:        model.OrderStatusPending,
-		Quota:         orderReq.Amount * int(config.QuotaPerUnit),
+		Quota:         quota,
 	}
 
 	err = order.Insert()
 	if err != nil {
 		common.APIRespondWithError(c, http.StatusOK, errors.New("创建订单失败，请稍后再试"))
+		return
+	}
+
+	// A timeout does not establish that the provider failed to create/settle the
+	// payment. Keep the durable pending order for a verified callback/reconciliation.
+	payRequest, err := paymentService.Pay(tradeNo, payMoney, user)
+	if err != nil || payRequest == nil {
+		common.APIRespondWithError(c, http.StatusOK, errors.New("创建支付未确认，请稍后核对订单"))
 		return
 	}
 
@@ -140,33 +152,6 @@ func CheckOrderStatus(c *gin.Context) {
 		"success": success,
 		"message": "",
 	})
-}
-
-// discountMoney优惠金额 fee手续费，payMoney实付金额
-func calculateOrderAmount(payment *model.Payment, amount int) (discountMoney, fee, payMoney float64) {
-	// 获取折扣
-	discount := common.GetRechargeDiscount(strconv.Itoa(amount))
-	newMoney := float64(amount) * discount // 折后价值
-	oldTotal := float64(amount)            //原价值
-	if payment.PercentFee > 0 {
-		//手续费=（原始价值*折扣*手续费率）
-		fee = utils.Decimal(newMoney*payment.PercentFee, 2) //折后手续
-		oldTotal = utils.Decimal(oldTotal*(1+payment.PercentFee), 2)
-	} else if payment.FixedFee > 0 {
-		//固定费率不计算折扣
-		fee = payment.FixedFee
-	}
-
-	//实际费用=（折后价+折后手续费）*汇率
-	total := utils.Decimal(newMoney+fee, 2)
-	if payment.Currency == model.CurrencyTypeUSD {
-		payMoney = total
-	} else {
-		oldTotal = utils.Decimal(oldTotal*config.PaymentUSDRate, 2)
-		payMoney = utils.Decimal(total*config.PaymentUSDRate, 2)
-	}
-	discountMoney = oldTotal - payMoney //折扣金额 = 原价值-实际支付价值
-	return
 }
 
 func GetOrderList(c *gin.Context) {

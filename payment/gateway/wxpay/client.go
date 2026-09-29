@@ -10,11 +10,16 @@ import (
 	"github.com/wechatpay-apiv3/wechatpay-go/services/payments/native"
 
 	sysconfig "one-api/common/config"
+	"one-api/model"
 	"one-api/payment/types"
 )
 
 // handleNativePay 处理微信NATIVE支付请求
 func (w *WeChatPay) handleNativePay(client *core.Client, config *types.PayConfig, wechatConfig *WeChatConfig) (*types.PayRequest, error) {
+	minor, err := model.PaymentMinorFromAmount(config.Money)
+	if err != nil {
+		return nil, err
+	}
 	totalAmount := strconv.FormatFloat(config.Money, 'f', 0, 64)
 	req := native.PrepayRequest{
 		Appid:       core.String(wechatConfig.AppID),
@@ -23,7 +28,7 @@ func (w *WeChatPay) handleNativePay(client *core.Client, config *types.PayConfig
 		OutTradeNo:  core.String(config.TradeNo),
 		NotifyUrl:   core.String(config.NotifyURL),
 		Amount: &native.Amount{
-			Total: core.Int64(int64(config.Money * 100)), // 转换为分
+			Total: core.Int64(minor), // 转换为分
 		},
 	}
 	nService := native.NativeApiService{Client: client}
