@@ -38,14 +38,16 @@ RC 是预发布候选，编号不代表质量验收。后续候选从 rc.8 起�
 | rc.8 / C1h | 付费最小预留及图片数量估算 | 零舍入付费仍检查余额；负数/溢出拒绝；免费及实际超额对照 | [PR #33](https://github.com/dreamvm/one-hub/pull/33) 已合并；CI 与隔离验收通过，见 [QUOTA_PRICE_ADMISSION.md](QUOTA_PRICE_ADMISSION.md) |
 | rc.8 / C1i | 最终费用算术、用量表示与任务费用一致性 | 非法费用拒绝；附加服务与不同规格计费完整；正常舍入/免费对照 | [PR #34](https://github.com/dreamvm/one-hub/pull/34) 已合并；CI 与隔离验收通过，见 [QUOTA_SETTLEMENT_ARITHMETIC.md](QUOTA_SETTLEMENT_ARITHMETIC.md) |
 | rc.8 / C2b | 持久化预留、终局和确定意图恢复 | 重复终局不重复入账；余额/统计/日志事务；崩溃与故障可核对 | [PR #35](https://github.com/dreamvm/one-hub/pull/35) 已合并；三数据库、CI 与隔离验收通过，见 [QUOTA_RESERVATIONS.md](QUOTA_RESERVATIONS.md) |
-| rc.8 / C2c | 异步任务失败成对补偿、持久幂等与轮询身份绑定 | 重复/并发至多退款一次；合法成功/无限/免费和三数据库通过 | 本地候选，见 [TASK_QUOTA_COMPENSATION.md](TASK_QUOTA_COMPENSATION.md) |
+| rc.8 / C2c | 异步任务失败成对补偿、持久幂等与轮询身份绑定 | 重复/并发至多退款一次；合法成功/无限/免费和三数据库通过 | [PR #36](https://github.com/dreamvm/one-hub/pull/36) 已合并；三数据库、CI 与隔离验收通过，见 [TASK_QUOTA_COMPENSATION.md](TASK_QUOTA_COMPENSATION.md) |
+| rc.8 / C3a | 兑换码原子领取、充值和已使用终态 | 并发单次领取；错误回滚；过期编辑不重开；正常 NULL 兼容 | [PR #37](https://github.com/dreamvm/one-hub/pull/37) 验收中，见 [REDEMPTION_TRANSACTIONS.md](REDEMPTION_TRANSACTIONS.md) |
+| rc.8 / C3b | 同一订单原子入账、幂等和提交后回执 | 失败可重试、已入账重复回调不重复充值、三数据库正常/故障对照 | 本地候选，见 [PAYMENT_SETTLEMENT.md](PAYMENT_SETTLEMENT.md) |
 | 后续 C1 / C2 / C3 | 未报告用量核对、数据库支付幂等与绑定 | 缓存与批量计费不放行耗尽额度；并发不超支；多实例重复回调只入账一次；故障可重试 | 待实施，阻断正式版 |
 | 后续 D | Fork 部署模板、健康检查、构建入口、PostgreSQL/依赖/端到端验收 | 固定 Fork 镜像；健康失败正确退出；三数据库及相关故障路径通过 | 待实施，阻断正式版 |
 | 后续 E | 前端既存警告与加载体积 | 行为回归通过、深浅主题可用、性能变化有依据 | 待实施，按影响安排 |
 
 rc.6 只覆盖身份与凭据；rc.7 增加媒体与 Midjourney 边界。
 C/D 仍未完成，不把 RC7 的批次验收作为整体安全整改完成或正式生产就绪证明。
-未确认项继续核查：OIDC 用户名声明约束、兑换码锁的实际 SQL、支付宝重启回调、
+未确认项继续核查：OIDC 用户名声明约束、支付宝重启回调、
 支付金额/币种/渠道绑定与延迟支付状态。证据不足时不登记为“已修复”。
 
 ## 每次验收追加的记录
@@ -453,3 +455,12 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - 独立审阅确认历史启用状态仍带使用标记的记录可被再次领取，已先复现再修正，并保留 NULL 未使用标记兼容。
 - 20 个新增事务叶子用例、HTTP/Redis 正常及故障对照、相关包 race、vet、编译、工作流/actionlint、隐私与历史扫描通过；PostgreSQL 本地通过。MySQL 与精确候选远端 CI/隔离镜像仍待执行。
 - 支付回调为下一批；不把兑换码修复等同于支付修复，也不创建 RC8 标签或发布部署。
+
+### C3b 支付入账候选范围
+
+- 分支 `codex/payment-atomic-settlement`，依赖 PR #37 的 `37964e5cf13cff1335839757bcb218940c8acb88`；前置合并前保持草稿。
+- 旧版回归复现：缺失用户/日志故障仍确认成功、batch 模式确认时余额未持久化、错误渠道仍可入账；正常非 batch 对照可用。
+- 数据库订单锁替代进程锁；余额、晋升、日志、成功状态及结算标记同事务。四种网关回执移至提交后，同一已结算交易可安全重放。
+- SQLite/PostgreSQL 25 个新增支付事务叶子用例通过；含真实本地签名的易支付/Stripe 回调、故障后新数据库连接重试、并发16次与等额独立订单。支付宝/微信真实签名端到端仍属下一批，不把回执单测当其完整协议验收。
+- 一次独立审阅无范围内已确认问题；相关包 race、vet、主程序/provider/relay 构建、工作流/actionlint、隐私14（本地 Docker1跳过，CI验证）、smoke Python13及历史扫描通过。
+- 精确候选远端 CI/MySQL/隔离镜像待执行。金额/币种/商户绑定、延迟支付、关闭/停用配置、创建订单时机及算术仍开放。历史成功但缺少结算标记不自动补款。

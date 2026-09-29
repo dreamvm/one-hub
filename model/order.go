@@ -1,7 +1,11 @@
 package model
 
 import (
+	"errors"
+	"fmt"
 	"time"
+
+	"one-api/common/utils"
 
 	"gorm.io/gorm"
 )
@@ -28,6 +32,7 @@ type Order struct {
 	Fee           float64        `json:"fee" gorm:"type:decimal(10,2);default:0"`
 	Discount      float64        `json:"discount" gorm:"type:decimal(10,2);default:0"`
 	Status        OrderStatus    `json:"status" gorm:"type:varchar(32)"`
+	SettledAt     int64          `json:"settled_at" gorm:"default:0"`
 	CreatedAt     int            `json:"created_at"`
 	UpdatedAt     int            `json:"-"`
 	DeletedAt     gorm.DeletedAt `json:"-" gorm:"index"`
@@ -142,4 +147,42 @@ func GetStatisticsOrderByPeriod(startTimestamp, endTimestamp int64) (orderStatis
 	`, OrderStatusSuccess, startTimestamp, endTimestamp).Scan(&orderStatistics).Error
 
 	return orderStatistics, err
+}
+
+// SettleOrderPayment consumes the verified callback under the durable order lock.
+// It never queues balance writes in process memory. Replays need an identical
+// transaction binding and a committed settlement marker.
+func SettleOrderPayment(gatewayID int, tradeNo, gatewayNo, ip string) error {
+	if gatewayID <= 0 || tradeNo == "" || gatewayNo == "" || len(tradeNo) > 50 || len(gatewayNo) > 100 {
+		return errors.New("invalid payment reference")
+	}
+	var order Order
+	changedGroup := false
+	err := DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&Order{}).Where("trade_no = ?", tradeNo).UpdateColumn("status", gorm.Expr("status")).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("trade_no = ?", tradeNo).First(&order).Error; err != nil {
+			return err
+		}
+		if order.GatewayId != gatewayID {
+			return errors.New("payment gateway does not match order")
+		}
+		if order.Status == OrderStatusSuccess && order.SettledAt > 0 && order.GatewayNo == gatewayNo {
+			return nil
+		}
+		if order.Status != OrderStatusPending || order.SettledAt != 0 || order.GatewayNo != "" && order.GatewayNo != gatewayNo {
+			return errors.New("order requires reconciliation")
+		}
+		var err error
+		changedGroup, err = creditRechargeQuotaTx(tx, order.UserId, order.Quota, ip, fmt.Sprintf("在线充值成功，充值积分: %d，支付金额：%.2f %s", order.Quota, order.OrderAmount, order.OrderCurrency))
+		if err != nil {
+			return err
+		}
+		return quotaWriteResult(tx.Model(&order).Updates(map[string]any{"status": OrderStatusSuccess, "gateway_no": gatewayNo, "settled_at": utils.GetTimestamp()}), "order settlement failed")
+	})
+	if err == nil && changedGroup {
+		invalidateRechargeGroupCache(order.UserId)
+	}
+	return err
 }

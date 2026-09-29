@@ -5,9 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
+
 	"one-api/model"
 	"one-api/payment/types"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -58,19 +59,16 @@ func (e *Epay) Pay(config *types.PayConfig, gatewayConfig string) (*types.PayReq
 func (e *Epay) HandleCallback(c *gin.Context, gatewayConfig string) (*types.PayNotify, error) {
 	queryMap := make(map[string]string)
 	if err := c.ShouldBindQuery(&queryMap); err != nil {
-		c.Writer.Write([]byte("fail"))
 		return nil, err
 	}
 
 	epayConfig, err := getEpayConfig(gatewayConfig)
 	if err != nil {
-		c.Writer.Write([]byte("fail"))
 		return nil, fmt.Errorf("tradeNo: %s, PaymentNo: %s,  err: %v", queryMap["out_trade_no"], queryMap["trade_no"], err)
 	}
 
 	paymentResult, success := epayConfig.Verify(queryMap)
 	if paymentResult != nil && success {
-		c.Writer.Write([]byte("success"))
 		payNotify := &types.PayNotify{
 			TradeNo:   paymentResult.OutTradeNo,
 			GatewayNo: paymentResult.TradeNo,
@@ -78,7 +76,6 @@ func (e *Epay) HandleCallback(c *gin.Context, gatewayConfig string) (*types.PayN
 		return payNotify, nil
 	}
 
-	c.Writer.Write([]byte("fail"))
 	return nil, fmt.Errorf("tradeNo: %s, PaymentNo: %s,  Verify Sign failed", queryMap["out_trade_no"], queryMap["trade_no"])
 }
 

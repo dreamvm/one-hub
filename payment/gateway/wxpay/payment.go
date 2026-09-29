@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net/http"
+
 	"one-api/model"
 	"one-api/payment/types"
 
@@ -79,10 +79,6 @@ func (w *WeChatPay) HandleCallback(c *gin.Context, gatewayConfig string) (*types
 	wxpayConfig, err := getWeChatConfig(gatewayConfig)
 	if err != nil {
 		// 接收失败，返回4XX或5XX状态码以及应答报文
-		c.JSON(http.StatusBadRequest, NotifyResponse{
-			Code:    "FAIL",
-			Message: err.Error(),
-		})
 		return nil, fmt.Errorf("WeChat params failed: %v", err)
 	}
 	certificateVisitor := downloader.MgrInstance().GetCertificateVisitor(wxpayConfig.MchID)
@@ -92,26 +88,19 @@ func (w *WeChatPay) HandleCallback(c *gin.Context, gatewayConfig string) (*types
 	// 如果验签未通过，或者解密失败
 	if err != nil {
 		// 接收失败，返回4XX或5XX状态码以及应答报文
-		c.JSON(http.StatusBadRequest, NotifyResponse{
-			Code:    "FAIL",
-			Message: err.Error(),
-		})
 		return nil, fmt.Errorf("WeChat Signature verification failed: %v", err)
 	}
 	if notifyReq.EventType != "TRANSACTION.SUCCESS" {
-		c.Status(http.StatusNoContent)
 		return nil, fmt.Errorf("WeChat Transaction failed: %v", notifyReq.EventType)
 	}
-	if *transaction.TradeState != "SUCCESS" {
-		c.Status(http.StatusNoContent)
-		return nil, fmt.Errorf("tradeNo: %s, TransactionId: %s,  err: %v", transaction.OutTradeNo, transaction.TransactionId, err)
+	if transaction.TradeState == nil || transaction.OutTradeNo == nil || transaction.TransactionId == nil || *transaction.TradeState != "SUCCESS" {
+		return nil, errors.New("incomplete or unsuccessful payment notification")
 	}
 
 	payNotify := &types.PayNotify{
 		TradeNo:   *transaction.OutTradeNo,
 		GatewayNo: *transaction.TransactionId,
 	}
-	c.Status(http.StatusNoContent)
 	return payNotify, nil
 
 }
