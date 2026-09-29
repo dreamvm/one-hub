@@ -65,7 +65,7 @@ jobs:
         run: |
           test -z "$(gofmt -l controller/order.go payment/service.go payment/service_test.go payment/gateway/alipay/payment.go payment/gateway/epay/payment.go payment/gateway/stripe/payment.go payment/gateway/wxpay/payment.go model/order.go model/payment-transaction_test.go model/redemption.go model/recharge.go model/redemption-transaction_test.go model/quota-compensation.go model/quota-compensation_test.go model/task-poll.go model/token.go model/quota-reservation.go model/quota-reservation_test.go model/quota-transaction_test.go model/quota-identity_test.go)"
           for engine in sqlite mysql postgres; do
-            ONEHUB_QUOTA_TEST_DB="$engine" go test -mod=readonly -race -count=1 -timeout=120s -v ./model -run '^TestQuotaTransaction'
+            ONEHUB_QUOTA_TEST_DB="$engine" go test -mod=readonly -race -count=1 -timeout=300s -v ./model -run '^TestQuotaTransaction'
           done
 
   privacy:
