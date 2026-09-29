@@ -251,19 +251,14 @@ func mjTaskHandler(midjourneyChannel *model.Channel, taskIds []string, taskM map
 			if (task.Progress != "100%" && responseItem.FailReason != "") || (task.Progress == "100%" && task.Status == "FAILURE") {
 				logger.LogError(ctx, task.MjId+" 构建失败，"+task.FailReason)
 				task.Progress = "100%"
-				err = model.CacheUpdateUserQuota(task.UserId)
-				if err != nil {
-					logger.LogError(ctx, "error update user quota cache: "+err.Error())
-				} else {
-					quota := task.Quota
-					if quota != 0 {
-						err = model.IncreaseUserQuota(task.UserId, quota)
-						if err != nil {
-							logger.LogError(ctx, "fail to increase user quota: "+err.Error())
-						}
-						logContent := fmt.Sprintf("构图失败 %s，补偿 %s", task.MjId, common.LogQuota(quota))
-						model.RecordLog(task.UserId, model.LogTypeSystem, logContent)
+				quota := task.Quota
+				if quota != 0 {
+					err = model.IncreaseUserQuota(task.UserId, quota)
+					if err != nil {
+						logger.LogError(ctx, "fail to increase user quota: "+err.Error())
 					}
+					logContent := fmt.Sprintf("构图失败 %s，补偿 %s", task.MjId, common.LogQuota(quota))
+					model.RecordLog(task.UserId, model.LogTypeSystem, logContent)
 				}
 			}
 			err = task.Update()

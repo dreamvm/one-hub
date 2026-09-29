@@ -59,7 +59,7 @@ func quotaTransactionFixture(t *testing.T, batch, unlimited bool) (*gorm.DB, mod
 		config.BatchUpdateEnabled, config.QuotaRemindThreshold = oldBatch, oldThreshold
 	})
 	require.NoError(t, db.AutoMigrate(&model.User{}, &model.Token{}))
-	viper.Set("user_token_secret", "quota-transaction-fixture-only")
+	viper.Set("user_token_secret", quotaFixtureTokenSecret)
 	require.NoError(t, common.InitUserToken())
 	require.NoError(t, db.Create(&model.User{Id: 1, Username: "quota-fixture", Quota: 1000}).Error)
 	token := model.Token{UserId: 1, RemainQuota: 1000, UnlimitedQuota: unlimited}

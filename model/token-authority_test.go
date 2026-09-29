@@ -27,6 +27,10 @@ import (
 	"one-api/model"
 )
 
+// InitUserToken is a startup operation: its HMAC pool retains the initialized
+// key. All fixtures in this test binary must use the same synthetic secret.
+const quotaFixtureTokenSecret = "quota-shared-fixture-only"
+
 // Exercise the production Redis store and MessagePack marshaler without network
 // access. Only the Redis commands needed by token authentication are simulated.
 type tokenCacheFixture struct {
@@ -110,7 +114,7 @@ func tokenAuthorityFixture(t *testing.T, redisEnabled, batchEnabled, legacy, unl
 	})
 	require.NoError(t, db.AutoMigrate(&model.User{}, &model.Token{}))
 	require.NoError(t, db.Create(&model.User{Id: 1, Username: "token-authority-fixture", Status: config.UserStatusEnabled, Quota: 1000000}).Error)
-	viper.Set("user_token_secret", "token-authority-fixture-only")
+	viper.Set("user_token_secret", quotaFixtureTokenSecret)
 	require.NoError(t, common.InitUserToken())
 	token := model.Token{UserId: 1, Name: "current token", Status: config.TokenStatusEnabled, ExpiredTime: -1, RemainQuota: 100, UnlimitedQuota: unlimited}
 	require.NoError(t, db.Create(&token).Error)
