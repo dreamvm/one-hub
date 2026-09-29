@@ -26,7 +26,8 @@ go test -mod=readonly -race -count=1 ./model ./relay/relay_util ./relay/task ./r
 
 - C1d 已将用户额度读取改为数据库，并移除旧余额缓存写入门槛，见 [QUOTA_CACHE.md](QUOTA_CACHE.md)。
   Realtime 在途预算累计与持久恢复仍是独立未完成项。
-- 认证、预扣、结算期间 owner / unlimited 模式变化，仍需真实预留身份信息解决。
+- C1e 已在正数预扣事务中绑定认证 owner / unlimited 模式，见 [QUOTA_IDENTITY.md](QUOTA_IDENTITY.md)。
+  预留后的归属转移、删除及持久恢复仍开放。
 - Search 先调用上游再检查、Realtime 不调用此预扣方法、零/负预扣或极小价格截断、
   实际消费超过预估、持久幂等与故障恢复、后台补偿仍开放。完整 C1/C2 继续阻断正式版。
 

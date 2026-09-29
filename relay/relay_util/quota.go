@@ -89,7 +89,7 @@ func (q *Quota) PreQuotaConsumption() *types.OpenAIErrorWithStatusCode {
 	// A high account balance does not imply sufficient finite-token quota.
 	// Every positive reservation must pass the model's atomic balance checks.
 	if q.preConsumedQuota > 0 {
-		err := model.PreConsumeTokenQuota(q.tokenId, q.preConsumedQuota)
+		err := model.PreConsumeTokenQuotaWithInfo(q.tokenId, q.userId, q.unlimitedQuota, q.preConsumedQuota)
 		if err != nil {
 			return common.ErrorWrapper(err, "pre_consume_token_quota_failed", http.StatusForbidden)
 		}
