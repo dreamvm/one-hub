@@ -44,6 +44,7 @@ RC 是预发布候选，编号不代表质量验收。后续候选从 rc.8 起�
 | rc.8 / C3c | 支付事实/原渠道绑定、网关流水唯一归属、配置签名生命周期 | 正常优惠支付可用；错额/身份/缺失字段拒绝；历史归属和凭据轮换通过 | [PR #39](https://github.com/dreamvm/one-hub/pull/39) 已合并，三数据库/CI/隔离验收通过，见 [PAYMENT_NOTIFICATION_FACTS.md](PAYMENT_NOTIFICATION_FACTS.md) |
 | rc.8 / C3d | 创建前金额/额度准入、先持久订单、微信整数分 | 非法输入零外部调用，提前/超时回调正常，原定价兼容 | 本地通过，精确候选 CI 待执行，见 [PAYMENT_ORDER_ADMISSION.md](PAYMENT_ORDER_ADMISSION.md) |
 | rc.8 / C3e | 已关闭订单与停用/软删除渠道的合法延迟支付 | 严格绑定事实、单次入账，旧渠道不能创建新支付 | 本地候选，见 [PAYMENT_LATE_SETTLEMENT.md](PAYMENT_LATE_SETTLEMENT.md) |
+| rc.8 / C3f | Stripe webhook注册/复用、密钥保留与异步成功订阅 | 不改global key，正常兼容版本可用，失败不误报保存 | 本地候选，见 [STRIPE_WEBHOOK_REGISTRATION.md](STRIPE_WEBHOOK_REGISTRATION.md) |
 | 后续 C1 / C2 / C3 | 未报告用量核对、数据库支付幂等与绑定 | 缓存与批量计费不放行耗尽额度；并发不超支；多实例重复回调只入账一次；故障可重试 | 待实施，阻断正式版 |
 | 后续 D | Fork 部署模板、健康检查、构建入口、PostgreSQL/依赖/端到端验收 | 固定 Fork 镜像；健康失败正确退出；三数据库及相关故障路径通过 | 待实施，阻断正式版 |
 | 后续 E | 前端既存警告与加载体积 | 行为回归通过、深浅主题可用、性能变化有依据 | 待实施，按影响安排 |
@@ -508,3 +509,10 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - 回调专用配置读取保留原验签；创建入口仍拒绝停用/软删除配置。只增加closed可结算，不开放failed、历史歧义success或异常标记。
 - 新增12个事务叶子用例，原closed拒绝用例由合法延迟及异常标记控制替换；净增11项。独立只读审阅无阻断发现，指出两个重复状态夹具，已分别改为pending停用/删除与closed组合。
 - 本地SQLite/PostgreSQL与相关race/vet/build通过；精确候选CI/MySQL/镜像待执行。Stripe webhook注册为下一独立修复。
+
+### C3f Stripe 注册候选
+
+- 分支 `codex/stripe-webhook-registration` 依赖 PR #41。接口由模拟HTTP提供，无真实Stripe操作。
+- 先修正测试夹具为SDK实际Bearer鉴权，再取得旧实现失败与正常新建控制证明；修复保留既有secret和其他订阅、补齐异步成功事件，使用实例key。
+- 一次独立审阅提出同API系列兼容日期被拒绝，新增回归复现后按固定SDK规则修正。新增保存数据库失败对照；共15个新增事务叶子用例。
+- SQLite/PostgreSQL、相关race/vet/build和工作流检查通过后提交；精确候选CI/MySQL/镜像另验收。已有线上webhook不自动修改，发布前需独立核对与授权。
