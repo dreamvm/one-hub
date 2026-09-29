@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 
 	"one-api/model"
@@ -57,9 +58,16 @@ func (e *Epay) Pay(config *types.PayConfig, gatewayConfig string) (*types.PayReq
 }
 
 func (e *Epay) HandleCallback(c *gin.Context, gatewayConfig string) (*types.PayNotify, error) {
-	queryMap := make(map[string]string)
-	if err := c.ShouldBindQuery(&queryMap); err != nil {
-		return nil, err
+	values, err := url.ParseQuery(c.Request.URL.RawQuery)
+	if err != nil {
+		return nil, errors.New("invalid callback query")
+	}
+	queryMap := make(map[string]string, len(values))
+	for key, value := range values {
+		if len(value) != 1 {
+			return nil, errors.New("ambiguous callback parameter")
+		}
+		queryMap[key] = value[0]
 	}
 
 	epayConfig, err := getEpayConfig(gatewayConfig)
@@ -69,9 +77,17 @@ func (e *Epay) HandleCallback(c *gin.Context, gatewayConfig string) (*types.PayN
 
 	paymentResult, success := epayConfig.Verify(queryMap)
 	if paymentResult != nil && success {
+		if queryMap["pid"] != epayConfig.PartnerID || epayConfig.PartnerID == "" || epayConfig.PayType != "" && paymentResult.Type != epayConfig.PayType {
+			return nil, errors.New("payment merchant or method mismatch")
+		}
+		amount, err := model.ParsePaymentMinor(paymentResult.Money)
+		if err != nil {
+			return nil, err
+		}
 		payNotify := &types.PayNotify{
-			TradeNo:   paymentResult.OutTradeNo,
-			GatewayNo: paymentResult.TradeNo,
+			TradeNo:     paymentResult.OutTradeNo,
+			GatewayNo:   paymentResult.TradeNo,
+			AmountMinor: amount,
 		}
 		return payNotify, nil
 	}
@@ -85,6 +101,9 @@ func getEpayConfig(gatewayConfig string) (*EpayConfig, error) {
 		return nil, errors.New("config error")
 	}
 
+	if epayConfig.Key == "" || epayConfig.PartnerID == "" {
+		return nil, errors.New("missing payment signing configuration")
+	}
 	return &epayConfig, nil
 }
 func (e *Epay) CreatedPay(_ string, _ *model.Payment) error {

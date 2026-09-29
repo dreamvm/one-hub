@@ -24,10 +24,12 @@ import (
 func paymentTransactionFixture(t *testing.T, batch bool) (*gorm.DB, model.Payment, model.Order, *epay.Client) {
 	t.Helper()
 	db, _ := redemptionFixture(t, batch)
-	for _, table := range []any{&model.Payment{}, &model.Order{}} {
+	for _, table := range []any{&model.Payment{}, &model.Order{}, &model.OrderPaymentClaim{}} {
 		require.NoError(t, db.AutoMigrate(table))
 	}
-	t.Cleanup(func() { require.NoError(t, db.Migrator().DropTable(&model.Order{}, &model.Payment{})) })
+	t.Cleanup(func() {
+		require.NoError(t, db.Migrator().DropTable(&model.OrderPaymentClaim{}, &model.Order{}, &model.Payment{}))
+	})
 	client := &epay.Client{PartnerID: "fixture-merchant", Key: "fixture-payment-signing-only"}
 	conf, err := json.Marshal(epay.EpayConfig{Client: *client, PayType: epay.Alipay})
 	require.NoError(t, err)
@@ -40,7 +42,14 @@ func paymentTransactionFixture(t *testing.T, batch bool) (*gorm.DB, model.Paymen
 }
 
 func paymentCallbackFixture(gateway model.Payment, order model.Order, client *epay.Client, gatewayNo string) *httptest.ResponseRecorder {
+	return paymentCallbackWithFacts(gateway, order, client, gatewayNo, nil)
+}
+
+func paymentCallbackWithFacts(gateway model.Payment, order model.Order, client *epay.Client, gatewayNo string, overrides map[string]string) *httptest.ResponseRecorder {
 	fields := map[string]string{"pid": client.PartnerID, "out_trade_no": order.TradeNo, "trade_no": gatewayNo, "money": "7.00", "type": "alipay", "trade_status": epay.TradeStatusSuccess}
+	for k, v := range overrides {
+		fields[k] = v
+	}
 	fields["sign"] = client.Sign(fields)
 	query := url.Values{}
 	for k, v := range fields {
@@ -134,7 +143,7 @@ func TestQuotaTransactionPaymentEqualOrders(t *testing.T) {
 }
 
 func TestQuotaTransactionPaymentRollbackAndReplay(t *testing.T) {
-	for _, stage := range []string{"lock", "balance", "promotion", "log", "terminal"} {
+	for _, stage := range []string{"lock", "claim", "balance", "promotion", "log", "terminal"} {
 		t.Run(stage, func(t *testing.T) {
 			db, gateway, order, client := paymentTransactionFixture(t, true)
 			inject := func(tx *gorm.DB) {
@@ -143,7 +152,7 @@ func TestQuotaTransactionPaymentRollbackAndReplay(t *testing.T) {
 				}
 				table := tx.Statement.Schema.Table
 				fields, _ := tx.Statement.Dest.(map[string]interface{})
-				if stage == "lock" && strings.HasSuffix(table, "_orders") || stage == "balance" && strings.HasSuffix(table, "_users") || stage == "promotion" && strings.HasSuffix(table, "_user_groups") || stage == "log" && strings.HasSuffix(table, "_logs") || stage == "terminal" && strings.HasSuffix(table, "_orders") && fields["status"] == model.OrderStatusSuccess {
+				if stage == "claim" && strings.HasSuffix(table, "_order_payment_claims") || stage == "lock" && strings.HasSuffix(table, "_orders") || stage == "balance" && strings.HasSuffix(table, "_users") || stage == "promotion" && strings.HasSuffix(table, "_user_groups") || stage == "log" && strings.HasSuffix(table, "_logs") || stage == "terminal" && strings.HasSuffix(table, "_orders") && fields["status"] == model.OrderStatusSuccess {
 					tx.AddError(errors.New("injected payment failure"))
 				}
 			}

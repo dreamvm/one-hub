@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+	"strings"
 
 	"one-api/model"
 	"one-api/payment/types"
@@ -172,9 +173,9 @@ func (e *Stripe) HandleCallback(c *gin.Context, gatewayConfig string) (*types.Pa
 		return nil, fmt.Errorf("failed to parse gateway config: %v", err)
 	}
 
-	sc := &client.API{}
-
-	sc.Init(stripeConfig.SecretKey, nil)
+	if stripeConfig.WebhookSecret == "" {
+		return nil, fmt.Errorf("missing webhook signing secret")
+	}
 	stripeSignature := c.GetHeader("Stripe-Signature")
 	event, err := webhook.ConstructEvent(body, stripeSignature, stripeConfig.WebhookSecret)
 	if err != nil {
@@ -183,13 +184,23 @@ func (e *Stripe) HandleCallback(c *gin.Context, gatewayConfig string) (*types.Pa
 
 	// 处理事件
 	switch event.Type {
-	case "checkout.session.completed":
+	case "checkout.session.completed", "checkout.session.async_payment_succeeded":
+		if event.Data == nil {
+			return nil, fmt.Errorf("missing event data")
+		}
 		var session stripe.CheckoutSession
 		err := json.Unmarshal(event.Data.Raw, &session)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse session data: %v", err)
 		}
 
+		if session.PaymentStatus != stripe.CheckoutSessionPaymentStatusPaid {
+			return nil, nil
+		}
+		userID, err := strconv.Atoi(session.Metadata["user_id"])
+		if err != nil || userID <= 0 || session.AmountTotal <= 0 {
+			return nil, fmt.Errorf("invalid paid session facts")
+		}
 		if session.PaymentIntent == nil {
 			return nil, fmt.Errorf("missing payment intent")
 		}
@@ -198,8 +209,11 @@ func (e *Stripe) HandleCallback(c *gin.Context, gatewayConfig string) (*types.Pa
 
 		// 构造 PayNotify
 		payNotify := &types.PayNotify{
-			TradeNo:   orderID,
-			GatewayNo: session.PaymentIntent.ID,
+			TradeNo:     orderID,
+			GatewayNo:   session.PaymentIntent.ID,
+			AmountMinor: session.AmountTotal,
+			Currency:    model.CurrencyType(strings.ToUpper(string(session.Currency))),
+			UserID:      userID,
 		}
 
 		return payNotify, nil

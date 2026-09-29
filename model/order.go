@@ -1,9 +1,12 @@
 package model
 
 import (
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"time"
+
+	"gorm.io/gorm/clause"
 
 	"one-api/common/utils"
 
@@ -152,7 +155,8 @@ func GetStatisticsOrderByPeriod(startTimestamp, endTimestamp int64) (orderStatis
 // SettleOrderPayment consumes the verified callback under the durable order lock.
 // It never queues balance writes in process memory. Replays need an identical
 // transaction binding and a committed settlement marker.
-func SettleOrderPayment(gatewayID int, tradeNo, gatewayNo, ip string) error {
+func SettleOrderPayment(gatewayID int, notification PaymentNotification, ip string) error {
+	tradeNo, gatewayNo := notification.TradeNo, notification.GatewayNo
 	if gatewayID <= 0 || tradeNo == "" || gatewayNo == "" || len(tradeNo) > 50 || len(gatewayNo) > 100 {
 		return errors.New("invalid payment reference")
 	}
@@ -168,13 +172,40 @@ func SettleOrderPayment(gatewayID int, tradeNo, gatewayNo, ip string) error {
 		if order.GatewayId != gatewayID {
 			return errors.New("payment gateway does not match order")
 		}
-		if order.Status == OrderStatusSuccess && order.SettledAt > 0 && order.GatewayNo == gatewayNo {
-			return nil
+		expectedAmount, err := PaymentMinorFromAmount(order.OrderAmount)
+		if err != nil || notification.AmountMinor != expectedAmount || (notification.Currency != CurrencyTypeCNY && notification.Currency != CurrencyTypeUSD) || notification.Currency != order.OrderCurrency || notification.UserID < 0 || notification.UserID > 0 && notification.UserID != order.UserId {
+			return errors.New("payment facts do not match order")
 		}
-		if order.Status != OrderStatusPending || order.SettledAt != 0 || order.GatewayNo != "" && order.GatewayNo != gatewayNo {
+		settled := order.Status == OrderStatusSuccess && order.SettledAt > 0 && order.GatewayNo == gatewayNo
+		if !settled && (order.Status != OrderStatusPending || order.SettledAt != 0 || order.GatewayNo != "" && order.GatewayNo != gatewayNo) {
 			return errors.New("order requires reconciliation")
 		}
-		var err error
+		// Preserve ownership from releases predating the claim table, including
+		// soft-deleted orders. Never guess or backfill a credit from historical state.
+		var historical []Order
+		if err := tx.Unscoped().Select("id", "gateway_no").Where("gateway_id = ? AND gateway_no = ? AND id <> ?", gatewayID, gatewayNo, order.ID).Find(&historical).Error; err != nil {
+			return err
+		}
+		for _, previous := range historical {
+			if previous.GatewayNo == gatewayNo {
+				return errors.New("payment transaction has historical ownership")
+			}
+		}
+		claimID := fmt.Sprintf("%x", sha256.Sum256([]byte(fmt.Sprintf("%d:%s", gatewayID, gatewayNo))))
+		claim := OrderPaymentClaim{ID: claimID, OrderID: order.ID}
+		if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&claim).Error; err != nil {
+			return err
+		}
+		var storedClaim OrderPaymentClaim
+		if err := tx.Where("id = ?", claimID).First(&storedClaim).Error; err != nil {
+			return err
+		}
+		if storedClaim.OrderID != order.ID {
+			return errors.New("payment transaction already bound")
+		}
+		if settled {
+			return nil
+		}
 		changedGroup, err = creditRechargeQuotaTx(tx, order.UserId, order.Quota, ip, fmt.Sprintf("在线充值成功，充值积分: %d，支付金额：%.2f %s", order.Quota, order.OrderAmount, order.OrderCurrency))
 		if err != nil {
 			return err

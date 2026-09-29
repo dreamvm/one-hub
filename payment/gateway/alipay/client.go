@@ -5,15 +5,16 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
+
 	sysconfig "one-api/common/config"
 	"one-api/payment/types"
-	"strconv"
 
 	"github.com/smartwalle/alipay/v3"
 )
 
 // handleTradePreCreate 处理支付宝当面付请求
-func (a *Alipay) handleTradePreCreate(config *types.PayConfig) (*types.PayRequest, error) {
+func (a *Alipay) handleTradePreCreate(client *alipay.Client, config *types.PayConfig) (*types.PayRequest, error) {
 	var p = alipay.TradePreCreate{}
 	p.OutTradeNo = config.TradeNo
 	p.TotalAmount = strconv.FormatFloat(config.Money, 'f', 2, 64)
@@ -43,7 +44,7 @@ func (a *Alipay) handleTradePreCreate(config *types.PayConfig) (*types.PayReques
 }
 
 // handlePagePay 处理支付宝网页支付请求
-func (a *Alipay) handlePagePay(config *types.PayConfig) (*types.PayRequest, error) {
+func (a *Alipay) handlePagePay(client *alipay.Client, config *types.PayConfig) (*types.PayRequest, error) {
 	var p = alipay.TradePagePay{}
 	p.OutTradeNo = config.TradeNo
 	p.TotalAmount = strconv.FormatFloat(config.Money, 'f', 2, 64)
@@ -72,7 +73,7 @@ func (a *Alipay) handlePagePay(config *types.PayConfig) (*types.PayRequest, erro
 }
 
 // handlePagePay 处理支付宝手机网页支付请求
-func (a *Alipay) handleWapPay(config *types.PayConfig) (*types.PayRequest, error) {
+func (a *Alipay) handleWapPay(client *alipay.Client, config *types.PayConfig) (*types.PayRequest, error) {
 	var p = alipay.TradeWapPay{}
 	p.OutTradeNo = config.TradeNo
 	p.TotalAmount = strconv.FormatFloat(config.Money, 'f', 2, 64)
