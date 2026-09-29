@@ -191,17 +191,13 @@ func TestQuotaLifecycleWriteFailureIsNotReplayed(t *testing.T) {
 			}
 			q.Undo(c)
 			q.Consume(c, &types.Usage{PromptTokens: 7}, false)
-			require.EqualValues(t, 1, attempts.Load(), "partial writes must not be replayed")
+			require.EqualValues(t, 1, attempts.Load(), "failed terminal operations must not be replayed")
 			var user model.User
 			var token model.Token
 			require.NoError(t, db.First(&user, 1).Error)
 			require.NoError(t, db.First(&token, c.GetInt("token_id")).Error)
-			want := 993
-			if refund {
-				want = 1000
-			}
-			require.Equal(t, want, user.Quota)
-			require.Equal(t, 980, token.RemainQuota, "partial-write recovery remains a separate requirement")
+			require.Equal(t, 980, user.Quota)
+			require.Equal(t, 980, token.RemainQuota, "failed settlement keeps the complete reservation")
 		})
 	}
 }
