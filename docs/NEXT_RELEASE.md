@@ -36,7 +36,8 @@ RC 是预发布候选，编号不代表质量验收。后续候选从 rc.8 起�
 | rc.8 / C1f | Search 辅助模型上游前预留及输入估算 | 预算不足零上游调用，失败退款，成功与正常对照正确落账 | [PR #31](https://github.com/dreamvm/one-hub/pull/31) 已合并；CI 与隔离验收通过，见 [SEARCH_QUOTA.md](SEARCH_QUOTA.md) |
 | rc.8 / C1g | Realtime 入口预留、续额及连接结束后的同步结算 | 余额不足零上游握手，数据库续额、失败关闭、两 worker 退出与正常用量对照 | [PR #32](https://github.com/dreamvm/one-hub/pull/32) 已合并；CI 与隔离验收通过，见 [REALTIME_QUOTA.md](REALTIME_QUOTA.md)；未报告用量等边界仍开放 |
 | rc.8 / C1h | 付费最小预留及图片数量估算 | 零舍入付费仍检查余额；负数/溢出拒绝；免费及实际超额对照 | [PR #33](https://github.com/dreamvm/one-hub/pull/33) 已合并；CI 与隔离验收通过，见 [QUOTA_PRICE_ADMISSION.md](QUOTA_PRICE_ADMISSION.md) |
-| rc.8 / C1i | 最终费用算术、用量表示与任务费用一致性 | 非法费用拒绝；附加服务与不同规格计费完整；正常舍入/免费对照 | 本地验证与独立审阅修正完成，见 [QUOTA_SETTLEMENT_ARITHMETIC.md](QUOTA_SETTLEMENT_ARITHMETIC.md) |
+| rc.8 / C1i | 最终费用算术、用量表示与任务费用一致性 | 非法费用拒绝；附加服务与不同规格计费完整；正常舍入/免费对照 | [PR #34](https://github.com/dreamvm/one-hub/pull/34) 已合并；CI 与隔离验收通过，见 [QUOTA_SETTLEMENT_ARITHMETIC.md](QUOTA_SETTLEMENT_ARITHMETIC.md) |
+| rc.8 / C2b | 持久化预留、终局和确定意图恢复 | 重复终局不重复入账；余额/统计/日志事务；崩溃与故障可核对 | 本地 SQLite/PostgreSQL 与独立审阅修正完成，见 [QUOTA_RESERVATIONS.md](QUOTA_RESERVATIONS.md) |
 | 后续 C1 / C2 / C3 | Redis 同步、预留身份与恢复、数据库支付幂等 | 缓存与批量计费不放行耗尽额度；并发不超支；多实例重复回调只入账一次；故障可重试 | 待实施，阻断正式版 |
 | 后续 D | Fork 部署模板、健康检查、构建入口、PostgreSQL/依赖/端到端验收 | 固定 Fork 镜像；健康失败正确退出；三数据库及相关故障路径通过 | 待实施，阻断正式版 |
 | 后续 E | 前端既存警告与加载体积 | 行为回归通过、深浅主题可用、性能变化有依据 | 待实施，按影响安排 |
@@ -404,3 +405,19 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - 依赖 C1h，处理最终费用算术、Realtime 用量表示和任务保存费用，见 QUOTA_SETTLEMENT_ARITHMETIC.md。
 - 失败回归、合法对照、一次独立审阅及其确认问题修正完成；相关包 race、vet、编译、工作流和隐私检查通过。
 - 此候选远端 CI 与合并仍待执行；持久化预留/终局恢复是下一批，不把 sync.Once 当跨进程幂等保证。
+
+### C1i 远端验收
+
+- PR #34 候选 `1970ec148bea899e7861a1e161bc7161a7e58288`，合并
+  `beeb263f02432520e829087cd393a6fa482572b5`，实际合并树与受测候选一致。
+- [兼容性 CI](https://github.com/dreamvm/one-hub/actions/runs/36621405580) 与
+  [隔离镜像验收](https://github.com/dreamvm/one-hub/actions/runs/36621405734) 全成功，三数据库专项与 28 项 smoke PASS。
+  runner 镜像 ID `sha256:293ce49e4dcd058648840c0d9f956cd71287d405d411452a2fe323e6afedb639`，未发布。
+
+### C2b 候选范围
+
+- 依赖 C1i，新增持久账本并接入共享 relay；详见 QUOTA_RESERVATIONS.md。
+- 旧版终局故障不恢复已复现；新增 SQLite/PostgreSQL 88 项事务叶用例及相关包回归通过。
+- 独立审阅的意图写入失败与日志副本问题均已复现并修正；没有第二轮审阅代替主代理验证。
+- MySQL/精确候选 CI 与隔离镜像验收待执行。后台任务成对退款及幂等为下一批；
+  没有持久最终用量的预留仍必须核对，不能据此声明所有账务缺口已自动恢复。
