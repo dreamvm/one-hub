@@ -91,13 +91,8 @@ func (q *Quota) PreQuotaConsumption() *types.OpenAIErrorWithStatusCode {
 		return common.ErrorWrapper(err, "decrease_user_quota_failed", http.StatusInternalServerError)
 	}
 
-	if userQuota > 100*q.preConsumedQuota {
-		// in this case, we do not pre-consume quota
-		// because the user has enough quota
-		q.preConsumedQuota = 0
-		// common.LogInfo(c.Request.Context(), fmt.Sprintf("user %d has enough quota %d, trusted and no need to pre-consume", userId, userQuota))
-	}
-
+	// A high account balance does not imply sufficient finite-token quota.
+	// Every positive reservation must pass the model's atomic balance checks.
 	if q.preConsumedQuota > 0 {
 		err := model.PreConsumeTokenQuota(q.tokenId, q.preConsumedQuota)
 		if err != nil {
