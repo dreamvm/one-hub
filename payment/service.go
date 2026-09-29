@@ -70,6 +70,9 @@ func (s *PaymentService) HandleCallback(c *gin.Context, gatewayConfig string) (*
 
 	}
 
+	if err == nil && payNotify != nil && s.Payment.Type == "epay" {
+		payNotify.Currency = s.Payment.Currency
+	}
 	return payNotify, err
 }
 

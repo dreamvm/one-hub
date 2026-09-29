@@ -5,22 +5,21 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
+	"sync"
 
 	"one-api/model"
 	"one-api/payment/types"
 
 	"github.com/gin-gonic/gin"
-	"github.com/wechatpay-apiv3/wechatpay-go/core"
 	"github.com/wechatpay-apiv3/wechatpay-go/core/auth/verifiers"
-	"github.com/wechatpay-apiv3/wechatpay-go/core/downloader"
 	"github.com/wechatpay-apiv3/wechatpay-go/core/notify"
-	"github.com/wechatpay-apiv3/wechatpay-go/core/option"
 	"github.com/wechatpay-apiv3/wechatpay-go/services/payments"
-	"github.com/wechatpay-apiv3/wechatpay-go/utils"
 )
 
-type WeChatPay struct{}
+type WeChatPay struct {
+	mu       sync.Mutex
+	runtimes map[string]*wechatRuntime
+}
 
 type WeChatConfig struct {
 	AppID                      string  `json:"app_id"`                        //应用ID
@@ -32,26 +31,8 @@ type WeChatConfig struct {
 	PayType                    PayType `json:"pay_type"`
 }
 
-var client *core.Client
-
 func (w *WeChatPay) Name() string {
 	return "微信支付"
-}
-
-func (w *WeChatPay) InitClient(config *WeChatConfig) error {
-	// 使用 utils 提供的函数从本地文件中加载商户私钥，商户私钥会用来生成请求的签名
-	mchPrivateKey, err := utils.LoadPrivateKey(config.MchPrivateKey)
-	if err != nil {
-		log.Fatal("load merchant private key error")
-		return err
-	}
-	ctx := context.Background()
-	// 使用商户私钥等初始化 client，并使它具有自动定时获取微信支付平台证书的能力
-	opts := []core.ClientOption{
-		option.WithWechatPayAutoAuthCipher(config.MchID, config.MchCertificateSerialNumber, mchPrivateKey, config.MchAPIv3Key),
-	}
-	client, err = core.NewClient(ctx, opts...)
-	return err
 }
 
 func (w *WeChatPay) Pay(config *types.PayConfig, gatewayConfig string) (*types.PayRequest, error) {
@@ -60,17 +41,16 @@ func (w *WeChatPay) Pay(config *types.PayConfig, gatewayConfig string) (*types.P
 		return nil, err
 	}
 
-	if client == nil {
-		err := w.InitClient(wechatConfig)
-		if err != nil {
-			return nil, err
-		}
+	runtime, err := w.runtime(context.Background(), wechatConfig)
+	if err != nil {
+		return nil, err
 	}
+
 	switch wechatConfig.PayType {
 	case Native:
-		return w.handleNativePay(config, wechatConfig)
+		return w.handleNativePay(runtime.client, config, wechatConfig)
 	default:
-		return w.handleNativePay(config, wechatConfig)
+		return w.handleNativePay(runtime.client, config, wechatConfig)
 	}
 }
 
@@ -81,10 +61,14 @@ func (w *WeChatPay) HandleCallback(c *gin.Context, gatewayConfig string) (*types
 		// 接收失败，返回4XX或5XX状态码以及应答报文
 		return nil, fmt.Errorf("WeChat params failed: %v", err)
 	}
-	certificateVisitor := downloader.MgrInstance().GetCertificateVisitor(wxpayConfig.MchID)
+	runtime, err := w.runtime(c.Request.Context(), wxpayConfig)
+	if err != nil {
+		return nil, err
+	}
+	certificateVisitor := runtime.manager.GetCertificateVisitor(wxpayConfig.MchID)
 	handler := notify.NewNotifyHandler(wxpayConfig.MchAPIv3Key, verifiers.NewSHA256WithRSAVerifier(certificateVisitor))
 	transaction := new(payments.Transaction)
-	notifyReq, err := handler.ParseNotifyRequest(context.Background(), c.Request, transaction)
+	notifyReq, err := handler.ParseNotifyRequest(c.Request.Context(), c.Request, transaction)
 	// 如果验签未通过，或者解密失败
 	if err != nil {
 		// 接收失败，返回4XX或5XX状态码以及应答报文
@@ -97,9 +81,14 @@ func (w *WeChatPay) HandleCallback(c *gin.Context, gatewayConfig string) (*types
 		return nil, errors.New("incomplete or unsuccessful payment notification")
 	}
 
+	if transaction.Appid == nil || *transaction.Appid != wxpayConfig.AppID || wxpayConfig.AppID == "" || transaction.Mchid == nil || *transaction.Mchid != wxpayConfig.MchID || wxpayConfig.MchID == "" || transaction.Amount == nil || transaction.Amount.Total == nil || *transaction.Amount.Total <= 0 || transaction.Amount.Currency == nil {
+		return nil, errors.New("incomplete or mismatched payment facts")
+	}
 	payNotify := &types.PayNotify{
-		TradeNo:   *transaction.OutTradeNo,
-		GatewayNo: *transaction.TransactionId,
+		TradeNo:     *transaction.OutTradeNo,
+		GatewayNo:   *transaction.TransactionId,
+		AmountMinor: *transaction.Amount.Total,
+		Currency:    model.CurrencyType(*transaction.Amount.Currency),
 	}
 	return payNotify, nil
 

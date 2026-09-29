@@ -115,7 +115,7 @@ func PaymentCallback(c *gin.Context) {
 		paymentService.RespondCallback(c, true)
 		return
 	}
-	err = model.SettleOrderPayment(paymentService.Payment.ID, notification.TradeNo, notification.GatewayNo, c.ClientIP())
+	err = model.SettleOrderPayment(paymentService.Payment.ID, *notification, c.ClientIP())
 	if err != nil {
 		logger.SysError("payment callback settlement failed; provider retry required")
 	}
