@@ -3,7 +3,6 @@ package stripe
 import (
 	"encoding/json"
 	"fmt"
-	"math"
 	"strconv"
 	"strings"
 
@@ -29,9 +28,13 @@ func (e *Stripe) Name() string {
 
 // Pay 处理支付请求
 func (e *Stripe) Pay(config *types.PayConfig, gatewayConfig string) (*types.PayRequest, error) {
+	minor, err := model.PaymentMinorFromAmount(config.Money)
+	if err != nil {
+		return nil, err
+	}
 	var stripeConfig StripeConfig
 	// 使用 json.Unmarshal 解析 JSON 字符串到结构体
-	err := json.Unmarshal([]byte(gatewayConfig), &stripeConfig)
+	err = json.Unmarshal([]byte(gatewayConfig), &stripeConfig)
 	if err != nil {
 		fmt.Println("Error parsing JSON:", err)
 		return nil, err
@@ -56,7 +59,7 @@ func (e *Stripe) Pay(config *types.PayConfig, gatewayConfig string) (*types.PayR
 					ProductData: &stripe.CheckoutSessionLineItemPriceDataProductDataParams{
 						Name: stripe.String(sysconfig.SystemName + "-Token充值:" + strconv.FormatFloat(config.Money, 'f', 0, 64) + " " + string(config.Currency)),
 					},
-					UnitAmount: stripe.Int64(int64(math.Round(config.Money * 100))),
+					UnitAmount: stripe.Int64(minor),
 				},
 				Quantity: stripe.Int64(1),
 			},

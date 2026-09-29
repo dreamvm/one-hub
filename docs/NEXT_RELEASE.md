@@ -40,8 +40,9 @@ RC 是预发布候选，编号不代表质量验收。后续候选从 rc.8 起�
 | rc.8 / C2b | 持久化预留、终局和确定意图恢复 | 重复终局不重复入账；余额/统计/日志事务；崩溃与故障可核对 | [PR #35](https://github.com/dreamvm/one-hub/pull/35) 已合并；三数据库、CI 与隔离验收通过，见 [QUOTA_RESERVATIONS.md](QUOTA_RESERVATIONS.md) |
 | rc.8 / C2c | 异步任务失败成对补偿、持久幂等与轮询身份绑定 | 重复/并发至多退款一次；合法成功/无限/免费和三数据库通过 | [PR #36](https://github.com/dreamvm/one-hub/pull/36) 已合并；三数据库、CI 与隔离验收通过，见 [TASK_QUOTA_COMPENSATION.md](TASK_QUOTA_COMPENSATION.md) |
 | rc.8 / C3a | 兑换码原子领取、充值和已使用终态 | 并发单次领取；错误回滚；过期编辑不重开；正常 NULL 兼容 | [PR #37](https://github.com/dreamvm/one-hub/pull/37) 已合并，三数据库/CI/隔离验收通过，见 [REDEMPTION_TRANSACTIONS.md](REDEMPTION_TRANSACTIONS.md) |
-| rc.8 / C3b | 同一订单原子入账、幂等和提交后回执 | 失败可重试、已入账重复回调不重复充值、三数据库正常/故障对照 | [PR #38](https://github.com/dreamvm/one-hub/pull/38) 验收中，见 [PAYMENT_SETTLEMENT.md](PAYMENT_SETTLEMENT.md) |
-| rc.8 / C3c | 支付事实/原渠道绑定、网关流水唯一归属、配置签名生命周期 | 正常优惠支付可用；错额/身份/缺失字段拒绝；历史归属和凭据轮换通过 | 本地候选，见 [PAYMENT_NOTIFICATION_FACTS.md](PAYMENT_NOTIFICATION_FACTS.md) |
+| rc.8 / C3b | 同一订单原子入账、幂等和提交后回执 | 失败可重试、已入账重复回调不重复充值、三数据库正常/故障对照 | [PR #38](https://github.com/dreamvm/one-hub/pull/38) 已合并，三数据库/CI/隔离验收通过，见 [PAYMENT_SETTLEMENT.md](PAYMENT_SETTLEMENT.md) |
+| rc.8 / C3c | 支付事实/原渠道绑定、网关流水唯一归属、配置签名生命周期 | 正常优惠支付可用；错额/身份/缺失字段拒绝；历史归属和凭据轮换通过 | [PR #39](https://github.com/dreamvm/one-hub/pull/39) 已合并，三数据库/CI/隔离验收通过，见 [PAYMENT_NOTIFICATION_FACTS.md](PAYMENT_NOTIFICATION_FACTS.md) |
+| rc.8 / C3d | 创建前金额/额度准入、先持久订单、微信整数分 | 非法输入零外部调用，提前/超时回调正常，原定价兼容 | 本地通过，精确候选 CI 待执行，见 [PAYMENT_ORDER_ADMISSION.md](PAYMENT_ORDER_ADMISSION.md) |
 | 后续 C1 / C2 / C3 | 未报告用量核对、数据库支付幂等与绑定 | 缓存与批量计费不放行耗尽额度；并发不超支；多实例重复回调只入账一次；故障可重试 | 待实施，阻断正式版 |
 | 后续 D | Fork 部署模板、健康检查、构建入口、PostgreSQL/依赖/端到端验收 | 固定 Fork 镜像；健康失败正确退出；三数据库及相关故障路径通过 | 待实施，阻断正式版 |
 | 后续 E | 前端既存警告与加载体积 | 行为回归通过、深浅主题可用、性能变化有依据 | 待实施，按影响安排 |
@@ -485,3 +486,17 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - 远端精确候选/MySQL/隔离镜像仍待提交后验收。订单创建、关闭/停用的延迟通知、Stripe 订阅与既有 webhook secret 保留是下一批。
 
 - 审阅修正后 SQLite/PostgreSQL 支付专项 64 个事务叶子用例、四网关本地签名对照、相关包 race/vet/build、工作流/actionlint、隐私14（Docker1本机跳过）及 smoke Python13、历史扫描通过。
+
+### C3b / C3c 合并验收
+
+- C3b PR #38 head `b7cdbaba4ad66988085ef0d5f0a8da6c2c94790a`，合并 `1f01159be84aa483422e5ea058147cb2242125a7`。CI [36630748759](https://github.com/dreamvm/one-hub/actions/runs/36630748759) / [36630749358](https://github.com/dreamvm/one-hub/actions/runs/36630749358) 全9项通过，三数据库各164事务叶子用例、smoke28 PASS。
+- C3c PR #39 head `b98f630b357b554072d8c4471f533ee73119a993`，合并 `6b3fe8f83d77b69f65471a632a251226d3d68f0e`。CI [36632459687](https://github.com/dreamvm/one-hub/actions/runs/36632459687) / [36632459867](https://github.com/dreamvm/one-hub/actions/runs/36632459867) 全9项通过，三数据库各203事务叶子用例、smoke28 PASS。
+- 两项候选、合成合并、实际合并树分别一致。C3b runner 镜像 `sha256:cda9686f654b85ef2809f89a29add92aa92fb7ab31fb60bd99195ec69eed094e`；C3c 为 `sha256:db4af93c07a73f40de62a9054ba60a75b5e00e1196f33e5fa3e1cbdce98dd62c`；均未发布。
+
+### C3d 订单创建候选
+
+- 分支 `codex/payment-order-admission` 依赖已合并 PR #39；先验证定价和额度，再持久订单，再发起外部支付。超时保留待核对状态，不覆盖已由提前回调提交的成功。
+- 旧实现的提前回调、数据库插入失败后仍创建外部支付、非法额度/金额及微信4.10元截断为409分已复现，正常对照通过。
+- 一次独立审阅发现新十进制舍入改变正常手续费，补充失败用例后恢复既有算法，保留有限值/范围检查；额度乘法单独用精确运算。核对驱动后撤销无依据的 schema 扩宽，保留大额合法订单对照。
+- 新增16个事务叶子用例及微信本地签名请求/服务币种对照；SQLite/PostgreSQL专项、相关包race/vet/build、工作流/actionlint及格式检查通过。精确候选 MySQL/CI/镜像验收待执行。
+- 关闭/停用渠道的延迟通知与 Stripe webhook 注册仍属下一批；RC8 未创建，未发布部署。
