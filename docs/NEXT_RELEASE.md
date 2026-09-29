@@ -33,8 +33,9 @@ RC 是预发布候选，编号不代表质量验收。后续候选从 rc.8 起�
 | rc.8 / C1c | 取消高账户余额的预扣豁免 | 有限令牌不足拒绝；正常最终费用、无限与免费对照通过 | [PR #28](https://github.com/dreamvm/one-hub/pull/28) 已合并；CI 与隔离验收通过，完整额度边界仍开放 |
 | rc.8 / C1d | 用户余额读取以数据库为准；缓存故障不阻断已提交账务 | 缓存旧值/缺失/异常不影响正确余额，退款及日志统计完整 | [PR #29](https://github.com/dreamvm/one-hub/pull/29) 已合并；CI 与隔离验收通过 |
 | rc.8 / C1e | 预留与结算使用同一认证 owner / mode | 调用前和事务窗口变化拒绝，成功预留后模式变更按原模式结算 | [PR #30](https://github.com/dreamvm/one-hub/pull/30) 已合并；三数据库、CI 与隔离验收通过 |
-| rc.8 / C1f | Search 辅助模型上游前预留及输入估算 | 预算不足零上游调用，失败退款，成功与正常对照正确落账 | 独立候选，见 [SEARCH_QUOTA.md](SEARCH_QUOTA.md) |
+| rc.8 / C1f | Search 辅助模型上游前预留及输入估算 | 预算不足零上游调用，失败退款，成功与正常对照正确落账 | [PR #31](https://github.com/dreamvm/one-hub/pull/31) 已合并；CI 与隔离验收通过，见 [SEARCH_QUOTA.md](SEARCH_QUOTA.md) |
 | rc.8 / C1g | Realtime 入口预留、续额及连接结束后的同步结算 | 余额不足零上游握手，数据库续额、失败关闭、两 worker 退出与正常用量对照 | 独立候选，见 [REALTIME_QUOTA.md](REALTIME_QUOTA.md)；未报告用量等边界仍开放 |
+| rc.8 / C1h | 付费最小预留及图片数量估算 | 零舍入付费仍检查余额；负数/溢出拒绝；免费及实际超额对照 | 本地与独立审阅通过，见 [QUOTA_PRICE_ADMISSION.md](QUOTA_PRICE_ADMISSION.md) |
 | 后续 C1 / C2 / C3 | Redis 同步、预留身份与恢复、数据库支付幂等 | 缓存与批量计费不放行耗尽额度；并发不超支；多实例重复回调只入账一次；故障可重试 | 待实施，阻断正式版 |
 | 后续 D | Fork 部署模板、健康检查、构建入口、PostgreSQL/依赖/端到端验收 | 固定 Fork 镜像；健康失败正确退出；三数据库及相关故障路径通过 | 待实施，阻断正式版 |
 | 后续 E | 前端既存警告与加载体积 | 行为回归通过、深浅主题可用、性能变化有依据 | 待实施，按影响安排 |
@@ -365,3 +366,19 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - 修正后 Realtime / WSProxy / model 专项及所有受影响包 race 通过；相关 vet、主程序/provider/relay
   构建、工作流策略、actionlint、格式检查通过。隐私 14 项本地跳过 Docker 上下文 1 项，其余、
   历史扫描及 smoke Python 13 项通过。最终准确 SHA 的 CI/镜像验收另行记录。
+
+### C1f 远端验收
+
+- PR #31 候选 `8a1facea746c007753c7cf438f17ff4739472de4`，合并提交
+  `068ada2f533d8324c062974c9263ba5088bfbe45`；合并文件树与受测候选一致。
+- [兼容性 CI](https://github.com/dreamvm/one-hub/actions/runs/36616236034) 与
+  [隔离验收](https://github.com/dreamvm/one-hub/actions/runs/36616236464) 全部成功，smoke 28 PASS。
+  隔离镜像 ID `sha256:e0c6488d4f9747158f6d8c0724477d7de944410036081bb0eba0f5a9e5b8a483`，仅 runner 加载。
+  未发布、未部署。
+
+### C1h 候选范围
+
+- 依赖 C1g / PR #32 的 `fa9c5354`。共享准入与图片估算见 QUOTA_PRICE_ADMISSION.md。
+- 原问题失败回归后通过；正常免费、按次截断、分数费用、零用量退款及 Redis/batch 下实际超额对照通过。
+- 独立审阅、相关包 race、vet、编译、工作流策略与 actionlint 通过。远端 CI 尚待此候选提交。
+- 最终结算完整算术、额外费用和持久化恢复未包含，继续按顺序执行。

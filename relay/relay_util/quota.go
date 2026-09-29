@@ -67,15 +67,45 @@ func NewQuota(c *gin.Context, modelName string, promptTokens int) *Quota {
 }
 
 func (q *Quota) PreQuotaConsumption() *types.OpenAIErrorWithStatusCode {
-	if q.price.Type == model.TimesPriceType {
-		q.preConsumedQuota = int(1000 * q.inputRatio)
-	} else if q.price.Input != 0 || q.price.Output != 0 {
-		q.preConsumedQuota = int(float64(q.promptTokens)*q.inputRatio) + config.PreConsumedQuota
+	// Validate raw values before accessors can normalize negative prices to zero.
+	for _, value := range []float64{q.price.Input, q.price.Output, q.groupRatio, q.inputRatio, q.outputRatio} {
+		if math.IsNaN(value) || math.IsInf(value, 0) || value < 0 {
+			return common.ErrorWrapper(errors.New("invalid quota price"), "invalid_quota_price", http.StatusInternalServerError)
+		}
 	}
-
-	if q.preConsumedQuota == 0 {
+	if q.promptTokens < 0 {
+		return common.ErrorWrapper(errors.New("invalid prompt token estimate"), "invalid_quota_estimate", http.StatusBadRequest)
+	}
+	if q.groupRatio > 0 && ((q.price.GetInput() > 0 && q.inputRatio == 0) || (q.price.GetOutput() > 0 && q.outputRatio == 0)) {
+		return common.ErrorWrapper(errors.New("quota price underflow"), "invalid_quota_price", http.StatusInternalServerError)
+	}
+	// Explicitly free models and groups do not require a reservation.
+	if q.inputRatio == 0 && q.outputRatio == 0 {
 		return nil
 	}
+
+	estimate := 1000 * q.inputRatio
+	if q.price.Type != model.TimesPriceType {
+		if config.PreConsumedQuota < 0 {
+			return common.ErrorWrapper(errors.New("invalid pre-consumed quota"), "invalid_quota_estimate", http.StatusInternalServerError)
+		}
+		estimate = float64(q.promptTokens) * q.inputRatio
+	}
+	// The exclusive limit remains safe when MaxInt rounds up in float64.
+	if math.IsNaN(estimate) || math.IsInf(estimate, 0) || estimate < 0 || estimate >= float64(math.MaxInt)+1 {
+		return common.ErrorWrapper(errors.New("quota estimate overflow"), "invalid_quota_estimate", http.StatusBadRequest)
+	}
+	reservation := int(estimate)
+	if q.price.Type != model.TimesPriceType {
+		if config.PreConsumedQuota > math.MaxInt-reservation {
+			return common.ErrorWrapper(errors.New("quota estimate overflow"), "invalid_quota_estimate", http.StatusBadRequest)
+		}
+		reservation += config.PreConsumedQuota
+	}
+	if reservation == 0 {
+		reservation = 1
+	}
+	q.preConsumedQuota = reservation
 
 	userQuota, err := model.CacheGetUserQuota(q.userId)
 	if err != nil {
@@ -99,26 +129,10 @@ func (q *Quota) PreQuotaConsumption() *types.OpenAIErrorWithStatusCode {
 	return nil
 }
 
-// PreRealtimeQuotaConsumption always reserves a positive unit for a paid
-// session, even when the configured estimate rounds to zero.
+// PreRealtimeQuotaConsumption uses the shared paid-request admission boundary.
 func (q *Quota) PreRealtimeQuotaConsumption() *types.OpenAIErrorWithStatusCode {
-	if math.IsNaN(q.inputRatio) || math.IsNaN(q.outputRatio) || math.IsInf(q.inputRatio, 0) || math.IsInf(q.outputRatio, 0) || q.inputRatio < 0 || q.outputRatio < 0 {
-		return common.ErrorWrapper(errors.New("invalid realtime price"), "invalid_quota_price", http.StatusInternalServerError)
-	}
-	if q.inputRatio == 0 && q.outputRatio == 0 {
-		return nil
-	}
 	if err := q.PreQuotaConsumption(); err != nil {
 		return err
-	}
-	if q.preConsumedQuota < 0 {
-		return common.ErrorWrapper(errors.New("invalid realtime reservation"), "invalid_quota_price", http.StatusInternalServerError)
-	}
-	if q.preConsumedQuota == 0 && (q.inputRatio > 0 || q.outputRatio > 0) {
-		if err := model.PreConsumeTokenQuotaWithInfo(q.tokenId, q.userId, q.unlimitedQuota, 1); err != nil {
-			return common.ErrorWrapper(err, "pre_consume_token_quota_failed", http.StatusForbidden)
-		}
-		q.preConsumedQuota, q.HandelStatus = 1, true
 	}
 	q.realtimeChunk = q.preConsumedQuota
 	return nil
