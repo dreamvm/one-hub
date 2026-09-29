@@ -1,12 +1,11 @@
 package model
 
 import (
-	"fmt"
-	"one-api/common/config"
-	"one-api/common/limit"
-	"one-api/common/logger"
-	"one-api/common/redis"
 	"sync"
+
+	"gorm.io/gorm"
+
+	"one-api/common/limit"
 )
 
 type UserGroup struct {
@@ -194,53 +193,17 @@ func (cgrm *UserGroupRatio) GetAPILimiter(symbol string) limit.RateLimiter {
 	return limiter
 }
 
-// CheckAndUpgradeUserGroup checks if a user's cumulative recharge amount falls within any promotion group's range
-// and upgrades the user to that group if a match is found.
-// The cumulative recharge amount is calculated as Quota + UsedQuota + rechargeAmount.
+// CheckAndUpgradeUserGroup is the legacy post-payment promotion entry point.
+// Durable recharge callers run the shared helper within their own transaction.
 func CheckAndUpgradeUserGroup(userId int, rechargeAmount int) error {
-	// Get user's current quota and used quota
-	user := &User{}
-	err := DB.Where("id = ?", userId).First(user).Error
-	if err != nil {
+	changed := false
+	err := DB.Transaction(func(tx *gorm.DB) error {
+		var err error
+		changed, err = checkAndUpgradeUserGroupTx(tx, userId, rechargeAmount)
 		return err
+	})
+	if err == nil && changed {
+		invalidateRechargeGroupCache(userId)
 	}
-
-	// Calculate cumulative recharge amount
-	cumulativeAmount := user.Quota + user.UsedQuota + rechargeAmount
-	logger.SysError(fmt.Sprintf("use:%f q:%f  cumulative:%d rechargeAmount:%d", (float64)(user.UsedQuota)/config.QuotaPerUnit, (float64)(user.Quota)/config.QuotaPerUnit, cumulativeAmount, rechargeAmount))
-	// Get all promotion-enabled user groups
-	var promotionGroups []*UserGroup
-	err = DB.Where("promotion = ? AND enable = ?", true, true).Find(&promotionGroups).Error
-	if err != nil {
-		return err
-	}
-
-	// Find a matching group (min <= cumulativeAmount < max)
-	var targetGroup *UserGroup
-	for _, group := range promotionGroups {
-		var minQuota = (float64)(group.Min) * config.QuotaPerUnit
-		var maxQuota = (float64)(group.Max) * config.QuotaPerUnit
-		if (float64)(cumulativeAmount) >= minQuota && (group.Max == 0 || (float64)(cumulativeAmount) < maxQuota) {
-			// If multiple groups match, choose the one with higher min value
-			if targetGroup == nil || group.Min > targetGroup.Min {
-				targetGroup = group
-			}
-		}
-	}
-
-	// If a matching group is found, upgrade the user
-	if targetGroup != nil && targetGroup.Symbol != user.Group {
-		// Update user's group
-		err = DB.Model(&User{}).Where("id = ?", userId).Update("group", targetGroup.Symbol).Error
-		if err != nil {
-			return err
-		}
-
-		// Delete cache if Redis is enabled
-		if config.RedisEnabled {
-			redis.RedisDel(fmt.Sprintf(UserGroupCacheKey, userId))
-		}
-	}
-
-	return nil
+	return err
 }

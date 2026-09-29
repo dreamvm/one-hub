@@ -2,10 +2,11 @@ package controller
 
 import (
 	"net/http"
+	"strconv"
+
 	"one-api/common"
 	"one-api/common/utils"
 	"one-api/model"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -154,7 +155,11 @@ func UpdateRedemption(c *gin.Context) {
 		cleanRedemption.Name = redemption.Name
 		cleanRedemption.Quota = redemption.Quota
 	}
-	err = cleanRedemption.Update()
+	if statusOnly != "" {
+		err = cleanRedemption.SelectUpdate()
+	} else {
+		err = cleanRedemption.Update()
+	}
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
