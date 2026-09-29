@@ -3,8 +3,9 @@ package types
 import (
 	"encoding/json"
 	"fmt"
-	"one-api/common/config"
 	"strings"
+
+	"one-api/common/config"
 )
 
 type Usage struct {
@@ -20,8 +21,9 @@ type Usage struct {
 }
 
 type ExtraBilling struct {
-	Type      string `json:"type"`
-	CallCount int    `json:"call_count"`
+	ServiceType string `json:"service_type,omitempty"`
+	Type        string `json:"type"`
+	CallCount   int    `json:"call_count"`
 }
 
 func (u *Usage) GetExtraTokens() map[string]int {
@@ -168,15 +170,15 @@ type StreamOptions struct {
 func (u *Usage) IncExtraBilling(key string, bType string) {
 	if u.ExtraBilling == nil {
 		u.ExtraBilling = make(map[string]ExtraBilling)
-		if _, ok := u.ExtraTokens[key]; !ok {
-			u.ExtraBilling[key] = ExtraBilling{
-				Type:      bType,
-				CallCount: 0,
-			}
-		}
 	}
-
-	billing := u.ExtraBilling[key]
+	// Keep the original key for a single type; retain a separate count when the
+	// same service reports another price variant in this response.
+	index := key
+	if existing, ok := u.ExtraBilling[index]; ok && existing.Type != bType {
+		index = key + "|" + bType
+	}
+	billing := u.ExtraBilling[index]
+	billing.ServiceType, billing.Type = key, bType
 	billing.CallCount++
-	u.ExtraBilling[key] = billing
+	u.ExtraBilling[index] = billing
 }

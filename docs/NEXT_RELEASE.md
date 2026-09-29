@@ -34,8 +34,9 @@ RC 是预发布候选，编号不代表质量验收。后续候选从 rc.8 起�
 | rc.8 / C1d | 用户余额读取以数据库为准；缓存故障不阻断已提交账务 | 缓存旧值/缺失/异常不影响正确余额，退款及日志统计完整 | [PR #29](https://github.com/dreamvm/one-hub/pull/29) 已合并；CI 与隔离验收通过 |
 | rc.8 / C1e | 预留与结算使用同一认证 owner / mode | 调用前和事务窗口变化拒绝，成功预留后模式变更按原模式结算 | [PR #30](https://github.com/dreamvm/one-hub/pull/30) 已合并；三数据库、CI 与隔离验收通过 |
 | rc.8 / C1f | Search 辅助模型上游前预留及输入估算 | 预算不足零上游调用，失败退款，成功与正常对照正确落账 | [PR #31](https://github.com/dreamvm/one-hub/pull/31) 已合并；CI 与隔离验收通过，见 [SEARCH_QUOTA.md](SEARCH_QUOTA.md) |
-| rc.8 / C1g | Realtime 入口预留、续额及连接结束后的同步结算 | 余额不足零上游握手，数据库续额、失败关闭、两 worker 退出与正常用量对照 | 独立候选，见 [REALTIME_QUOTA.md](REALTIME_QUOTA.md)；未报告用量等边界仍开放 |
-| rc.8 / C1h | 付费最小预留及图片数量估算 | 零舍入付费仍检查余额；负数/溢出拒绝；免费及实际超额对照 | 本地与独立审阅通过，见 [QUOTA_PRICE_ADMISSION.md](QUOTA_PRICE_ADMISSION.md) |
+| rc.8 / C1g | Realtime 入口预留、续额及连接结束后的同步结算 | 余额不足零上游握手，数据库续额、失败关闭、两 worker 退出与正常用量对照 | [PR #32](https://github.com/dreamvm/one-hub/pull/32) 已合并；CI 与隔离验收通过，见 [REALTIME_QUOTA.md](REALTIME_QUOTA.md)；未报告用量等边界仍开放 |
+| rc.8 / C1h | 付费最小预留及图片数量估算 | 零舍入付费仍检查余额；负数/溢出拒绝；免费及实际超额对照 | [PR #33](https://github.com/dreamvm/one-hub/pull/33) 已合并；CI 与隔离验收通过，见 [QUOTA_PRICE_ADMISSION.md](QUOTA_PRICE_ADMISSION.md) |
+| rc.8 / C1i | 最终费用算术、用量表示与任务费用一致性 | 非法费用拒绝；附加服务与不同规格计费完整；正常舍入/免费对照 | 本地验证与独立审阅修正完成，见 [QUOTA_SETTLEMENT_ARITHMETIC.md](QUOTA_SETTLEMENT_ARITHMETIC.md) |
 | 后续 C1 / C2 / C3 | Redis 同步、预留身份与恢复、数据库支付幂等 | 缓存与批量计费不放行耗尽额度；并发不超支；多实例重复回调只入账一次；故障可重试 | 待实施，阻断正式版 |
 | 后续 D | Fork 部署模板、健康检查、构建入口、PostgreSQL/依赖/端到端验收 | 固定 Fork 镜像；健康失败正确退出；三数据库及相关故障路径通过 | 待实施，阻断正式版 |
 | 后续 E | 前端既存警告与加载体积 | 行为回归通过、深浅主题可用、性能变化有依据 | 待实施，按影响安排 |
@@ -382,3 +383,24 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - 原问题失败回归后通过；正常免费、按次截断、分数费用、零用量退款及 Redis/batch 下实际超额对照通过。
 - 独立审阅、相关包 race、vet、编译、工作流策略与 actionlint 通过。远端 CI 尚待此候选提交。
 - 最终结算完整算术、额外费用和持久化恢复未包含，继续按顺序执行。
+
+### C1g / C1h 远端验收
+
+- C1g / PR #32：候选 `fa9c53541f92edb67f6274016137fba06ca715f7`，合并
+  `92135b5bea1c54c4bcaf380b388a21ed0884c6c7`。
+  [兼容性 CI](https://github.com/dreamvm/one-hub/actions/runs/36618386449) 与
+  [隔离验收](https://github.com/dreamvm/one-hub/actions/runs/36618386951) 全成功。
+  runner 镜像 ID `sha256:ff2d49c48dbf31508116a2302e2653161cff286796e261c41112ea7d3f965e22`。
+- C1h / PR #33：候选 `9859d5d036f34ca21450c0693996769b0838740a`，合并
+  `009db9ba2a007cd4f4371d7af42802e90da4fa41`。
+  [兼容性 CI](https://github.com/dreamvm/one-hub/actions/runs/36619576062) 与
+  [隔离验收](https://github.com/dreamvm/one-hub/actions/runs/36619577036) 全成功。
+  runner 镜像 ID `sha256:eda5f96e6c382e1d85167bcce41c4ef95f406b0437830fc93a64297957fb2a23`。
+- 两批均有三数据库专项及 28 项 smoke PASS；实际合并树与相应受测候选一致。
+  镜像未发布、生产未部署，RC8 仍未创建。
+
+### C1i 候选范围
+
+- 依赖 C1h，处理最终费用算术、Realtime 用量表示和任务保存费用，见 QUOTA_SETTLEMENT_ARITHMETIC.md。
+- 失败回归、合法对照、一次独立审阅及其确认问题修正完成；相关包 race、vet、编译、工作流和隐私检查通过。
+- 此候选远端 CI 与合并仍待执行；持久化预留/终局恢复是下一批，不把 sync.Once 当跨进程幂等保证。
