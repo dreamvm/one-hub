@@ -165,7 +165,7 @@ jobs:
         run: go build ./providers/... ./relay/...
       - name: Test grouped channel search, token authority and quota lifecycle
         run: |
-          test -z "$(gofmt -l model/channel.go model/channel-search_test.go model/user_group.go model/cache.go model/token-authority_test.go model/export_test.go model/quota-lifecycle_test.go model/quota-callers_test.go model/quota-high-balance_test.go relay/relay_util/quota.go relay/task/main.go)"
+          test -z "$(gofmt -l model/channel.go model/channel-search_test.go model/user_group.go model/cache.go model/token-authority_test.go model/export_test.go model/quota-lifecycle_test.go model/quota-callers_test.go model/quota-high-balance_test.go model/quota-cache_test.go relay/relay_util/quota.go relay/task/main.go)"
           go test -race -count=1 ./model
           go vet ./relay/relay_util ./relay/task
       - name: Test credentials, current sessions and safe request logging

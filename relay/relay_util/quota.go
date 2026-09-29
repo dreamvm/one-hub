@@ -86,11 +86,6 @@ func (q *Quota) PreQuotaConsumption() *types.OpenAIErrorWithStatusCode {
 		return common.ErrorWrapper(errors.New("user quota is not enough"), "insufficient_user_quota", http.StatusPaymentRequired)
 	}
 
-	err = model.CacheDecreaseUserQuota(q.userId, q.preConsumedQuota)
-	if err != nil {
-		return common.ErrorWrapper(err, "decrease_user_quota_failed", http.StatusInternalServerError)
-	}
-
 	// A high account balance does not imply sufficient finite-token quota.
 	// Every positive reservation must pass the model's atomic balance checks.
 	if q.preConsumedQuota > 0 {
@@ -156,10 +151,6 @@ func (q *Quota) completedQuotaConsumption(usage *types.Usage, tokenName string, 
 		if err != nil {
 			return errors.New("error consuming token remain quota: " + err.Error())
 		}
-		err = model.CacheUpdateUserQuota(q.userId)
-		if err != nil {
-			return errors.New("error consuming token remain quota: " + err.Error())
-		}
 		if quota > 0 {
 			model.UpdateChannelUsedQuota(q.channelId, quota)
 		}
@@ -199,7 +190,7 @@ func (q *Quota) Undo(c *gin.Context) {
 
 func (q *Quota) Consume(c *gin.Context, usage *types.Usage, isStream bool) {
 	// A reservation has one terminal operation. Keep even failed writes terminal:
-	// model accounting may have partially succeeded, so replay could credit twice.
+	// settlement may have committed before a later side effect failed.
 	q.finishOnce.Do(func() {
 		tokenName := c.GetString("token_name")
 		q.startTime = c.GetTime("requestStartTime")

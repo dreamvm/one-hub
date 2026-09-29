@@ -3,7 +3,6 @@ package model
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"time"
 
 	"one-api/common/cache"
@@ -53,43 +52,9 @@ func CacheGetUserGroup(id int) (group string, err error) {
 }
 
 func CacheGetUserQuota(id int) (quota int, err error) {
-	if !config.RedisEnabled {
-		return GetUserQuota(id)
-	}
-	quotaString, err := redis.RedisGet(fmt.Sprintf(UserQuotaCacheKey, id))
-	if err != nil {
-		quota, err = GetUserQuota(id)
-		if err != nil {
-			return 0, err
-		}
-		err = redis.RedisSet(fmt.Sprintf(UserQuotaCacheKey, id), fmt.Sprintf("%d", quota), time.Duration(TokenCacheSeconds)*time.Second)
-		if err != nil {
-			logger.SysError("Redis set user quota error: " + err.Error())
-		}
-		return quota, err
-	}
-	quota, err = strconv.Atoi(quotaString)
-	return quota, err
-}
-
-func CacheUpdateUserQuota(id int) error {
-	if !config.RedisEnabled {
-		return nil
-	}
-	quota, err := GetUserQuota(id)
-	if err != nil {
-		return err
-	}
-	err = redis.RedisSet(fmt.Sprintf(UserQuotaCacheKey, id), fmt.Sprintf("%d", quota), time.Duration(TokenCacheSeconds)*time.Second)
-	return err
-}
-
-func CacheDecreaseUserQuota(id int, quota int) error {
-	if !config.RedisEnabled {
-		return nil
-	}
-	err := redis.RedisDecrease(fmt.Sprintf(UserQuotaCacheKey, id), int64(quota))
-	return err
+	// Balance snapshots can outlive reservations, refunds, and failed cache writes.
+	// Keep this shared lookup API, but authorize from committed database state.
+	return GetUserQuota(id)
 }
 
 func CacheIsUserEnabled(userId int) (bool, error) {

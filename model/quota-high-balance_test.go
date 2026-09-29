@@ -50,7 +50,7 @@ func TestQuotaHighBalanceStaleUserCache(t *testing.T) {
 		t.Run(fmt.Sprint(unlimited), func(t *testing.T) {
 			db, c := quotaLifecycleFixture(t, true, unlimited, true)
 			require.NoError(t, db.Model(&model.User{}).Where("id = 1").Update("quota", 10000).Error)
-			require.NoError(t, model.CacheUpdateUserQuota(1))
+			seedUserQuotaCache(t, "10000")
 			require.NoError(t, db.Model(&model.User{}).Where("id = 1").Update("quota", 19).Error)
 			q := relay_util.NewQuota(c, "quota-fixture", 0)
 			require.NotNil(t, q.PreQuotaConsumption(), "a high cached balance cannot skip the database reservation")
@@ -121,9 +121,8 @@ func TestQuotaHighBalanceConcurrentReservations(t *testing.T) {
 	db, c := quotaLifecycleFixture(t, true, false, true)
 	require.NoError(t, db.Model(&model.User{}).Where("id = 1").Update("quota", 10000).Error)
 	require.NoError(t, db.Model(&model.Token{}).Where("id = ?", c.GetInt("token_id")).Update("remain_quota", 95).Error)
-	// Populate before concurrency to keep this test about the reservation, not
-	// the separately tracked Redis read/fill race.
-	require.NoError(t, model.CacheUpdateUserQuota(1))
+	// A legacy high balance snapshot must not override database reservations.
+	seedUserQuotaCache(t, "10000")
 	var accepted atomic.Int32
 	var wg sync.WaitGroup
 	start := make(chan struct{})
