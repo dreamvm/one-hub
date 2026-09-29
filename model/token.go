@@ -412,35 +412,46 @@ func PreConsumeTokenQuota(tokenId int, quota int) (err error) {
 	if quota == 0 {
 		return nil
 	}
-	// Read the owner/mode before acquiring locks, then verify that snapshot while
-	// holding them. Both pre-consumption and settlement lock user before token.
 	token, err := GetTokenById(tokenId)
 	if err != nil {
 		return err
 	}
+	return PreConsumeTokenQuotaWithInfo(tokenId, token.UserId, token.UnlimitedQuota, quota)
+}
+
+// PreConsumeTokenQuotaWithInfo binds the reservation to the authenticated owner
+// and mode that the caller will also use at settlement. Verify both inside the
+// balance transaction; do not adopt another identity from a later token read.
+func PreConsumeTokenQuotaWithInfo(tokenId, userId int, unlimitedQuota bool, quota int) (err error) {
+	if quota < 0 {
+		return errors.New("quota 不能为负数！")
+	}
+	if quota == 0 {
+		return nil
+	}
 	var user User
 	err = DB.Transaction(func(tx *gorm.DB) error {
-		result := tx.Model(&User{}).Where("id = ? AND quota >= ?", token.UserId, quota).
+		result := tx.Model(&User{}).Where("id = ? AND quota >= ?", userId, quota).
 			Update("quota", gorm.Expr("quota - ?", quota))
 		if err := quotaWriteResult(result, "用户额度不足或用户不存在"); err != nil {
 			return err
 		}
-		if token.UnlimitedQuota {
+		if unlimitedQuota {
 			var current Token
 			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-				Where("id = ? AND user_id = ? AND unlimited_quota = ?", tokenId, token.UserId, true).
+				Where("id = ? AND user_id = ? AND unlimited_quota = ?", tokenId, userId, true).
 				First(&current).Error; err != nil {
 				return err
 			}
 		} else {
 			result = tx.Model(&Token{}).
-				Where("id = ? AND user_id = ? AND unlimited_quota = ? AND remain_quota >= ?", tokenId, token.UserId, false, quota).
+				Where("id = ? AND user_id = ? AND unlimited_quota = ? AND remain_quota >= ?", tokenId, userId, false, quota).
 				Updates(tokenQuotaDelta(quota))
 			if err := quotaWriteResult(result, "令牌额度不足或令牌已变更"); err != nil {
 				return err
 			}
 		}
-		return tx.First(&user, token.UserId).Error
+		return tx.First(&user, userId).Error
 	})
 	if err != nil {
 		return err
