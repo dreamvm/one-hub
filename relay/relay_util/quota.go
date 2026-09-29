@@ -28,7 +28,7 @@ type Quota struct {
 	inputRatio       float64
 	outputRatio      float64
 	preConsumedQuota int
-	cacheQuota       int
+	realtimeChunk    int
 	userId           int
 	channelId        int
 	tokenId          int
@@ -99,43 +99,72 @@ func (q *Quota) PreQuotaConsumption() *types.OpenAIErrorWithStatusCode {
 	return nil
 }
 
-// 更新用户实时配额
-func (q *Quota) UpdateUserRealtimeQuota(usage *types.UsageEvent, nowUsage *types.UsageEvent) error {
-	usage.Merge(nowUsage)
-
-	// 不开启Redis，则不更新实时配额
-	if !config.RedisEnabled {
+// PreRealtimeQuotaConsumption always reserves a positive unit for a paid
+// session, even when the configured estimate rounds to zero.
+func (q *Quota) PreRealtimeQuotaConsumption() *types.OpenAIErrorWithStatusCode {
+	if math.IsNaN(q.inputRatio) || math.IsNaN(q.outputRatio) || math.IsInf(q.inputRatio, 0) || math.IsInf(q.outputRatio, 0) || q.inputRatio < 0 || q.outputRatio < 0 {
+		return common.ErrorWrapper(errors.New("invalid realtime price"), "invalid_quota_price", http.StatusInternalServerError)
+	}
+	if q.inputRatio == 0 && q.outputRatio == 0 {
 		return nil
 	}
-
-	promptTokens, completionTokens := q.getComputeTokensByUsageEvent(nowUsage)
-	increaseQuota := q.GetTotalQuota(promptTokens, completionTokens, nil)
-
-	cacheQuota, err := model.CacheIncreaseUserRealtimeQuota(q.userId, increaseQuota)
-	if err != nil {
-		return errors.New("error update user realtime quota cache: " + err.Error())
+	if err := q.PreQuotaConsumption(); err != nil {
+		return err
 	}
-
-	q.cacheQuota += increaseQuota
-	userQuota, err := model.CacheGetUserQuota(q.userId)
-	if err != nil {
-		return errors.New("error get user quota cache: " + err.Error())
+	if q.preConsumedQuota < 0 {
+		return common.ErrorWrapper(errors.New("invalid realtime reservation"), "invalid_quota_price", http.StatusInternalServerError)
 	}
-
-	if cacheQuota >= int64(userQuota) {
-		return errors.New("user quota is not enough")
+	if q.preConsumedQuota == 0 && (q.inputRatio > 0 || q.outputRatio > 0) {
+		if err := model.PreConsumeTokenQuotaWithInfo(q.tokenId, q.userId, q.unlimitedQuota, 1); err != nil {
+			return common.ErrorWrapper(err, "pre_consume_token_quota_failed", http.StatusForbidden)
+		}
+		q.preConsumedQuota, q.HandelStatus = 1, true
 	}
+	q.realtimeChunk = q.preConsumedQuota
+	return nil
+}
 
+// UpdateUserRealtimeQuota accounts for reported usage before deciding whether
+// another reservation window can be funded. A rejected top-up must not erase
+// usage that the provider has already incurred.
+func (q *Quota) UpdateUserRealtimeQuota(usage *types.UsageEvent, nowUsage *types.UsageEvent) error {
+	if nowUsage == nil {
+		return nil
+	}
+	if nowUsage.InputTokens < 0 || nowUsage.OutputTokens < 0 || nowUsage.TotalTokens < 0 ||
+		nowUsage.InputTokens > math.MaxInt-usage.InputTokens || nowUsage.OutputTokens > math.MaxInt-usage.OutputTokens || nowUsage.TotalTokens > math.MaxInt-usage.TotalTokens {
+		return errors.New("invalid realtime usage")
+	}
+	usage.Merge(nowUsage)
+	quota := q.GetTotalQuotaByUsage(usage.ToChatUsage())
+	if quota < 0 {
+		return errors.New("invalid realtime quota")
+	}
+	if q.inputRatio == 0 && q.outputRatio == 0 {
+		return nil
+	}
+	if !q.HandelStatus {
+		return errors.New("realtime reservation is missing")
+	}
+	// Fixed-price sessions do not incur a new charge for each response.
+	if q.price.Type == model.TimesPriceType || quota < q.preConsumedQuota {
+		return nil
+	}
+	if q.realtimeChunk == 0 {
+		q.realtimeChunk = q.preConsumedQuota
+	}
+	if q.realtimeChunk > math.MaxInt-quota {
+		return errors.New("realtime quota overflow")
+	}
+	target := quota + q.realtimeChunk
+	if err := model.PreConsumeTokenQuotaWithInfo(q.tokenId, q.userId, q.unlimitedQuota, target-q.preConsumedQuota); err != nil {
+		return err
+	}
+	q.preConsumedQuota = target
 	return nil
 }
 
 func (q *Quota) completedQuotaConsumption(usage *types.Usage, tokenName string, isStream bool, sourceIp string, ctx context.Context) error {
-	defer func() {
-		if q.cacheQuota > 0 {
-			model.CacheDecreaseUserRealtimeQuota(q.userId, q.cacheQuota)
-		}
-	}()
-
 	quota := q.GetTotalQuotaByUsage(usage)
 	if quota < 0 {
 		return errors.New("invalid negative settlement quota")

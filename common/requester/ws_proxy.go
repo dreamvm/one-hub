@@ -2,6 +2,7 @@ package requester
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -16,7 +17,8 @@ type WSProxy struct {
 	timeout        time.Duration
 	handler        MessageHandler
 	usageHandler   UsageHandler
-	done           chan struct{}
+	workers        sync.WaitGroup
+	closeOnce      sync.Once
 	userClosed     chan struct{}
 	supplierClosed chan struct{}
 }
@@ -38,24 +40,26 @@ func NewWSProxy(userConn, supplierConn *websocket.Conn, timeout time.Duration, h
 		timeout:        timeout,
 		handler:        handler,
 		usageHandler:   usageHandler,
-		done:           make(chan struct{}),
 		userClosed:     make(chan struct{}),
 		supplierClosed: make(chan struct{}),
 	}
 }
 
 func (p *WSProxy) Start() {
+	p.workers.Add(2)
 	go p.transfer(p.userConn, p.supplierConn, UserMessage, p.userClosed)
 	go p.transfer(p.supplierConn, p.userConn, SupplierMessage, p.supplierClosed)
 }
 
 func (p *WSProxy) Wait() {
-	<-p.done
+	p.workers.Wait()
 }
 
 func (p *WSProxy) Close() {
-	p.userConn.Close()
-	p.supplierConn.Close()
+	p.closeOnce.Do(func() {
+		p.userConn.Close()
+		p.supplierConn.Close()
+	})
 }
 
 func (p *WSProxy) UserClosed() <-chan struct{} {
@@ -69,7 +73,8 @@ func (p *WSProxy) SupplierClosed() <-chan struct{} {
 func (p *WSProxy) transfer(src, dst *websocket.Conn, source MessageSource, closed chan<- struct{}) {
 	defer func() {
 		close(closed)
-		p.done <- struct{}{}
+		p.Close()
+		p.workers.Done()
 	}()
 
 	for {
@@ -81,6 +86,7 @@ func (p *WSProxy) transfer(src, dst *websocket.Conn, source MessageSource, close
 			return
 		}
 
+		dst.SetWriteDeadline(time.Now().Add(p.timeout))
 		if p.handler != nil {
 			shouldContinue, usage, newMessage, err := p.handler(source, messageType, message)
 			if err != nil {
@@ -101,6 +107,9 @@ func (p *WSProxy) transfer(src, dst *websocket.Conn, source MessageSource, close
 			if usage != nil && p.usageHandler != nil {
 				err := p.usageHandler(usage)
 				if err != nil {
+					// Stop further upstream work immediately; client delivery
+					// may block on backpressure until its write deadline.
+					p.supplierConn.Close()
 					dst.WriteMessage(websocket.TextMessage, message)
 					errMsg := []byte(err.Error())
 					dst.WriteMessage(websocket.TextMessage, errMsg)

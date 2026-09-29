@@ -78,6 +78,20 @@ func (f *tokenCacheFixture) ProcessHook(_ redisclient.ProcessHook) redisclient.P
 			}
 			f.values[key] = strconv.FormatInt(current-delta, 10)
 			cmd.(*redisclient.IntCmd).SetVal(current - delta)
+		case "evalsha":
+			// Simulate the legacy realtime counter script for migration regressions.
+			key = fmt.Sprint(cmd.Args()[3])
+			current, _ := strconv.ParseInt(f.values[key], 10, 64)
+			delta, err := strconv.ParseInt(fmt.Sprint(cmd.Args()[4]), 10, 64)
+			if err != nil {
+				return err
+			}
+			if _, exists := f.values[key]; !exists && delta < 0 {
+				cmd.(*redisclient.Cmd).SetVal(int64(0))
+				return nil
+			}
+			f.values[key] = strconv.FormatInt(current+delta, 10)
+			cmd.(*redisclient.Cmd).SetVal(current + delta)
 		case "sismember":
 			cmd.(*redisclient.BoolCmd).SetVal(key == model.OldUserTokensCacheKey)
 		default:
