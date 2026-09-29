@@ -118,9 +118,9 @@ jobs:
           go vet ./relay/midjourney
       - name: Compile all providers and relay code
         run: go build ./providers/... ./relay/...
-      - name: Test grouped channel search without external services
+      - name: Test grouped channel search and current token authority
         run: |
-          test -z "$(gofmt -l model/channel.go model/channel-search_test.go model/user_group.go)"
+          test -z "$(gofmt -l model/channel.go model/channel-search_test.go model/user_group.go model/cache.go model/token-authority_test.go)"
           go test -race -count=1 ./model
       - name: Test credentials, current sessions and safe request logging
         run: |

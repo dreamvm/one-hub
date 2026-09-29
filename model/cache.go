@@ -3,12 +3,13 @@ package model
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"time"
+
 	"one-api/common/cache"
 	"one-api/common/config"
 	"one-api/common/logger"
 	"one-api/common/redis"
-	"strconv"
-	"time"
 )
 
 var (
@@ -25,19 +26,10 @@ var (
 )
 
 func CacheGetTokenByKey(key string) (*Token, error) {
-	if !config.RedisEnabled {
-		return GetTokenByKey(key)
-	}
-
-	token, err := cache.GetOrSetCache(
-		fmt.Sprintf(UserTokensKey, key),
-		time.Duration(TokenCacheSeconds)*time.Second,
-		func() (*Token, error) {
-			return GetTokenByKey(key)
-		},
-		cache.CacheTimeout)
-
-	return token, err
+	// Token fields authorize requests, including remaining quota and unlimited
+	// mode. Invalidation can miss accounting writes or race a stale cache fill.
+	// Keep the lookup API, but never authorize from a cached token snapshot.
+	return GetTokenByKey(key)
 }
 
 func CacheGetUserGroup(id int) (group string, err error) {
