@@ -111,6 +111,11 @@ jobs:
           test -z "$(gofmt -l common/image/http.go common/image/media_transport.go common/image/export_test.go common/image/media_*test.go)"
           go test -race -count=1 ./common/image -run '^(TestMedia.*|TestParseBase64File)$'
           go vet ./common/image
+      - name: Test Midjourney notification, task binding and image boundaries
+        run: |
+          test -z "$(gofmt -l relay/midjourney/boundary.go relay/midjourney/boundary_test.go relay/midjourney/relay-mj.go controller/midjourney.go controller/midjourney-task-group.go controller/midjourney-boundary_test.go controller/export_test.go)"
+          go test -race -count=1 ./relay/midjourney
+          go vet ./relay/midjourney
       - name: Compile all providers and relay code
         run: go build ./providers/... ./relay/...
       - name: Test grouped channel search without external services

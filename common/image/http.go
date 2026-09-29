@@ -46,13 +46,28 @@ type CFResponse struct {
 }
 
 func RequestFile(url, action string) (*http.Response, error) {
+	return requestMediaFile(context.Background(), url, action, config.CFWorkerImageUrl, config.ChatImageRequestProxy)
+}
+
+// RequestPublicFile returns a bounded raw media response with the shared destination
+// policy. Worker actions have a different response contract and are not used.
+func RequestPublicFile(ctx context.Context, url string) (*http.Response, error) {
+	proxyAddress := config.ChatImageRequestProxy
+	if proxyAddress == "" {
+		// Evaluate environment rules for each redirect URL in the transport.
+		ctx = context.WithValue(ctx, mediaEnvironmentProxyKey{}, true)
+	}
+	return requestMediaFile(ctx, url, "", "", proxyAddress)
+}
+
+func requestMediaFile(parent context.Context, url, action, workerURL, proxyAddress string) (*http.Response, error) {
 	reqUrl := url
 	method := http.MethodGet
 	var requestBody any
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(parent, 15*time.Second)
 	client := ImageHttpClients
 
-	if config.CFWorkerImageUrl != "" {
+	if workerURL != "" {
 		if err := validateWorkerMediaTarget(ctx, url); err != nil {
 			cancel()
 			return nil, err
@@ -63,11 +78,11 @@ func RequestFile(url, action string) (*http.Response, error) {
 			APIKey: config.CFWorkerImageKey,
 			URL:    url,
 		}
-		reqUrl = config.CFWorkerImageUrl
+		reqUrl = workerURL
 		method = http.MethodPost
 	}
 
-	res, err := utils.RequestBuilder(utils.SetProxy(config.ChatImageRequestProxy, ctx), method, reqUrl, requestBody, nil)
+	res, err := utils.RequestBuilder(utils.SetProxy(proxyAddress, ctx), method, reqUrl, requestBody, nil)
 
 	if err != nil {
 		cancel()
@@ -86,7 +101,7 @@ func RequestFile(url, action string) (*http.Response, error) {
 
 	response.Body = &mediaResponseBody{ReadCloser: http.MaxBytesReader(nil, response.Body, maxFileSize), cancel: cancel}
 
-	if response.StatusCode != http.StatusOK && config.CFWorkerImageUrl != "" {
+	if response.StatusCode != http.StatusOK && workerURL != "" {
 		defer response.Body.Close()
 		var cfResp CFResponse
 		err = json.NewDecoder(response.Body).Decode(&cfResp)

@@ -9,7 +9,11 @@ import (
 	"encoding/json"
 	"io"
 	"log"
-	"net/http"
+	"strings"
+	"time"
+
+	"github.com/gin-gonic/gin"
+
 	"one-api/common"
 	"one-api/common/logger"
 	"one-api/controller"
@@ -18,90 +22,7 @@ import (
 	"one-api/relay"
 	"one-api/relay/relay_util"
 	"one-api/types"
-	"strings"
-	"time"
-
-	"github.com/gin-gonic/gin"
 )
-
-func RelayMidjourneyImage(c *gin.Context) {
-	taskId := c.Param("id")
-	midjourneyTask := model.GetByOnlyMJId(taskId)
-	if midjourneyTask == nil {
-		c.JSON(400, gin.H{
-			"error": "midjourney_task_not_found",
-		})
-		return
-	}
-	resp, err := http.Get(midjourneyTask.ImageUrl)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "http_get_image_failed",
-		})
-		return
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		responseBody, _ := io.ReadAll(resp.Body)
-		c.JSON(resp.StatusCode, gin.H{
-			"error": string(responseBody),
-		})
-		return
-	}
-	// 从Content-Type头获取MIME类型
-	contentType := resp.Header.Get("Content-Type")
-	if contentType == "" {
-		// 如果无法确定内容类型，则默认为jpeg
-		contentType = "image/jpeg"
-	}
-	// 设置响应的内容类型
-	c.Writer.Header().Set("Content-Type", contentType)
-	// 将图片流式传输到响应体
-	_, err = io.Copy(c.Writer, resp.Body)
-	if err != nil {
-		log.Println("Failed to stream image:", err)
-	}
-}
-
-func RelayMidjourneyNotify(c *gin.Context) *provider.MidjourneyResponse {
-	var midjRequest provider.MidjourneyDto
-	err := common.UnmarshalBodyReusable(c, &midjRequest)
-	if err != nil {
-		return &provider.MidjourneyResponse{
-			Code:        4,
-			Description: "bind_request_body_failed",
-			Properties:  nil,
-			Result:      "",
-		}
-	}
-	midjourneyTask := model.GetByOnlyMJId(midjRequest.MjId)
-	if midjourneyTask == nil {
-		return &provider.MidjourneyResponse{
-			Code:        4,
-			Description: "midjourney_task_not_found",
-			Properties:  nil,
-			Result:      "",
-		}
-	}
-	midjourneyTask.Progress = midjRequest.Progress
-	midjourneyTask.PromptEn = midjRequest.PromptEn
-	midjourneyTask.State = midjRequest.State
-	midjourneyTask.SubmitTime = midjRequest.SubmitTime
-	midjourneyTask.StartTime = midjRequest.StartTime
-	midjourneyTask.FinishTime = midjRequest.FinishTime
-	midjourneyTask.ImageUrl = midjRequest.ImageUrl
-	midjourneyTask.Status = midjRequest.Status
-	midjourneyTask.FailReason = midjRequest.FailReason
-	err = midjourneyTask.Update()
-	if err != nil {
-		return &provider.MidjourneyResponse{
-			Code:        4,
-			Description: "update_midjourney_task_failed",
-		}
-	}
-
-	return nil
-}
 
 func coverMidjourneyTaskDto(originTask *model.Midjourney) (midjourneyTask provider.MidjourneyDto) {
 	midjourneyTask.MjId = originTask.MjId
