@@ -23,6 +23,51 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  quota-databases:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      mysql:
+        image: mysql@sha256:212fe73edca5df6ff14826d5eb975c914bfb91f82a2e923f9050568f99525da1
+        env:
+          MYSQL_ROOT_PASSWORD: quota-fixture-root
+          MYSQL_DATABASE: onehub_quota_test
+          MYSQL_USER: onehub_quota_test
+          MYSQL_PASSWORD: quota-fixture-password
+        ports:
+          - 33306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+      postgres:
+        image: postgres@sha256:41fc5342eefba6cc2ccda736aaf034bbbb7c3df0fdb81516eba1ba33f360162c # 18.0
+        env:
+          POSTGRES_DB: onehub_quota_test
+          POSTGRES_USER: onehub_quota_test
+          POSTGRES_PASSWORD: quota-fixture-password
+        ports:
+          - 35432:5432
+        options: >-
+          --health-cmd="pg_isready -U onehub_quota_test -d onehub_quota_test"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    steps:
+      - name: Check out exact source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.25.x'
+          cache: true
+      - name: Verify atomic quota operations on all supported databases
+        run: |
+          test -z "$(gofmt -l model/token.go model/quota-transaction_test.go)"
+          for engine in sqlite mysql postgres; do
+            ONEHUB_QUOTA_TEST_DB="$engine" go test -mod=readonly -race -count=1 -timeout=120s -v ./model -run '^TestQuotaTransaction'
+          done
+
   privacy:
     runs-on: ubuntu-latest
     timeout-minutes: 10

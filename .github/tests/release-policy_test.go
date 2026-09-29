@@ -76,6 +76,24 @@ func TestFrontendRegressionGateUsesExactSource(t *testing.T) {
 	require.True(t, checkout && unit && build && locked)
 }
 
+func TestQuotaDatabaseGateUsesExactSource(t *testing.T) {
+	wf := readWorkflow(t, "gemini-compatibility.yml")
+	task, ok := wf.Jobs["quota-databases"]
+	require.True(t, ok, "manual image builds must exercise quota transactions on supported databases")
+	require.Empty(t, task.If)
+	var checkout, databases bool
+	for _, item := range task.Steps {
+		if strings.HasPrefix(item.Uses, "actions/checkout@") {
+			checkout = item.With["ref"] == "${{ inputs.ref || github.sha }}"
+		}
+		databases = databases || (strings.Contains(item.Run, "for engine in sqlite mysql postgres") &&
+			strings.Contains(item.Run, `ONEHUB_QUOTA_TEST_DB="$engine"`) &&
+			strings.Contains(item.Run, "-race -count=1") && strings.Contains(item.Run, "^TestQuotaTransaction"))
+		require.Nil(t, item.ContinueOnError)
+	}
+	require.True(t, checkout && databases)
+}
+
 func TestPrivacyGateScansExactSourceAndBlocksRelease(t *testing.T) {
 	wf := readWorkflow(t, "gemini-compatibility.yml")
 	privacy, ok := wf.Jobs["privacy"]

@@ -3,6 +3,10 @@ package model
 import (
 	"errors"
 	"fmt"
+
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+
 	"one-api/common"
 	"one-api/common/config"
 	"one-api/common/database"
@@ -10,8 +14,6 @@ import (
 	"one-api/common/redis"
 	"one-api/common/stmp"
 	"one-api/common/utils"
-
-	"gorm.io/gorm"
 )
 
 var (
@@ -407,48 +409,54 @@ func PreConsumeTokenQuota(tokenId int, quota int) (err error) {
 	if quota < 0 {
 		return errors.New("quota 不能为负数！")
 	}
+	if quota == 0 {
+		return nil
+	}
+	// Read the owner/mode before acquiring locks, then verify that snapshot while
+	// holding them. Both pre-consumption and settlement lock user before token.
 	token, err := GetTokenById(tokenId)
 	if err != nil {
 		return err
 	}
-	if !token.UnlimitedQuota && token.RemainQuota < quota {
-		return errors.New("令牌额度不足")
-	}
-	userQuota, err := GetUserQuota(token.UserId)
+	var user User
+	err = DB.Transaction(func(tx *gorm.DB) error {
+		result := tx.Model(&User{}).Where("id = ? AND quota >= ?", token.UserId, quota).
+			Update("quota", gorm.Expr("quota - ?", quota))
+		if err := quotaWriteResult(result, "用户额度不足或用户不存在"); err != nil {
+			return err
+		}
+		if token.UnlimitedQuota {
+			var current Token
+			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+				Where("id = ? AND user_id = ? AND unlimited_quota = ?", tokenId, token.UserId, true).
+				First(&current).Error; err != nil {
+				return err
+			}
+		} else {
+			result = tx.Model(&Token{}).
+				Where("id = ? AND user_id = ? AND unlimited_quota = ? AND remain_quota >= ?", tokenId, token.UserId, false, quota).
+				Updates(tokenQuotaDelta(quota))
+			if err := quotaWriteResult(result, "令牌额度不足或令牌已变更"); err != nil {
+				return err
+			}
+		}
+		return tx.First(&user, token.UserId).Error
+	})
 	if err != nil {
 		return err
 	}
-	if userQuota < quota {
-		return errors.New("用户额度不足")
+	// Only committed reservations may notify. Pass a snapshot so the mail worker
+	// does not perform a later database lookup outside this operation's lifetime.
+	userQuota := user.Quota + quota
+	quotaTooLow := userQuota >= config.QuotaRemindThreshold && user.Quota < config.QuotaRemindThreshold
+	noMoreQuota := user.Quota <= 0
+	if user.Email != "" && (quotaTooLow || noMoreQuota) {
+		go sendQuotaWarningEmail(user, userQuota, noMoreQuota)
 	}
-	quotaTooLow := userQuota >= config.QuotaRemindThreshold && userQuota-quota < config.QuotaRemindThreshold
-	noMoreQuota := userQuota-quota <= 0
-	if quotaTooLow || noMoreQuota {
-		go sendQuotaWarningEmail(token.UserId, userQuota, noMoreQuota)
-	}
-	if !token.UnlimitedQuota {
-		err = DecreaseTokenQuota(tokenId, quota)
-		if err != nil {
-			return err
-		}
-	}
-	err = DecreaseUserQuota(token.UserId, quota)
-	return err
+	return nil
 }
 
-func sendQuotaWarningEmail(userId int, userQuota int, noMoreQuota bool) {
-	user := User{Id: userId}
-
-	if err := user.FillUserById(); err != nil {
-		logger.SysError("failed to fetch user email: " + err.Error())
-		return
-	}
-
-	if user.Email == "" {
-		logger.SysError("user email is empty")
-		return
-	}
-
+func sendQuotaWarningEmail(user User, userQuota int, noMoreQuota bool) {
 	userName := user.DisplayName
 	if userName == "" {
 		userName = user.Username
@@ -461,28 +469,45 @@ func sendQuotaWarningEmail(userId int, userQuota int, noMoreQuota bool) {
 	}
 }
 
-// PostConsumeTokenQuotaWithInfo 消费 token 配额，直接使用传入的 userId 和 unlimitedQuota，避免数据库查询
+// PostConsumeTokenQuotaWithInfo settles a signed delta immediately, including in
+// batch mode. Actual usage can exceed the reservation, so only Pre checks funds.
+// The caller's mode remains authoritative for this settlement, not a new mode
+// read after consumption. Durable reservation metadata is a separate boundary.
 func PostConsumeTokenQuotaWithInfo(tokenId int, userId int, unlimitedQuota bool, quota int) (err error) {
 	if quota == 0 {
 		return nil
 	}
-	if quota > 0 {
-		err = DecreaseUserQuota(userId, quota)
-	} else {
-		err = IncreaseUserQuota(userId, -quota)
-	}
-	if err != nil {
-		return err
-	}
-	if !unlimitedQuota {
-		if quota > 0 {
-			err = DecreaseTokenQuota(tokenId, quota)
-		} else {
-			err = IncreaseTokenQuota(tokenId, -quota)
-		}
-		if err != nil {
+	return DB.Transaction(func(tx *gorm.DB) error {
+		result := tx.Model(&User{}).Where("id = ?", userId).
+			Update("quota", gorm.Expr("quota - ?", quota))
+		if err := quotaWriteResult(result, "用户不存在"); err != nil {
 			return err
 		}
+		if unlimitedQuota {
+			var token Token
+			return tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+				Where("id = ? AND user_id = ?", tokenId, userId).First(&token).Error
+		}
+		result = tx.Model(&Token{}).Where("id = ? AND user_id = ?", tokenId, userId).
+			Updates(tokenQuotaDelta(quota))
+		return quotaWriteResult(result, "令牌不存在或归属已变更")
+	})
+}
+
+func tokenQuotaDelta(quota int) map[string]interface{} {
+	return map[string]interface{}{
+		"remain_quota":  gorm.Expr("remain_quota - ?", quota),
+		"used_quota":    gorm.Expr("used_quota + ?", quota),
+		"accessed_time": utils.GetTimestamp(),
+	}
+}
+
+func quotaWriteResult(result *gorm.DB, message string) error {
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected != 1 {
+		return errors.New(message)
 	}
 	return nil
 }
