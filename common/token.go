@@ -5,9 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"strings"
+
 	"one-api/common/config"
 	"one-api/common/logger"
-	"strings"
 
 	"one-api/common/image"
 	"one-api/types"
@@ -468,5 +469,9 @@ func calculateToken(model string, size string, n int, quality, style string) (in
 		}
 	}
 
-	return int(imageCostRatio*1000) * n, nil
+	unit := int(imageCostRatio * 1000)
+	if n < 0 || (unit > 0 && n > math.MaxInt/unit) {
+		return 0, errors.New("invalid image count: token estimate out of range")
+	}
+	return unit * n, nil
 }

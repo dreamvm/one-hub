@@ -227,3 +227,30 @@ func TestSearchQuotaExistingBehavior(t *testing.T) {
 		})
 	}
 }
+
+func TestSearchQuotaZeroEstimateRejectsBeforeUpstream(t *testing.T) {
+	for _, mode := range []string{"zero precharge", "negative precharge", "tiny times", "output only"} {
+		t.Run(mode, func(t *testing.T) {
+			db, c, p, r := searchQuotaFixture(t, false)
+			config.PreConsumedQuota = 0
+			p.Channel.PreCost = config.PreContNotAll
+			price := model.PricingInstance.Prices[r.Model]
+			switch mode {
+			case "negative precharge":
+				config.PreConsumedQuota = -1
+			case "tiny times":
+				price.Type = model.TimesPriceType
+				price.Input = .00001
+			case "output only":
+				price.Input = 0
+			}
+			require.NoError(t, db.Model(&model.Token{}).Where("id=1").Update("remain_quota", 0).Error)
+			p.send = func() (*types.ChatCompletionResponse, *types.OpenAIErrorWithStatusCode) {
+				return &types.ChatCompletionResponse{}, nil
+			}
+			_, err := relay.ExecuteQueryForTest(c, p, r, r.Model)
+			require.Error(t, err)
+			require.Zero(t, p.calls)
+		})
+	}
+}
