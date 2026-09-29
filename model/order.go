@@ -177,7 +177,10 @@ func SettleOrderPayment(gatewayID int, notification PaymentNotification, ip stri
 			return errors.New("payment facts do not match order")
 		}
 		settled := order.Status == OrderStatusSuccess && order.SettledAt > 0 && order.GatewayNo == gatewayNo
-		if !settled && (order.Status != OrderStatusPending || order.SettledAt != 0 || order.GatewayNo != "" && order.GatewayNo != gatewayNo) {
+		// Local expiry does not cancel the provider payment. Verified late success
+		// may settle a closed order using the same durable transaction boundary.
+		payable := order.Status == OrderStatusPending || order.Status == OrderStatusClosed
+		if !settled && (!payable || order.SettledAt != 0 || order.GatewayNo != "" && order.GatewayNo != gatewayNo) {
 			return errors.New("order requires reconciliation")
 		}
 		// Preserve ownership from releases predating the claim table, including

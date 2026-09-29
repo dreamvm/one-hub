@@ -191,7 +191,7 @@ func TestQuotaTransactionPaymentRollbackAndReplay(t *testing.T) {
 }
 
 func TestQuotaTransactionPaymentInvalidState(t *testing.T) {
-	for _, state := range []string{"zero", "negative", "overflow", "legacy success", "failed", "closed", "deleted order", "empty reference"} {
+	for _, state := range []string{"zero", "negative", "overflow", "legacy success", "failed", "deleted order", "empty reference"} {
 		t.Run(state, func(t *testing.T) {
 			db, gateway, order, client := paymentTransactionFixture(t, false)
 			expected := 1000
@@ -207,8 +207,6 @@ func TestQuotaTransactionPaymentInvalidState(t *testing.T) {
 				require.NoError(t, db.Model(&order).Updates(map[string]any{"status": model.OrderStatusSuccess, "gateway_no": "payment-transaction"}).Error)
 			case "failed":
 				require.NoError(t, db.Model(&order).Update("status", model.OrderStatusFailed).Error)
-			case "closed":
-				require.NoError(t, db.Model(&order).Update("status", model.OrderStatusClosed).Error)
 			case "deleted order":
 				require.NoError(t, db.Delete(&order).Error)
 			}

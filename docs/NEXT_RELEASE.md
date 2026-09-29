@@ -43,6 +43,7 @@ RC 是预发布候选，编号不代表质量验收。后续候选从 rc.8 起�
 | rc.8 / C3b | 同一订单原子入账、幂等和提交后回执 | 失败可重试、已入账重复回调不重复充值、三数据库正常/故障对照 | [PR #38](https://github.com/dreamvm/one-hub/pull/38) 已合并，三数据库/CI/隔离验收通过，见 [PAYMENT_SETTLEMENT.md](PAYMENT_SETTLEMENT.md) |
 | rc.8 / C3c | 支付事实/原渠道绑定、网关流水唯一归属、配置签名生命周期 | 正常优惠支付可用；错额/身份/缺失字段拒绝；历史归属和凭据轮换通过 | [PR #39](https://github.com/dreamvm/one-hub/pull/39) 已合并，三数据库/CI/隔离验收通过，见 [PAYMENT_NOTIFICATION_FACTS.md](PAYMENT_NOTIFICATION_FACTS.md) |
 | rc.8 / C3d | 创建前金额/额度准入、先持久订单、微信整数分 | 非法输入零外部调用，提前/超时回调正常，原定价兼容 | 本地通过，精确候选 CI 待执行，见 [PAYMENT_ORDER_ADMISSION.md](PAYMENT_ORDER_ADMISSION.md) |
+| rc.8 / C3e | 已关闭订单与停用/软删除渠道的合法延迟支付 | 严格绑定事实、单次入账，旧渠道不能创建新支付 | 本地候选，见 [PAYMENT_LATE_SETTLEMENT.md](PAYMENT_LATE_SETTLEMENT.md) |
 | 后续 C1 / C2 / C3 | 未报告用量核对、数据库支付幂等与绑定 | 缓存与批量计费不放行耗尽额度；并发不超支；多实例重复回调只入账一次；故障可重试 | 待实施，阻断正式版 |
 | 后续 D | Fork 部署模板、健康检查、构建入口、PostgreSQL/依赖/端到端验收 | 固定 Fork 镜像；健康失败正确退出；三数据库及相关故障路径通过 | 待实施，阻断正式版 |
 | 后续 E | 前端既存警告与加载体积 | 行为回归通过、深浅主题可用、性能变化有依据 | 待实施，按影响安排 |
@@ -500,3 +501,10 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - 一次独立审阅发现新十进制舍入改变正常手续费，补充失败用例后恢复既有算法，保留有限值/范围检查；额度乘法单独用精确运算。核对驱动后撤销无依据的 schema 扩宽，保留大额合法订单对照。
 - 新增16个事务叶子用例及微信本地签名请求/服务币种对照；SQLite/PostgreSQL专项、相关包race/vet/build、工作流/actionlint及格式检查通过。精确候选 MySQL/CI/镜像验收待执行。
 - 关闭/停用渠道的延迟通知与 Stripe webhook 注册仍属下一批；RC8 未创建，未发布部署。
+
+### C3e 延迟支付候选
+
+- 分支 `codex/payment-late-settlement` 依赖 PR #40；旧实现中正常支付通过，已关闭、停用/软删除渠道和关单竞争的合法支付失败。
+- 回调专用配置读取保留原验签；创建入口仍拒绝停用/软删除配置。只增加closed可结算，不开放failed、历史歧义success或异常标记。
+- 新增12个事务叶子用例，原closed拒绝用例由合法延迟及异常标记控制替换；净增11项。独立只读审阅无阻断发现，指出两个重复状态夹具，已分别改为pending停用/删除与closed组合。
+- 本地SQLite/PostgreSQL与相关race/vet/build通过；精确候选CI/MySQL/镜像待执行。Stripe webhook注册为下一独立修复。

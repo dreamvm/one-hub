@@ -43,6 +43,14 @@ func GetPaymentByUUID(uuid string) (*Payment, error) {
 	return &payment, err
 }
 
+// GetPaymentForCallback retains verification for payments already initiated.
+// Disabling or soft-deleting a gateway only prevents new payment creation.
+func GetPaymentForCallback(uuid string) (*Payment, error) {
+	var payment Payment
+	err := DB.Unscoped().Where("uuid = ?", uuid).First(&payment).Error
+	return &payment, err
+}
+
 var allowedPaymentOrderFields = map[string]bool{
 	"id":         true,
 	"uuid":       true,
