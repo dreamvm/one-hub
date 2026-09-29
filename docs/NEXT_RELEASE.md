@@ -439,3 +439,17 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - 新增全链路 Suno/Kling 提交与重复轮询、MJ 退款、正常进度、异常/跨任务响应、跨渠道重试；三数据库用例覆盖并发、重复、失败回滚、未知原终局、模式变化、历史任务和身份不确定。
 - 独立审阅确认 Suno 跨渠道重试沿用原收据会阻断合法退款；先复现再按每次实际渠道重建预留修正。
 - 本地相关包 race、workflow tests、vet、全提供商/主程序 build、actionlint、隐私与历史扫描通过；PostgreSQL 新增 31 个补偿事务叶子用例通过。精确候选 CI 与镜像验收待执行；不创建 RC8 标签，不发布或部署。
+
+### C2c 合并验收
+
+- [PR #36](https://github.com/dreamvm/one-hub/pull/36)，受测 `af12a12d94d21c3f345c96163bf15db4e2eec887`，合并 `9cf88ce66fa925de793a21f185aa852b3e8511aa`，候选、合成与实际合并树一致。
+- [兼容性 CI](https://github.com/dreamvm/one-hub/actions/runs/36626566623) 与 [隔离镜像验收](https://github.com/dreamvm/one-hub/actions/runs/36626567290) 的 9 项检查全部成功；三数据库各 119 个事务叶子用例、smoke 28 PASS。
+- runner 镜像 ID `sha256:0154016777f4fe41bdeac75397dc5cdfe49f94f99ca5d8529e4c7a846676002f` 未发布；历史无收据任务仍需人工核对。
+
+### C3a 兑换码候选范围
+
+- 分支 `codex/redemption-atomic-terminal` 依赖已合并 C2c；详见 REDEMPTION_TRANSACTIONS.md。
+- 旧版 PostgreSQL 复现一张码并发充值两次；旧编辑可重开已使用记录、用户/日志失败仍消耗兑换码也已复现。正常兑换对照通过。
+- 独立审阅确认历史启用状态仍带使用标记的记录可被再次领取，已先复现再修正，并保留 NULL 未使用标记兼容。
+- 20 个新增事务叶子用例、HTTP/Redis 正常及故障对照、相关包 race、vet、编译、工作流/actionlint、隐私与历史扫描通过；PostgreSQL 本地通过。MySQL 与精确候选远端 CI/隔离镜像仍待执行。
+- 支付回调为下一批；不把兑换码修复等同于支付修复，也不创建 RC8 标签或发布部署。
