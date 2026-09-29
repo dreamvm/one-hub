@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -62,6 +63,17 @@ func (f *tokenCacheFixture) ProcessHook(_ redisclient.ProcessHook) redisclient.P
 				return fmt.Errorf("unexpected fixture value type %T", value)
 			}
 			cmd.(*redisclient.StatusCmd).SetVal("OK")
+		case "decrby":
+			current, err := strconv.ParseInt(f.values[key], 10, 64)
+			if err != nil {
+				return err
+			}
+			delta, err := strconv.ParseInt(fmt.Sprint(cmd.Args()[2]), 10, 64)
+			if err != nil {
+				return err
+			}
+			f.values[key] = strconv.FormatInt(current-delta, 10)
+			cmd.(*redisclient.IntCmd).SetVal(current - delta)
 		case "sismember":
 			cmd.(*redisclient.BoolCmd).SetVal(key == model.OldUserTokensCacheKey)
 		default:

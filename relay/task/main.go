@@ -3,6 +3,10 @@ package task
 import (
 	"fmt"
 	"net/http"
+	"strings"
+
+	"github.com/gin-gonic/gin"
+
 	"one-api/common/config"
 	"one-api/common/logger"
 	"one-api/metrics"
@@ -10,9 +14,6 @@ import (
 	"one-api/relay/relay_util"
 	"one-api/relay/task/base"
 	"one-api/types"
-	"strings"
-
-	"github.com/gin-gonic/gin"
 )
 
 func RelayTaskSubmit(c *gin.Context) {
@@ -41,6 +42,9 @@ func RelayTaskSubmit(c *gin.Context) {
 		taskAdaptor.HandleError(base.OpenAIErrToTaskErr(errWithOA))
 		return
 	}
+	// Hold the reservation across retries. Consume seals a successful request;
+	// otherwise this releases it once when the entire submission ends.
+	defer quotaInstance.Undo(c)
 
 	taskErr = taskAdaptor.Relay()
 	if taskErr == nil {
@@ -50,8 +54,6 @@ func RelayTaskSubmit(c *gin.Context) {
 		metrics.RecordProvider(c, 200)
 		return
 	}
-
-	quotaInstance.Undo(c)
 
 	retryTimes := config.RetryTimes
 
@@ -73,11 +75,12 @@ func RelayTaskSubmit(c *gin.Context) {
 
 		taskErr = taskAdaptor.Relay()
 		if taskErr == nil {
-			go CompletedTask(quotaInstance, taskAdaptor, c)
+			CompletedTask(quotaInstance, taskAdaptor, c)
+			taskAdaptor.GinResponse()
+			metrics.RecordProvider(c, 200)
 			return
 		}
 
-		quotaInstance.Undo(c)
 		if !taskAdaptor.ShouldRetry(c, taskErr) {
 			break
 		}
