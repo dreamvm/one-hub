@@ -16,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/net/http/httpproxy"
 	"golang.org/x/net/idna"
 	"golang.org/x/net/proxy"
 
@@ -133,10 +134,24 @@ func (m *mediaTransport) tlsFor(host string) *tls.Config {
 	return cfg
 }
 
-func mediaProxy(ctx context.Context) (*url.URL, error) {
+type mediaEnvironmentProxyKey struct{}
+
+func mediaProxy(req *http.Request) (*url.URL, error) {
+	ctx := req.Context()
 	address, _ := ctx.Value(utils.ProxySock5AddrKey).(string)
 	if address == "" {
 		address, _ = ctx.Value(utils.ProxyHTTPAddrKey).(string)
+	}
+	if address == "" {
+		if enabled, _ := ctx.Value(mediaEnvironmentProxyKey{}).(bool); enabled {
+			p, err := httpproxy.FromEnvironment().ProxyFunc()(req.URL)
+			if err != nil {
+				return nil, errors.New("invalid media proxy configuration")
+			}
+			if p != nil {
+				address = p.String()
+			}
+		}
 	}
 	if address == "" {
 		return nil, nil
@@ -168,7 +183,7 @@ func (m *mediaTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	p, err := mediaProxy(req.Context())
+	p, err := mediaProxy(req)
 	if err != nil {
 		return nil, err
 	}

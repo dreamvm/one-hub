@@ -2,7 +2,7 @@
 
 共享入口为 `common/image.RequestFile`，包括完整下载与尺寸探测。
 Gemini、Claude、Ollama、OpenRouter 等调用方共用此入口；PDF 和内联 data URL 保持原有用途。
-本策略不覆盖 Midjourney 的独立图片读取入口，后者仍在 B2 批次处理。
+Midjourney 图片读取使用同一目标策略的 `RequestPublicFile` 原始字节入口，且继承客户端取消。
 
 ## 网关直接下载
 
@@ -28,6 +28,10 @@ Gemini、Claude、Ollama、OpenRouter 等调用方共用此入口；PDF 和内�
   仅允许 CONNECT 443 的代理不能下载 HTTP 媒体；失败时返回错误，不回退到重新解析域名的转发模式或直连。
 - HTTPS 代理证书按代理主机名校验，媒体 HTTPS 证书按媒体主机名校验。
 - 每次请求使用独立连接，避免跨目标或代理配置复用连接造成校验与实际连接不一致。
+
+Midjourney 的原始图片入口以前不使用 Worker，继续返回完整二进制图片，不把 Worker JSON 或截断头部作为图片。
+此入口优先使用 `ChatImageRequestProxy`；为空时逐跳按当前 URL 选择 HTTP_PROXY/HTTPS_PROXY/NO_PROXY 环境代理。
+代理目标仍固定到已检查的 IP，不会因拒绝而回退直连。其他共享媒体入口的代理和 Worker 协议保持原规则。
 
 ## Cloudflare Worker 委托
 
