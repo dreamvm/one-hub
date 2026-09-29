@@ -31,9 +31,10 @@ RC 是预发布候选，编号不代表质量验收。后续候选从 rc.8 起�
 | rc.8 / C1b | 同一请求结算/退款至多一次、零消费释放、任务/MJ 重试终局 | 原问题回归失败后通过；正常有限/无限、免费、批量账目与调用方兼容 | [PR #26](https://github.com/dreamvm/one-hub/pull/26) 已合并；CI 与隔离验收通过，完整额度边界仍开放 |
 | rc.8 / C2a | model 预扣条件更新与余额成对事务 | 并发不透支预扣余额、任一写失败整笔回滚、batch 即时落账、三数据库专项 | [PR #27](https://github.com/dreamvm/one-hub/pull/27) 已合并；三数据库专项、CI 与隔离镜像验收通过 |
 | rc.8 / C1c | 取消高账户余额的预扣豁免 | 有限令牌不足拒绝；正常最终费用、无限与免费对照通过 | [PR #28](https://github.com/dreamvm/one-hub/pull/28) 已合并；CI 与隔离验收通过，完整额度边界仍开放 |
-| rc.8 / C1d | 用户余额读取以数据库为准；缓存故障不阻断已提交账务 | 缓存旧值/缺失/异常不影响正确余额，退款及日志统计完整 | 独立候选，见 [QUOTA_CACHE.md](QUOTA_CACHE.md) |
-| rc.8 / C1e | 预留与结算使用同一认证 owner / mode | 调用前和事务窗口变化拒绝，成功预留后模式变更按原模式结算 | 独立候选，见 [QUOTA_IDENTITY.md](QUOTA_IDENTITY.md) |
+| rc.8 / C1d | 用户余额读取以数据库为准；缓存故障不阻断已提交账务 | 缓存旧值/缺失/异常不影响正确余额，退款及日志统计完整 | [PR #29](https://github.com/dreamvm/one-hub/pull/29) 已合并；CI 与隔离验收通过 |
+| rc.8 / C1e | 预留与结算使用同一认证 owner / mode | 调用前和事务窗口变化拒绝，成功预留后模式变更按原模式结算 | [PR #30](https://github.com/dreamvm/one-hub/pull/30) 已合并；三数据库、CI 与隔离验收通过 |
 | rc.8 / C1f | Search 辅助模型上游前预留及输入估算 | 预算不足零上游调用，失败退款，成功与正常对照正确落账 | 独立候选，见 [SEARCH_QUOTA.md](SEARCH_QUOTA.md) |
+| rc.8 / C1g | Realtime 入口预留、续额及连接结束后的同步结算 | 余额不足零上游握手，数据库续额、失败关闭、两 worker 退出与正常用量对照 | 独立候选，见 [REALTIME_QUOTA.md](REALTIME_QUOTA.md)；未报告用量等边界仍开放 |
 | 后续 C1 / C2 / C3 | Redis 同步、预留身份与恢复、数据库支付幂等 | 缓存与批量计费不放行耗尽额度；并发不超支；多实例重复回调只入账一次；故障可重试 | 待实施，阻断正式版 |
 | 后续 D | Fork 部署模板、健康检查、构建入口、PostgreSQL/依赖/端到端验收 | 固定 Fork 镜像；健康失败正确退出；三数据库及相关故障路径通过 | 待实施，阻断正式版 |
 | 后续 E | 前端既存警告与加载体积 | 行为回归通过、深浅主题可用、性能变化有依据 | 待实施，按影响安排 |
@@ -338,3 +339,29 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - 一次独立审阅未发现可验证的准入绕过或新增兼容性回归，并独立运行 Search race、relay vet 和 diff 检查。
   隐私 14 项本机跳过 Docker 上下文 1 项，其余及历史扫描通过；smoke Python 13 项通过。
   远端 CI、隔离镜像和合并状态另行记录，未发布或部署。
+
+### C1d / C1e 合并验收
+
+- C1d [PR #29](https://github.com/dreamvm/one-hub/pull/29)：受测 `195c9fed5ce8a52b9e990972ad112ecc502d0148`，
+  合并为 `4064bc5943ab470c5eb6e7815bc56536f8ee12e7`；受测及实际合并树一致。
+  [兼容性 CI](https://github.com/dreamvm/one-hub/actions/runs/36615405666)、
+  [隔离镜像](https://github.com/dreamvm/one-hub/actions/runs/36615406081) 的 9 项检查全部成功，smoke 28 项 PASS。
+  CI-only 镜像 ID `sha256:b4ac9522d11f1033d4e5ef29d82ac7bf0e22ea9fb5f2159580dffe74e3ca19d5`。
+- C1e [PR #30](https://github.com/dreamvm/one-hub/pull/30)：受测 `58d8c60f7f46bd180eaaf0ef04468d2576b74aaa`，
+  合并为 `5698397cc13fdccc16653e7b916a875b5af8acc6`；更新前置 main 后重新核对合成/实际合并树一致。
+  [兼容性 CI](https://github.com/dreamvm/one-hub/actions/runs/36615453644)、
+  [隔离镜像](https://github.com/dreamvm/one-hub/actions/runs/36615454040) 的 9 项检查全部成功。
+  三数据库均含 24 个新增身份事务用例，smoke 28 项 PASS。
+  CI-only 镜像 ID `sha256:310c784936052271703357d52be8eb1790e199fa9261657f53936e5a71641b5f`。
+- 镜像仅在 CI runner 加载；这些 ID 不是已发布 digest，未创建 RC8 标签、发布或部署。
+
+### C1g 候选范围
+
+- 分支 `codex/realtime-quota-lifecycle`，依赖 C1f / PR #31 的 `8a1facea`。
+- 先复现入口无预留、Redis 开关下有限令牌续额失效、两个 worker 未等待及缺失 response panic。
+  首轮入口夹具使用非 realtime 模型名，导致 URL 错误，纠正模型名后才取得有效失败证据。
+- 一次独立审阅提出零倍率免费分组误拒、慢客户端拖延预算失败后的上游关闭；两项均已回归复现并修正。
+- 已报告用量在连接收尾同步结算；未报告费用、重复 usage、独立转录、持久恢复仍保持开放。
+- 修正后 Realtime / WSProxy / model 专项及所有受影响包 race 通过；相关 vet、主程序/provider/relay
+  构建、工作流策略、actionlint、格式检查通过。隐私 14 项本地跳过 Docker 上下文 1 项，其余、
+  历史扫描及 smoke Python 13 项通过。最终准确 SHA 的 CI/镜像验收另行记录。

@@ -149,7 +149,7 @@ jobs:
           python3 -m unittest discover -s .github/smoke -p 'test_*.py'
       - name: Run offline signature and tool-call regressions
         run: |
-          test -z "$(gofmt -l providers/claude providers/gemini/stream-tools.go providers/gemini/stream-tools_test.go common/requester/http_requester.go common/requester/http_stream_reader.go common/requester/http_stream_reader_test.go common/requester/stream-error.go)"
+          test -z "$(gofmt -l providers/claude providers/gemini/stream-tools.go providers/gemini/stream-tools_test.go common/requester/http_requester.go common/requester/http_stream_reader.go common/requester/http_stream_reader_test.go common/requester/stream-error.go common/requester/ws_proxy.go common/requester/ws_proxy_test.go providers/openai/realtime.go)"
           go test -race -count=1 ./types ./providers/gemini ./providers/claude ./common/requester
       - name: Test media destination policy without external services
         run: |
@@ -163,14 +163,14 @@ jobs:
           go vet ./relay/midjourney
       - name: Test search admission before upstream calls
         run: |
-          test -z "$(gofmt -l relay/search.go relay/export_test.go relay/search-quota_test.go)"
+          test -z "$(gofmt -l relay/search.go relay/export_test.go relay/search-quota_test.go relay/realtime.go relay/realtime-quota_test.go)"
           go test -race -count=1 ./relay
           go vet ./relay
       - name: Compile all providers and relay code
         run: go build ./providers/... ./relay/...
       - name: Test grouped channel search, token authority and quota lifecycle
         run: |
-          test -z "$(gofmt -l model/channel.go model/channel-search_test.go model/user_group.go model/cache.go model/token-authority_test.go model/export_test.go model/quota-lifecycle_test.go model/quota-callers_test.go model/quota-high-balance_test.go model/quota-cache_test.go model/quota-identity_test.go relay/relay_util/quota.go relay/task/main.go)"
+          test -z "$(gofmt -l model/channel.go model/channel-search_test.go model/user_group.go model/cache.go model/token-authority_test.go model/export_test.go model/quota-lifecycle_test.go model/quota-callers_test.go model/quota-high-balance_test.go model/quota-cache_test.go model/quota-identity_test.go model/quota-realtime_test.go relay/relay_util/quota.go relay/task/main.go)"
           go test -race -count=1 ./model
           go vet ./relay/relay_util ./relay/task
       - name: Test credentials, current sessions and safe request logging

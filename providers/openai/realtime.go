@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
 	"one-api/common"
 	"one-api/common/config"
 	"one-api/common/logger"
@@ -65,6 +66,9 @@ func (p *OpenAIProvider) HandleMessage(source requester.MessageSource, messageTy
 
 	// 处理响应完成事件
 	if event.Type == types.EventTypeResponseDone {
+		if event.Response == nil {
+			return false, nil, nil, types.NewErrorEvent("", "invalid_response", "invalid_event", "realtime response.done is missing response")
+		}
 		return true, event.Response.Usage, nil, nil
 	}
 
