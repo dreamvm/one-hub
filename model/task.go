@@ -25,25 +25,27 @@ const (
 )
 
 type Task struct {
-	ID         int64          `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
-	CreatedAt  int64          `json:"created_at" gorm:"index"`
-	UpdatedAt  int64          `json:"updated_at"`
-	TaskID     string         `json:"task_id" gorm:"type:varchar(50);index"`  // 第三方id，不一定有/ song id\ Task id
-	Platform   string         `json:"platform" gorm:"type:varchar(30);index"` // 平台
-	UserId     int            `json:"user_id" gorm:"index"`
-	ChannelId  int            `json:"channel_id" gorm:"index"`
-	Quota      int            `json:"quota"`
-	Action     string         `json:"action" gorm:"type:varchar(40);index"` // 任务类型, song, lyrics, description-mode
-	Status     TaskStatus     `json:"status" gorm:"type:varchar(20);index"` // 任务状态
-	FailReason string         `json:"fail_reason"`
-	SubmitTime int64          `json:"submit_time" gorm:"index"`
-	StartTime  int64          `json:"start_time" gorm:"index"`
-	FinishTime int64          `json:"finish_time" gorm:"index"`
-	Progress   int            `json:"progress"`
-	Properties datatypes.JSON `json:"properties" gorm:"type:json"`
-	Data       datatypes.JSON `json:"data" gorm:"type:json"`
-	NotifyHook string         `json:"notify_hook"`
-	TokenID    int            `json:"token_id" gorm:"default:0"`
+	ReservationID string         `json:"-" gorm:"type:varchar(64);index"`
+	RefundStatus  string         `json:"refund_status,omitempty" gorm:"type:varchar(24)"`
+	ID            int64          `json:"id" gorm:"primary_key;AUTO_INCREMENT"`
+	CreatedAt     int64          `json:"created_at" gorm:"index"`
+	UpdatedAt     int64          `json:"updated_at"`
+	TaskID        string         `json:"task_id" gorm:"type:varchar(50);index"`  // 第三方id，不一定有/ song id\ Task id
+	Platform      string         `json:"platform" gorm:"type:varchar(30);index"` // 平台
+	UserId        int            `json:"user_id" gorm:"index"`
+	ChannelId     int            `json:"channel_id" gorm:"index"`
+	Quota         int            `json:"quota"`
+	Action        string         `json:"action" gorm:"type:varchar(40);index"` // 任务类型, song, lyrics, description-mode
+	Status        TaskStatus     `json:"status" gorm:"type:varchar(20);index"` // 任务状态
+	FailReason    string         `json:"fail_reason"`
+	SubmitTime    int64          `json:"submit_time" gorm:"index"`
+	StartTime     int64          `json:"start_time" gorm:"index"`
+	FinishTime    int64          `json:"finish_time" gorm:"index"`
+	Progress      int            `json:"progress"`
+	Properties    datatypes.JSON `json:"properties" gorm:"type:json"`
+	Data          datatypes.JSON `json:"data" gorm:"type:json"`
+	NotifyHook    string         `json:"notify_hook"`
+	TokenID       int            `json:"token_id" gorm:"default:0"`
 }
 
 func GetTaskByTaskIds(platform string, userId int, taskIds []string) (task []*Task, err error) {
@@ -93,7 +95,7 @@ func TaskBulkUpdateByTaskIds(taskIDs []int64, params map[string]any) error {
 		return nil
 	}
 	return DB.Model(&Task{}).
-		Where("id in (?)", taskIDs).
+		Where("id in (?) AND progress <> ?", taskIDs, "100").
 		Updates(params).Error
 }
 
@@ -102,7 +104,7 @@ func TaskBulkUpdateByID(ids []int64, params map[string]any) error {
 		return nil
 	}
 	return DB.Model(&Task{}).
-		Where("id in (?)", ids).
+		Where("id in (?) AND progress <> ?", ids, "100").
 		Updates(params).Error
 }
 
@@ -204,4 +206,12 @@ func GetAllUserTasks(userId int, params *TaskQueryParams) (*DataResult[Task], er
 	}
 
 	return PaginateAndOrder(tx, &params.PaginationParams, &tasks, allowedTaskOrderFields)
+}
+
+// External IDs are scoped to a channel and platform, never globally unique.
+func TaskBulkUpdateForChannel(platform string, channelID int, taskIDs []string, params map[string]any) error {
+	if len(taskIDs) == 0 {
+		return nil
+	}
+	return DB.Model(&Task{}).Where("platform = ? AND channel_id = ? AND task_id in (?) AND progress <> ?", platform, channelID, taskIDs, 100).Updates(params).Error
 }

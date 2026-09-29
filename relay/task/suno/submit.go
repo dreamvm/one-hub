@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sort"
+	"strings"
+
 	"one-api/common"
 	"one-api/common/logger"
 	"one-api/metrics"
@@ -12,8 +15,6 @@ import (
 	"one-api/providers"
 	sunoProvider "one-api/providers/suno"
 	"one-api/relay/task/base"
-	"sort"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/samber/lo"
@@ -172,7 +173,7 @@ func updateSunoTaskAll(ctx context.Context, channelId int, taskIds []string, tas
 
 	channel := model.ChannelGroup.GetChannel(channelId)
 	if channel == nil {
-		err := model.TaskBulkUpdate(taskIds, map[string]any{
+		err := model.TaskBulkUpdateForChannel(model.TaskPlatformSuno, channelId, taskIds, map[string]any{
 			"fail_reason": fmt.Sprintf("获取渠道信息失败，请联系管理员，渠道ID：%d", channelId),
 			"status":      "FAILURE",
 			"progress":    100,
@@ -186,7 +187,7 @@ func updateSunoTaskAll(ctx context.Context, channelId int, taskIds []string, tas
 	providers := providers.GetProvider(channel, nil)
 	sunoProvider, ok := providers.(*sunoProvider.SunoProvider)
 	if !ok {
-		err := model.TaskBulkUpdate(taskIds, map[string]any{
+		err := model.TaskBulkUpdateForChannel(model.TaskPlatformSuno, channelId, taskIds, map[string]any{
 			"fail_reason": "获取供应商失败，请联系管理员",
 			"status":      "FAILURE",
 			"progress":    100,
@@ -199,13 +200,27 @@ func updateSunoTaskAll(ctx context.Context, channelId int, taskIds []string, tas
 
 	resp, errWithCode := sunoProvider.GetFetchs(taskIds)
 	if errWithCode != nil {
-		logger.SysError(fmt.Sprintf("Get Task Do req error: %v", errWithCode))
+		return fmt.Errorf("fetch task failed: %v", errWithCode)
 	}
 
-	if !resp.IsSuccess() {
+	if resp == nil {
+		return fmt.Errorf("empty task response")
+	}
+	if !resp.IsSuccess() || resp.Data == nil {
 		return fmt.Errorf("渠道 #%d 未完成的任务有: %d, 报错: %s", channelId, len(taskIds), resp.Message)
 	}
 
+	// Validate the complete response before changing any task.
+	requested := make(map[string]bool, len(taskIds))
+	for _, id := range taskIds {
+		requested[id] = true
+	}
+	for _, item := range *resp.Data {
+		task := taskM[item.TaskID]
+		if !requested[item.TaskID] || task == nil || task.ChannelId != channelId || task.Platform != model.TaskPlatformSuno || task.TaskID != item.TaskID {
+			return fmt.Errorf("unbound suno task response")
+		}
+	}
 	for _, responseItem := range *resp.Data {
 		task := taskM[responseItem.TaskID]
 		if !checkTaskNeedUpdate(task, responseItem) {
@@ -218,18 +233,9 @@ func updateSunoTaskAll(ctx context.Context, channelId int, taskIds []string, tas
 		task.StartTime = lo.If(responseItem.StartTime != 0, responseItem.StartTime).Else(task.StartTime)
 		task.FinishTime = lo.If(responseItem.FinishTime != 0, responseItem.FinishTime).Else(task.FinishTime)
 
-		if responseItem.FailReason != "" || task.Status == model.TaskStatusFailure {
-			logger.LogError(ctx, task.TaskID+" 构建失败，"+task.FailReason)
+		failed := responseItem.FailReason != "" || task.Status == model.TaskStatusFailure
+		if failed {
 			task.Progress = 100
-			quota := task.Quota
-			if quota > 0 {
-				err := model.IncreaseUserQuota(task.UserId, quota)
-				if err != nil {
-					logger.LogError(ctx, "fail to increase user quota: "+err.Error())
-				}
-				logContent := fmt.Sprintf("异步任务执行失败 %s，补偿 %s", task.TaskID, common.LogQuota(quota))
-				model.RecordLog(task.UserId, model.LogTypeSystem, logContent)
-			}
 		}
 
 		if responseItem.Status == model.TaskStatusSuccess {
@@ -237,7 +243,7 @@ func updateSunoTaskAll(ctx context.Context, channelId int, taskIds []string, tas
 		}
 
 		task.Data = responseItem.Data
-		err := task.Update()
+		err := task.UpdateFromPoll(failed)
 		if err != nil {
 			logger.SysError("UpdateTask task error: " + err.Error())
 		}

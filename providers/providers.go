@@ -22,6 +22,7 @@ import (
 	"one-api/providers/groq"
 	"one-api/providers/hunyuan"
 	"one-api/providers/jina"
+	"one-api/providers/kling"
 	"one-api/providers/lingyi"
 	"one-api/providers/midjourney"
 	"one-api/providers/minimax"
@@ -83,6 +84,7 @@ func init() {
 		config.ChannelTypeLingyi:          lingyi.LingyiProviderFactory{},
 		config.ChannelTypeHunyuan:         hunyuan.HunyuanProviderFactory{},
 		config.ChannelTypeSuno:            suno.SunoProviderFactory{},
+		config.ChannelTypeKling:           kling.KlingProviderFactory{},
 		config.ChannelTypeVertexAI:        vertexai.VertexAIProviderFactory{},
 		config.ChannelTypeSiliconflow:     siliconflow.SiliconflowProviderFactory{},
 		config.ChannelTypeJina:            jina.JinaProviderFactory{},

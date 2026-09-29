@@ -38,19 +38,21 @@ type QuotaReservationIdentity struct {
 }
 
 type QuotaReservation struct {
-	ID            string                   `json:"id" gorm:"primaryKey;type:varchar(64)"`
-	Identity      QuotaReservationIdentity `json:"identity" gorm:"embedded"`
-	ReservedQuota int                      `json:"reserved_quota"`
-	State         string                   `json:"state" gorm:"type:varchar(16);index"`
-	Outcome       string                   `json:"outcome" gorm:"type:varchar(16)"`
-	FinalQuota    int                      `json:"final_quota"`
-	TerminalLog   string                   `json:"-" gorm:"type:text"`
-	RecordLog     bool                     `json:"record_log"`
-	CreatedAt     int64                    `json:"created_at" gorm:"autoCreateTime"`
-	UpdatedAt     int64                    `json:"updated_at" gorm:"autoUpdateTime"`
-	LastAttemptAt int64                    `json:"last_attempt_at" gorm:"index"`
-	FailureCode   string                   `json:"failure_code" gorm:"type:varchar(64)"`
-	Revision      int64                    `json:"revision"`
+	CompensationState     string                   `json:"compensation_state" gorm:"type:varchar(16);index;default:''"`
+	CompensationAttemptAt int64                    `json:"compensation_attempt_at" gorm:"index"`
+	ID                    string                   `json:"id" gorm:"primaryKey;type:varchar(64)"`
+	Identity              QuotaReservationIdentity `json:"identity" gorm:"embedded"`
+	ReservedQuota         int                      `json:"reserved_quota"`
+	State                 string                   `json:"state" gorm:"type:varchar(16);index"`
+	Outcome               string                   `json:"outcome" gorm:"type:varchar(16)"`
+	FinalQuota            int                      `json:"final_quota"`
+	TerminalLog           string                   `json:"-" gorm:"type:text"`
+	RecordLog             bool                     `json:"record_log"`
+	CreatedAt             int64                    `json:"created_at" gorm:"autoCreateTime"`
+	UpdatedAt             int64                    `json:"updated_at" gorm:"autoUpdateTime"`
+	LastAttemptAt         int64                    `json:"last_attempt_at" gorm:"index"`
+	FailureCode           string                   `json:"failure_code" gorm:"type:varchar(64)"`
+	Revision              int64                    `json:"revision"`
 }
 
 type QuotaTerminal struct {
@@ -300,6 +302,9 @@ func RecoverQuotaReservations(ctx context.Context, limit int) error {
 		if finalizeQuotaReservation(ctx, receipt.ID) != nil {
 			failed++
 		}
+	}
+	if RecoverQuotaCompensations(ctx, limit) != nil {
+		failed++
 	}
 	if failed > 0 {
 		return fmt.Errorf("%d quota reservations remain pending", failed)

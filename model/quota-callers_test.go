@@ -158,6 +158,16 @@ func TestQuotaMJModeSwitchLifecycle(t *testing.T) {
 					spent, requests = 30, 1
 				}
 				quotaBalances(t, db, c, spent, requests)
+				if outcome == "success" {
+					var saved model.Midjourney
+					require.NoError(t, db.First(&saved).Error)
+					require.NotEmpty(t, saved.ReservationID)
+					var receipt model.QuotaReservation
+					require.NoError(t, db.First(&receipt, "id = ?", saved.ReservationID).Error)
+					require.Equal(t, model.QuotaReservationConsumed, receipt.State)
+					require.Equal(t, 30, receipt.FinalQuota)
+					require.Equal(t, relax, receipt.Identity.ModelName)
+				}
 			})
 		}
 	}

@@ -325,3 +325,6 @@ func (q *Quota) GetExtraBillingData(extraBilling map[string]types.ExtraBilling) 
 
 	q.extraBillingData = extraBillingData
 }
+
+// ReservationID binds an asynchronous task to this request's immutable charge.
+func (q *Quota) ReservationID() string { return q.reservationID }
