@@ -3,11 +3,13 @@ package payment
 import (
 	"errors"
 	"fmt"
+	"net/http"
+	"strings"
+
 	"one-api/common/config"
 	"one-api/common/logger"
 	"one-api/model"
 	"one-api/payment/types"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -84,4 +86,31 @@ func (s *PaymentService) getNotifyURL() string {
 func (s *PaymentService) getReturnURL() string {
 	serverAdd := strings.TrimSuffix(config.ServerAddress, "/")
 	return fmt.Sprintf("%s/panel/log", serverAdd)
+}
+
+// RespondCallback is called only after verification and durable settlement.
+func (s *PaymentService) RespondCallback(c *gin.Context, success bool) {
+	switch s.Payment.Type {
+	case "epay", "alipay":
+		body := "success"
+		if !success {
+			body = "fail"
+			if s.Payment.Type == "alipay" {
+				body = "failure"
+			}
+		}
+		c.String(http.StatusOK, body)
+	case "wxpay":
+		if success {
+			c.Status(http.StatusNoContent)
+		} else {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"code": "FAIL", "message": "callback not committed"})
+		}
+	default:
+		if success {
+			c.Status(http.StatusOK)
+		} else {
+			c.Status(http.StatusServiceUnavailable)
+		}
+	}
 }

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"sync"
 
 	"one-api/common"
 	"one-api/common/config"
@@ -100,82 +99,27 @@ func CreateOrder(c *gin.Context) {
 	})
 }
 
-// tradeNo lock
-var orderLocks sync.Map
-var createLock sync.Mutex
-
-// LockOrder 尝试对给定订单号加锁
-func LockOrder(tradeNo string) {
-	lock, ok := orderLocks.Load(tradeNo)
-	if !ok {
-		createLock.Lock()
-		defer createLock.Unlock()
-		lock, ok = orderLocks.Load(tradeNo)
-		if !ok {
-			lock = new(sync.Mutex)
-			orderLocks.Store(tradeNo, lock)
-		}
-	}
-	lock.(*sync.Mutex).Lock()
-}
-
-// UnlockOrder 释放给定订单号的锁
-func UnlockOrder(tradeNo string) {
-	lock, ok := orderLocks.Load(tradeNo)
-	if ok {
-		lock.(*sync.Mutex).Unlock()
-	}
-}
-
 func PaymentCallback(c *gin.Context) {
-	uuid := c.Param("uuid")
-	paymentService, err := payment.NewPaymentService(uuid)
+	paymentService, err := payment.NewPaymentService(c.Param("uuid"))
 	if err != nil {
-		common.APIRespondWithError(c, http.StatusOK, errors.New("payment not found"))
+		c.Status(http.StatusServiceUnavailable)
 		return
 	}
-
-	payNotify, err := paymentService.HandleCallback(c, paymentService.Payment.Config)
+	notification, err := paymentService.HandleCallback(c, paymentService.Payment.Config)
 	if err != nil {
+		paymentService.RespondCallback(c, false)
 		return
 	}
-
-	LockOrder(payNotify.GatewayNo)
-	defer UnlockOrder(payNotify.GatewayNo)
-
-	order, err := model.GetOrderByTradeNo(payNotify.TradeNo)
-	if err != nil {
-		logger.SysError(fmt.Sprintf("gateway callback failed to find order, trade_no: %s,", payNotify.TradeNo))
+	// A verified event unrelated to fulfillment is acknowledged without a credit.
+	if notification == nil {
+		paymentService.RespondCallback(c, true)
 		return
 	}
-	fmt.Println(order.Status, order.Status != model.OrderStatusPending)
-
-	if order.Status != model.OrderStatusPending {
-		return
-	}
-
-	order.GatewayNo = payNotify.GatewayNo
-	order.Status = model.OrderStatusSuccess
-	err = order.Update()
+	err = model.SettleOrderPayment(paymentService.Payment.ID, notification.TradeNo, notification.GatewayNo, c.ClientIP())
 	if err != nil {
-		logger.SysError(fmt.Sprintf("gateway callback failed to update order, trade_no: %s,", payNotify.TradeNo))
-		return
+		logger.SysError("payment callback settlement failed; provider retry required")
 	}
-
-	err = model.IncreaseUserQuota(order.UserId, order.Quota)
-	if err != nil {
-		logger.SysError(fmt.Sprintf("gateway callback failed to increase user quota, trade_no: %s,", payNotify.TradeNo))
-		return
-	}
-
-	// Try to upgrade user group based on cumulative recharge amount
-	err = model.CheckAndUpgradeUserGroup(order.UserId, order.Quota)
-	if err != nil {
-		logger.SysError(fmt.Sprintf("failed to check and upgrade user group, trade_no: %s, error: %s", payNotify.TradeNo, err.Error()))
-	}
-
-	model.RecordQuotaLog(order.UserId, model.LogTypeTopup, order.Quota, c.ClientIP(), fmt.Sprintf("在线充值成功，充值积分: %d，支付金额：%.2f %s", order.Quota, order.OrderAmount, order.OrderCurrency))
-
+	paymentService.RespondCallback(c, err == nil)
 }
 
 func CheckOrderStatus(c *gin.Context) {

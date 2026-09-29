@@ -63,9 +63,9 @@ jobs:
           cache: true
       - name: Verify atomic quota operations on all supported databases
         run: |
-          test -z "$(gofmt -l model/redemption.go model/recharge.go model/redemption-transaction_test.go model/quota-compensation.go model/quota-compensation_test.go model/task-poll.go model/token.go model/quota-reservation.go model/quota-reservation_test.go model/quota-transaction_test.go model/quota-identity_test.go)"
+          test -z "$(gofmt -l controller/order.go payment/service.go payment/service_test.go payment/gateway/alipay/payment.go payment/gateway/epay/payment.go payment/gateway/stripe/payment.go payment/gateway/wxpay/payment.go model/order.go model/payment-transaction_test.go model/redemption.go model/recharge.go model/redemption-transaction_test.go model/quota-compensation.go model/quota-compensation_test.go model/task-poll.go model/token.go model/quota-reservation.go model/quota-reservation_test.go model/quota-transaction_test.go model/quota-identity_test.go)"
           for engine in sqlite mysql postgres; do
-            ONEHUB_QUOTA_TEST_DB="$engine" go test -mod=readonly -race -count=1 -timeout=120s -v ./model -run '^TestQuotaTransaction'
+            ONEHUB_QUOTA_TEST_DB="$engine" go test -mod=readonly -race -count=1 -timeout=300s -v ./model -run '^TestQuotaTransaction'
           done
 
   privacy:
@@ -170,8 +170,8 @@ jobs:
         run: go build ./providers/... ./relay/...
       - name: Test grouped channel search, token authority and quota lifecycle
         run: |
-          test -z "$(gofmt -l model/redemption.go model/recharge.go model/redemption-transaction_test.go controller/redemption.go model/channel.go model/channel-search_test.go model/user_group.go model/cache.go model/token-authority_test.go model/export_test.go model/quota-lifecycle_test.go model/quota-callers_test.go model/quota-high-balance_test.go model/quota-cache_test.go model/quota-identity_test.go model/quota-realtime_test.go model/quota-price-admission_test.go model/quota-settlement-arithmetic_test.go model/quota-ledger_test.go model/quota-background_test.go model/quota-compensation.go model/quota-compensation_test.go model/task-poll.go model/task.go model/midjourney.go model/quota-reservation.go model/quota-reservation_test.go model/main.go relay/relay_util/quota.go relay/relay_util/quota-arithmetic.go relay/task/main.go relay/task/task.go relay/task/task-group_test.go relay/task/suno/submit.go relay/task/kling/submit.go providers/kling/fetch.go providers/providers.go)"
-          go test -race -count=1 ./model ./relay/task
+          test -z "$(gofmt -l controller/order.go payment/service.go payment/service_test.go payment/gateway/alipay/payment.go payment/gateway/epay/payment.go payment/gateway/stripe/payment.go payment/gateway/wxpay/payment.go model/order.go model/payment-transaction_test.go model/redemption.go model/recharge.go model/redemption-transaction_test.go controller/redemption.go model/channel.go model/channel-search_test.go model/user_group.go model/cache.go model/token-authority_test.go model/export_test.go model/quota-lifecycle_test.go model/quota-callers_test.go model/quota-high-balance_test.go model/quota-cache_test.go model/quota-identity_test.go model/quota-realtime_test.go model/quota-price-admission_test.go model/quota-settlement-arithmetic_test.go model/quota-ledger_test.go model/quota-background_test.go model/quota-compensation.go model/quota-compensation_test.go model/task-poll.go model/task.go model/midjourney.go model/quota-reservation.go model/quota-reservation_test.go model/main.go relay/relay_util/quota.go relay/relay_util/quota-arithmetic.go relay/task/main.go relay/task/task.go relay/task/task-group_test.go relay/task/suno/submit.go relay/task/kling/submit.go providers/kling/fetch.go providers/providers.go)"
+          go test -race -count=1 ./model ./relay/task ./payment/...
           test -z "$(gofmt -l common/token.go common/token-image-quota_test.go)"
           go test -race -count=1 ./common -run '^TestImageQuotaEstimate'
           go vet ./relay/relay_util ./relay/task

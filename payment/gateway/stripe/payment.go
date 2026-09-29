@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"strconv"
+
 	"one-api/model"
 	"one-api/payment/types"
-	"strconv"
 
 	sysconfig "one-api/common/config"
 
@@ -189,6 +190,9 @@ func (e *Stripe) HandleCallback(c *gin.Context, gatewayConfig string) (*types.Pa
 			return nil, fmt.Errorf("failed to parse session data: %v", err)
 		}
 
+		if session.PaymentIntent == nil {
+			return nil, fmt.Errorf("missing payment intent")
+		}
 		// 获取订单号
 		orderID := session.ClientReferenceID
 
