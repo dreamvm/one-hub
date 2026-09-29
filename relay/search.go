@@ -3,11 +3,13 @@ package relay
 import (
 	"encoding/json"
 	"fmt"
+	"time"
+
+	"one-api/common"
 	"one-api/common/search"
 	providersBase "one-api/providers/base"
 	"one-api/relay/relay_util"
 	"one-api/types"
-	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -145,19 +147,20 @@ func createSearchQueryRequest(userMsg, model string) *types.ChatCompletionReques
 
 // 执行查询
 func executeQuery(c *gin.Context, chatProvider providersBase.ChatInterface, queryRequest *types.ChatCompletionRequest, model string) (string, error) {
-	usage := &types.Usage{}
-	chatProvider.SetUsage(usage)
+	promptTokens := common.CountTokenMessages(queryRequest.Messages, model, chatProvider.GetChannel().PreCost)
+	quota := relay_util.NewQuota(c, model, promptTokens)
+	if opErr := quota.PreQuotaConsumption(); opErr != nil {
+		return "", opErr
+	}
 
+	usage := &types.Usage{PromptTokens: promptTokens}
+	chatProvider.SetUsage(usage)
 	response, opErr := chatProvider.CreateChatCompletion(queryRequest)
 	if opErr != nil {
+		quota.Undo(c)
 		return "", opErr
 	}
 
-	// 处理配额
-	quota := relay_util.NewQuota(c, model, 0)
-	if opErr = quota.PreQuotaConsumption(); opErr != nil {
-		return "", opErr
-	}
 	quota.Consume(c, usage, false)
 
 	if len(response.Choices) == 0 {
