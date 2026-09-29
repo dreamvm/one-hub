@@ -91,6 +91,9 @@ func RelaySwapFace(c *gin.Context) *provider.MidjourneyResponse {
 	}
 
 	defer func(ctx context.Context) {
+		if quotaInstance == nil {
+			return // The replacement mode failed before acquiring a reservation.
+		}
 		if mjResp.StatusCode == 200 && mjResp.Response.Code == 1 {
 			quotaInstance.Consume(c, &types.Usage{CompletionTokens: 0, PromptTokens: 1, TotalTokens: 1}, false)
 		} else {
@@ -382,6 +385,9 @@ func RelayMidjourneySubmit(c *gin.Context, relayMode int) *provider.MidjourneyRe
 	}
 
 	defer func(ctx context.Context) {
+		if quotaInstance == nil {
+			return // The replacement mode failed before acquiring a reservation.
+		}
 		if consumeQuota && midjResponseWithStatus.StatusCode == 200 {
 			quotaInstance.Consume(c, &types.Usage{CompletionTokens: 0, PromptTokens: 1, TotalTokens: 1}, false)
 		} else {

@@ -5,14 +5,16 @@ import (
 	"errors"
 	"math"
 	"net/http"
+	"sync"
+	"time"
+
+	"github.com/gin-gonic/gin"
+
 	"one-api/common"
 	"one-api/common/config"
 	"one-api/common/logger"
 	"one-api/model"
 	"one-api/types"
-	"time"
-
-	"github.com/gin-gonic/gin"
 )
 
 type Quota struct {
@@ -32,6 +34,7 @@ type Quota struct {
 	tokenId          int
 	unlimitedQuota   bool
 	HandelStatus     bool
+	finishOnce       sync.Once
 
 	startTime         time.Time
 	firstResponseTime time.Time
@@ -144,9 +147,16 @@ func (q *Quota) completedQuotaConsumption(usage *types.Usage, tokenName string, 
 	}()
 
 	quota := q.GetTotalQuotaByUsage(usage)
+	if quota < 0 {
+		return errors.New("invalid negative settlement quota")
+	}
 
-	if quota > 0 {
-		quotaDelta := quota - q.preConsumedQuota
+	reserved := 0
+	if q.HandelStatus {
+		reserved = q.preConsumedQuota
+	}
+	if quota > 0 || reserved > 0 {
+		quotaDelta := quota - reserved
 		err := model.PostConsumeTokenQuotaWithInfo(q.tokenId, q.userId, q.unlimitedQuota, quotaDelta)
 		if err != nil {
 			return errors.New("error consuming token remain quota: " + err.Error())
@@ -155,7 +165,9 @@ func (q *Quota) completedQuotaConsumption(usage *types.Usage, tokenName string, 
 		if err != nil {
 			return errors.New("error consuming token remain quota: " + err.Error())
 		}
-		model.UpdateChannelUsedQuota(q.channelId, quota)
+		if quota > 0 {
+			model.UpdateChannelUsedQuota(q.channelId, quota)
+		}
 	}
 
 	model.RecordConsumeLog(
@@ -179,27 +191,28 @@ func (q *Quota) completedQuotaConsumption(usage *types.Usage, tokenName string, 
 }
 
 func (q *Quota) Undo(c *gin.Context) {
-	if q.HandelStatus {
-		go func(ctx context.Context) {
+	q.finishOnce.Do(func() {
+		if q.HandelStatus {
 			// return pre-consumed quota
 			err := model.PostConsumeTokenQuotaWithInfo(q.tokenId, q.userId, q.unlimitedQuota, -q.preConsumedQuota)
 			if err != nil {
-				logger.LogError(ctx, "error return pre-consumed quota: "+err.Error())
+				logger.LogError(c.Request.Context(), "error return pre-consumed quota: "+err.Error())
 			}
-		}(c.Request.Context())
-	}
+		}
+	})
 }
 
 func (q *Quota) Consume(c *gin.Context, usage *types.Usage, isStream bool) {
-	tokenName := c.GetString("token_name")
-	q.startTime = c.GetTime("requestStartTime")
-	// 如果没有报错，则消费配额
-	go func(ctx context.Context) {
-		err := q.completedQuotaConsumption(usage, tokenName, isStream, c.ClientIP(), ctx)
+	// A reservation has one terminal operation. Keep even failed writes terminal:
+	// model accounting may have partially succeeded, so replay could credit twice.
+	q.finishOnce.Do(func() {
+		tokenName := c.GetString("token_name")
+		q.startTime = c.GetTime("requestStartTime")
+		err := q.completedQuotaConsumption(usage, tokenName, isStream, c.ClientIP(), c.Request.Context())
 		if err != nil {
-			logger.LogError(ctx, err.Error())
+			logger.LogError(c.Request.Context(), err.Error())
 		}
-	}(c.Request.Context())
+	})
 }
 
 func (q *Quota) GetInputRatio() float64 {
