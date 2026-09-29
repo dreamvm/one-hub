@@ -196,3 +196,43 @@ func TestQuotaMJLegitimateBilling(t *testing.T) {
 		}
 	}
 }
+
+func TestQuotaTaskStoredFeeMatchesSettlement(t *testing.T) {
+	for _, tc := range []struct {
+		name, priceType string
+		input           float64
+		want            int
+	}{
+		{"tiny times", model.TimesPriceType, .00001, 1},
+		{"times truncation", model.TimesPriceType, .0019, 1},
+		{"token priced task", model.TokensPriceType, .02, 1},
+		{"free", model.TimesPriceType, 0, 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			db, c := quotaLifecycleFixture(t, false, false)
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(`{"code":"success","data":"stored-fee-fixture"}`))
+			}))
+			defer server.Close()
+			quotaChannel(t, db, c, server.URL, config.ChannelTypeSuno, "suno_lyrics")
+			model.PricingInstance.Prices["suno_lyrics"] = &model.Price{Type: tc.priceType, Input: tc.input}
+			r := gin.New()
+			r.POST("/suno/submit/:action", func(requestContext *gin.Context) {
+				for key, value := range c.Keys {
+					requestContext.Set(key, value)
+				}
+				task.RelayTaskSubmit(requestContext)
+			})
+			req := httptest.NewRequest("POST", "/suno/submit/lyrics", strings.NewReader(`{"prompt":"fixture"}`))
+			req.Header.Set("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+			r.ServeHTTP(w, req)
+			require.Equal(t, 200, w.Code)
+			quotaBalances(t, db, c, tc.want, 1)
+			var saved model.Task
+			require.NoError(t, db.First(&saved).Error)
+			require.Equal(t, tc.want, saved.Quota)
+		})
+	}
+}

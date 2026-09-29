@@ -3,6 +3,8 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
+
 	"one-api/common/config"
 	"one-api/common/utils"
 )
@@ -114,18 +116,6 @@ func (u *UsageEvent) ToChatUsage() *Usage {
 		TotalTokens:             u.TotalTokens,
 		PromptTokensDetails:     u.InputTokenDetails,
 		CompletionTokensDetails: u.OutputTokenDetails,
+		ExtraTokens:             maps.Clone(u.ExtraTokens),
 	}
-}
-
-func (u *UsageEvent) Merge(other *UsageEvent) {
-	if other == nil {
-		return
-	}
-
-	u.InputTokens += other.InputTokens
-	u.OutputTokens += other.OutputTokens
-	u.TotalTokens += other.TotalTokens
-
-	u.InputTokenDetails.Merge(&other.InputTokenDetails)
-	u.OutputTokenDetails.Merge(&other.OutputTokenDetails)
 }

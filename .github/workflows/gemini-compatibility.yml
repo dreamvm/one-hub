@@ -136,7 +136,7 @@ jobs:
           cache: true
       - name: Check formatting of patched Go files
         run: |
-          test -z "$(gofmt -l types/chat.go types/responses.go types/tool-contract.go types/tool-contract_test.go types/chat-tool-metadata_test.go providers/gemini/type.go providers/gemini/chat.go providers/gemini/tool-contract.go providers/gemini/tool-contract_test.go providers/gemini/thought-signature_test.go .github/tests/release-policy_test.go)"
+          test -z "$(gofmt -l types/common.go types/usage-arithmetic.go types/usage-arithmetic_test.go types/events.go types/chat.go types/responses.go types/tool-contract.go types/tool-contract_test.go types/chat-tool-metadata_test.go providers/gemini/type.go providers/gemini/chat.go providers/gemini/tool-contract.go providers/gemini/tool-contract_test.go providers/gemini/thought-signature_test.go .github/tests/release-policy_test.go)"
       - name: Check workflow syntax
         run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
       - name: Verify manual-release policy
@@ -170,7 +170,7 @@ jobs:
         run: go build ./providers/... ./relay/...
       - name: Test grouped channel search, token authority and quota lifecycle
         run: |
-          test -z "$(gofmt -l model/channel.go model/channel-search_test.go model/user_group.go model/cache.go model/token-authority_test.go model/export_test.go model/quota-lifecycle_test.go model/quota-callers_test.go model/quota-high-balance_test.go model/quota-cache_test.go model/quota-identity_test.go model/quota-realtime_test.go model/quota-price-admission_test.go relay/relay_util/quota.go relay/task/main.go)"
+          test -z "$(gofmt -l model/channel.go model/channel-search_test.go model/user_group.go model/cache.go model/token-authority_test.go model/export_test.go model/quota-lifecycle_test.go model/quota-callers_test.go model/quota-high-balance_test.go model/quota-cache_test.go model/quota-identity_test.go model/quota-realtime_test.go model/quota-price-admission_test.go model/quota-settlement-arithmetic_test.go relay/relay_util/quota.go relay/relay_util/quota-arithmetic.go relay/task/main.go)"
           go test -race -count=1 ./model
           test -z "$(gofmt -l common/token.go common/token-image-quota_test.go)"
           go test -race -count=1 ./common -run '^TestImageQuotaEstimate'
