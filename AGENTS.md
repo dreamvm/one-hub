@@ -17,7 +17,7 @@ Forked from songquanpeng/one-api. Multi-provider proxy for OpenAI, Claude, Gemin
 ### Backend (Go)
 
 ```bash
-# Full build (frontend + backend; currently also runs go mod tidy)
+# Full build (fresh frontend + backend; committed dependency files stay unchanged)
 task build
 
 # Backend only (requires web/build/ to exist)
