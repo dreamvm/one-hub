@@ -57,6 +57,7 @@ RC 是预发布候选，编号不代表质量验收。后续候选从 rc.8 起�
 | D7 | Bedrock上游EventStream解析崩溃 | 非法头和缺失异常类型返回错误，正常连续事件与合法头保持 | [PR #55](https://github.com/dreamvm/one-hub/pull/55) 已合并，全9项CI、48项业务检查、四种Compose与三数据库验收通过 |
 | D8 | gRPC接收分片对象放大 | 旧版有界复现，新版数据/EOF完整，IAM正常与错误语义保持 | [PR #57](https://github.com/dreamvm/one-hub/pull/57) 已合并，全9项CI、48项业务检查、四种Compose与三数据库验收通过 |
 | D9 | 顶层Vite开发服务器文件边界 | HTTP deny/query、WebSocket、sourcemap越界拒绝，合法开发流程保持 | [PR #60](https://github.com/dreamvm/one-hub/pull/60) 已合并；旧新对照、独立审阅、准确候选全9项CI与隔离镜像验收通过，Windows原生验收仍开放，见 [VITE_DEV_BOUNDARY.md](VITE_DEV_BOUNDARY.md) |
+| D10 | Axios浏览器共享配置边界 | 合成前置污染下拒绝继承data/reviver，合法XHR与API行为保持 | 1.18.0本地旧新对照、完整前端检查与独立审阅通过；准确候选CI待完成，应用污染来源未证实，见 [AXIOS_BROWSER_BOUNDARY.md](AXIOS_BROWSER_BOUNDARY.md) |
 | 后续 D | 依赖/端到端/负载验收 | 固定 Fork 镜像；健康失败正确退出；三数据库及相关故障路径通过 | 待实施，阻断正式版 |
 | E1 | 主题按钮键盘操作和可访问名称 | 桌面/移动端深浅主题、Enter/空格/点击正常 | PR #49 已合并，全9项CI/48项业务/四种Compose与浏览器通过 |
 | E2 | 深色填充标签对比度 | 深浅主题文字可读，选择/删除交互正常 | PR #50 已合并，全9项CI/48项业务/四种Compose与浏览器通过 |
@@ -773,3 +774,10 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - SQLite/MySQL/PostgreSQL各245个事务叶子用例通过。三后端smoke共41项检查（SQLite 9、MySQL+Redis 16、PostgreSQL+Redis 16），另有7项升级/两条回滚检查，合计48个PASS；四种Compose实际启动通过。Redis停止、错误类型、旧余额和恢复属于已覆盖的隔离场景，请求中途故障与网络分区仍分别开放。
 - 从最终runner镜像`sha256:80e32a0ebf337d16c61a28e9549af1bdf74645dace51c673c55eda5a2e3347b4`提取的实际程序为`Go=go1.25.14 main=one-api GOOS=linux GOARCH=amd64 CGO_ENABLED=1`，binary SHA256 `570a11a580b502bfef0ad2d78c36b4c66ca6cbb9bed89802a9bfd76c666a0988`。镜像只在runner加载，未发布；未复制生产数据，真实模型调用为0。
 - Windows ADS/短文件名和UNC editor修复只核实了上游版本/源码，未做Windows/NTFS原生或NTLM验收；其余浏览器运行依赖、开发工具公告与发布阻断项保持开放。撤销本批依赖提交会恢复旧版风险；RC8仍只预留，未创建标签、未发布镜像、未部署生产。
+
+### D10 Axios 浏览器依赖候选
+
+- 分支`codex/axios-browser-config-boundary`在PR #61验收台账通过全9项CI并合并后更新至main基线`cce1a31041d67917a97841cc995975dcdfe8d2fa`。Axios 1.12.2固定升级至1.18.0，仅更新必要锁文件闭包，未改变业务API或错误拦截器。
+- 独立子进程对浏览器发行产物验证合成前置污染；旧版四个无请求体方法在适配器前报validator TypeError，继承reviver改写JSON。五项失败均在候选消失，15项正常控制两版通过；总20个叶子，Node汇总21项包含XHR父测试。未证明应用污染来源，不能写成旧版已外发继承请求体。
+- 另有真实API工厂4项控制，包含401清理与LoginCheckAPI拒绝；本地Node22.20/Yarn1.22.22 frozen安装、30项Vite边界、20项Axios边界/XHR、56项既有UI加4项API、lint零错误/9条既存警告和build通过，仍有大chunk提示。
+- 新鲜只读调查与另一位候选审阅完成，未确认存活绕过或兼容性回归；审阅者独立复跑核心、XHR及API控制，并检查等价继承形状和Fetch变体。新鲜依赖审计已无Axios匹配记录，其余包公告保留，审计匹配不能代替应用可利用性判断。原生浏览器、完整页面及生产验收尚未完成；准确提交CI与合并继续按流程执行。RC8仍未创建，未发布或部署。
