@@ -234,7 +234,7 @@ func TestSmokeRunsAllBackendsAndRollbackWithImmutableFixtures(t *testing.T) {
 			order = append(order, item.ID)
 		}
 	}
-	require.Equal(t, []string{"fixtures", "sqlite", "mysql_redis", "postgres_redis", "upgrade"}, order)
+	require.Equal(t, []string{"fixtures", "toolchain", "sqlite", "mysql_redis", "postgres_redis", "upgrade"}, order)
 	for _, id := range order {
 		require.Positive(t, steps[id].TimeoutMinutes)
 		require.NotContains(t, steps[id].Run, "|| true")
