@@ -59,7 +59,8 @@ RC 是预发布候选，编号不代表质量验收。后续候选从 rc.8 起�
 | D9 | 顶层Vite开发服务器文件边界 | HTTP deny/query、WebSocket、sourcemap越界拒绝，合法开发流程保持 | [PR #60](https://github.com/dreamvm/one-hub/pull/60) 已合并；旧新对照、独立审阅、准确候选全9项CI与隔离镜像验收通过，Windows原生验收仍开放，见 [VITE_DEV_BOUNDARY.md](VITE_DEV_BOUNDARY.md) |
 | D10 | Axios浏览器共享配置边界 | 合成前置污染下忽略继承data/reviver，合法XHR与API行为保持 | [PR #62](https://github.com/dreamvm/one-hub/pull/62) 已合并；旧新对照、独立审阅、准确候选全9项CI与隔离镜像验收通过，应用污染来源未证实，见 [AXIOS_BROWSER_BOUNDARY.md](AXIOS_BROWSER_BOUNDARY.md) |
 | D11 | PostCSS 编译器 map 文件读取 | 旧版失败及合法 CSS/map 对照，真实 Vite 构建/import 验证 | [PR #64](https://github.com/dreamvm/one-hub/pull/64) 已合并；本地 16 项、只读审阅与准确候选全 9 项 CI 通过，审阅上下文限制见下文；Vite 独立开发加载器边界仍保留，见 [POSTCSS_FILE_BOUNDARY.md](POSTCSS_FILE_BOUNDARY.md) |
-| D13 | Babel 开发依赖 source map 文件边界 | 六种编译 API 的词法包外读取拒绝，普通包内/inline/显式 map 与 JSX 保持 | 7.29.7 旧新对照、全新只读候选审阅及本地回归完成；保留符号链接与少见文件名限制，准确候选 CI/合并待完成；见 [BABEL_SOURCE_MAP_BOUNDARY.md](BABEL_SOURCE_MAP_BOUNDARY.md) |
+| D13 | Babel 开发依赖 source map 文件边界 | 六种编译 API 的词法包外读取拒绝，普通包内/inline/显式 map 与 JSX 保持 | [PR #67](https://github.com/dreamvm/one-hub/pull/67) 已合并；独立审阅、本地回归、准确候选全 9 项 CI 与隔离镜像验收通过；保留符号链接与少见文件名限制，见 [BABEL_SOURCE_MAP_BOUNDARY.md](BABEL_SOURCE_MAP_BOUNDARY.md) |
+| D14 | Rollup 最终输出名称边界 | 异常名称拒绝，合法嵌套/归一化路径与构建保持 | [草稿 PR #68](https://github.com/dreamvm/one-hub/pull/68) 本地候选及准确提交手动全 9 项 CI 通过；独立审阅再次被平台中断，无结论，不得合并 |
 | 后续 D | 依赖/端到端/负载验收 | 固定 Fork 镜像；健康失败正确退出；三数据库及相关故障路径通过 | 待实施，阻断正式版 |
 | E1 | 主题按钮键盘操作和可访问名称 | 桌面/移动端深浅主题、Enter/空格/点击正常 | PR #49 已合并，全9项CI/48项业务/四种Compose与浏览器通过 |
 | E2 | 深色填充标签对比度 | 深浅主题文字可读，选择/删除交互正常 | PR #50 已合并，全9项CI/48项业务/四种Compose与浏览器通过 |
@@ -818,3 +819,20 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - PR #65 隔离镜像实际提取程序为 Go1.25.14 / one-api / linux/amd64 / CGO_ENABLED=1，二进制 SHA256 `4ee19406a9629f9c125c0c863dfc0d50c632805d424e8e404b1ab96ba3bf0ac8`，镜像 ID `sha256:6835031b982b411fb13a4dd3c58de04daa4e8fc5ba3192c1b83a7b6857640d44`；SQLite/MySQL/PostgreSQL 41 条与升级/回滚 7 条 PASS、4 种 Compose 模板成功。镜像仅在 CI runner 加载，未发布。
 - 在该前端源码与锁文件上完成真实 Chrome/BrowserRouter 合成账单检查，详见 [FRONTEND_BROWSER_BOUNDARIES.md](FRONTEND_BROWSER_BOUNDARIES.md)。桌面和移动视口共 24 个日期输入组合均保持同源；正常查看/返回/侧栏/前进后退、浅深色通过。异常日期仍有空白路由及坏编码警告，列入页面行为专项，不写成所有页面状态通过。
 - React Router 6.21.3 / router 1.14.2 未升级，12 条审计路径保持开放；结论仅为受检业务路径 `no_change`。Monaco/DOMPurify 动态编辑器验收、Rollup 缺失审阅及其余依赖继续推进；这次局部浏览器证据不替代生产端到端、实际 arm64 镜像或最终 RC8 验收。未创建标签、发布或部署。
+
+### D13 Babel 合并验收
+
+- [PR #67](https://github.com/dreamvm/one-hub/pull/67) head `0095e8dfe30b6b66ea37129543e5963406275f1f`，实际合并 `7ee5307882d96eeb2c77350038be76552b3a6815`。候选、GitHub 合成、合并前 main 计算及实际合并树均为 `e0c4925b9bd535573f84c8b20e44e462f22483d9`。交接原目录的 Babel 分支与 5 个暂存文件保留，交付在独立工作树完成；不要再次提交原暂存候选或覆盖原目录。
+- Babel 7.24.3 → 7.29.7 的既有旧新对照为 12 个边界失败、16 个控制通过 → 28 个叶子全部通过。全新只读候选审阅未提供原调查结论、修复理由或通过声明；审阅者独立重跑通过，并确认符号链接不受词法检查保护、少见 `..` 开头合法 map 文件名被丢弃的限制。未发现当前业务消费者或交付阻断；不称为完整文件系统沙箱。
+- 本地 Node 22.20.0 / Yarn 1.22.22 冻结安装、30 个 Vite / 20 个 Axios / 16 个 PostCSS / 28 个 Babel 叶子、60 个 Vitest、lint/build 及 Go 1.25.14 工作流策略通过。准确候选 CI [36759790568](https://github.com/dreamvm/one-hub/actions/runs/36759790568) / [36759791654](https://github.com/dreamvm/one-hub/actions/runs/36759791654) 全 9 项成功；Linux Node 汇总 31 与 67 项包含父节点。Lint 零错误/9 条既存警告，build 保留大 chunk 提示。
+- SQLite/MySQL/PostgreSQL 各 284 个测试节点、245 个事务叶子通过；三后端 smoke 9/16/16 条及升级/两条回滚 7 条，合计 48 个 PASS，4 种 Compose 实际启动通过。未覆盖的请求中途故障、网络分区及并发负载仍开放。
+- 最终 runner 镜像 `sha256:3a0d7620cacc6f6c615a7fd839cd90dd02e2d137bff87be64f25de2c9d3dc383` 中实际程序为 `Go=go1.25.14 main=one-api GOOS=linux GOARCH=amd64 CGO_ENABLED=1`，binary SHA256 `b6fc9bf9e4f51e69dbb2577c5f230044e5d383421b6902817f006a145ef174ee`。镜像仅在隔离 runner 加载，未发布；无生产数据复制或付费模型调用。RC8 仍仅预留。
+- 合并后 main `7ee53078` 的 [36761306821](https://github.com/dreamvm/one-hub/actions/runs/36761306821) 兼容性 CI 也已成功。该检查与候选的全 9 项分别记录，不替代彼此。
+
+### 接续：Rollup 审阅门槛、最新审计与 Monaco 证据
+
+- 原 Rollup 候选 `42988901` 保留；交付候选 `79316d4c6db9ffaae5d62e863facc188c7833487` / 草稿 PR #68 承接已合并的 PostCSS 与 Babel，台账冲突以最新验收记录为准，测试入口同时保留 Babel/Rollup。更新基线后的冻结安装、114 个依赖叶子、60 个 Vitest、lint/build 通过。全新只读独立审阅再次被平台内容检查中断，无结论；不得用父任务源码核对、本地通过或 CI 代替该门槛，不合并。
+- 精确候选的手动 CI [36760618740](https://github.com/dreamvm/one-hub/actions/runs/36760618740) / [36760626211](https://github.com/dreamvm/one-hub/actions/runs/36760626211) 全 9 项成功；Linux Node 汇总 31/88（含父节点），三数据库各 284 个节点。草稿由 Babel 前置分支改为 main，候选树与当前 main 计算的合并树均为 `739d8148c17b447d085625387d614d89cd726723`；原分支不改写。此为 workflow_dispatch 的准确提交证据，不宣称 PR 事件的检查已运行；未来源码或合并树变化必须重验。
+- Rollup 隔离 smoke 同样为 48 个业务/升级回滚 PASS 和 4 种 Compose 启动。最终 runner 镜像 `sha256:7794de952f88a15143ae2dd5ba27b8f16918dd522e89608efda59d3d684913b9` 的实际程序为 Go1.25.14 / one-api / linux/amd64 / CGO_ENABLED=1，binary SHA256 `2eed35d976d83bc2350298333ed8176b9bf4d68fc3bf47850bb06b82a219426d`；未发布。CI 通过不消除独立审阅门槛。
+- 新鲜 Yarn 审计最初因依赖树外发被自动审批拒绝；用户随后明确授权当前任务及修复后的必要复查，仅向官方 npm/Yarn 服务发送公开依赖元数据。核实 Yarn 1.22.22 固定接收端 `registry.yarnpkg.com/-/npm/v1/security/audits`，字段为包名/版本/完整性哈希、依赖关系和 dev 标志，无源码、凭据或运行配置。公开候选 `79316d4c` 上新结果为 219 条路径、114 个 Yarn ID、88 个唯一 GHSA，Babel/Rollup 匹配为零，Axios 匹配增至 12 个；仍需逐项判断实际浏览器/Node 调用路径，不把匹配数量当作应用漏洞数。
+- 恢复并核验了基线 `34d36a13` 的 Monaco 局部浏览器证据及 15 个资源哈希，见 [FRONTEND_BROWSER_BOUNDARIES.md](FRONTEND_BROWSER_BOUNDARIES.md)。加载、model 夹具后的格式化及模拟保存有证据；完整键盘输入和诊断 hover 可见性未通过，不能用 DOM 文本或 model API 代替。没有升级 Monaco/DOMPurify，真实 CDN、移动端与生产验收继续开放。
