@@ -219,7 +219,7 @@ func TestSmokeRunsAllBackendsAndRollbackWithImmutableFixtures(t *testing.T) {
 	wf := readWorkflow(t, "isolated-image-smoke.yml")
 	smoke := wf.Jobs["smoke"]
 	for variable, repository := range map[string]string{
-		"OLD_IMAGE": "martialbe/one-api", "MYSQL_IMAGE": "mysql", "REDIS_IMAGE": "redis",
+		"OLD_IMAGE": "martialbe/one-api", "MYSQL_IMAGE": "mysql", "POSTGRES_IMAGE": "postgres", "REDIS_IMAGE": "redis",
 	} {
 		require.Regexp(t, "^"+regexp.QuoteMeta(repository)+"@sha256:[a-f0-9]{64}$", smoke.Env[variable])
 	}
@@ -234,19 +234,19 @@ func TestSmokeRunsAllBackendsAndRollbackWithImmutableFixtures(t *testing.T) {
 			order = append(order, item.ID)
 		}
 	}
-	require.Equal(t, []string{"fixtures", "sqlite", "mysql_redis", "upgrade"}, order)
+	require.Equal(t, []string{"fixtures", "sqlite", "mysql_redis", "postgres_redis", "upgrade"}, order)
 	for _, id := range order {
 		require.Positive(t, steps[id].TimeoutMinutes)
 		require.NotContains(t, steps[id].Run, "|| true")
 	}
 	fixtures := steps["fixtures"].Run
 	require.Contains(t, fixtures, "set -euo pipefail")
-	require.Contains(t, fixtures, "for variable in OLD_IMAGE MYSQL_IMAGE REDIS_IMAGE")
+	require.Contains(t, fixtures, "for variable in OLD_IMAGE MYSQL_IMAGE POSTGRES_IMAGE REDIS_IMAGE")
 	require.Contains(t, fixtures, `docker pull --platform linux/amd64 "$reference"`)
 	require.Contains(t, fixtures, `docker image inspect --format '{{.Id}}' "$reference"`)
 	require.Contains(t, fixtures, `docker image inspect --format '{{.Id}}' "onehub-isolated-smoke:$SOURCE_SHA"`)
 	require.Contains(t, fixtures, `CANDIDATE_IMAGE_ID=%s`)
-	for _, id := range []string{"sqlite", "mysql_redis"} {
+	for _, id := range []string{"sqlite", "mysql_redis", "postgres_redis"} {
 		require.Contains(t, steps[id].Run, "python3 .github/smoke/run.py")
 		require.Contains(t, steps[id].Run, `--image "onehub-isolated-smoke:$SOURCE_SHA"`)
 		require.Contains(t, steps[id].Run, `--version "v0.0.0-smoke-$SOURCE_SHA"`)
@@ -257,6 +257,9 @@ func TestSmokeRunsAllBackendsAndRollbackWithImmutableFixtures(t *testing.T) {
 		require.Contains(t, steps[id].Run, `--mysql-image "$MYSQL_IMAGE_ID"`)
 		require.Contains(t, steps[id].Run, `--redis-image "$REDIS_IMAGE_ID"`)
 	}
+	require.Contains(t, steps["postgres_redis"].Run, "--backend postgres-redis")
+	require.Contains(t, steps["postgres_redis"].Run, `--postgres-image "$POSTGRES_IMAGE_ID"`)
+	require.Contains(t, steps["postgres_redis"].Run, `--redis-image "$REDIS_IMAGE_ID"`)
 	upgrade := steps["upgrade"].Run
 	require.Contains(t, upgrade, "python3 .github/smoke/upgrade.py")
 	require.Contains(t, upgrade, `--old-image "$OLD_IMAGE_ID"`)

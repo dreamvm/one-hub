@@ -5,10 +5,44 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from run import SIGNATURES, NAMES, MySQLRedis, assert_paid_accounting, check_tools, parse_chat, start_container, validate_backend
+from run import SIGNATURES, NAMES, MySQLRedis, PostgreSQLRedis, assert_paid_accounting, check_tools, parse_chat, start_container, validate_backend
 
 
 class StreamValidationTests(unittest.TestCase):
+    def test_postgres_redis_rejects_mutable_or_missing_images(self):
+        pinned = "sha256:" + "a" * 64
+        for invalid in (None, "postgres:18", "redis:latest", "sha256:123", "existing-postgres"):
+            for postgres, redis in ((invalid, pinned), (pinned, invalid)):
+                with self.assertRaises(AssertionError):
+                    validate_backend(SimpleNamespace(backend="postgres-redis", postgres_image=postgres, redis_image=redis))
+        validate_backend(SimpleNamespace(backend="postgres-redis", postgres_image=pinned, redis_image=pinned))
+
+    def test_postgres_redis_isolates_data_and_uses_tcp_sql_errors(self):
+        pinned = "sha256:" + "a" * 64
+        args = SimpleNamespace(postgres_image=pinned, redis_image=pinned)
+        created = []
+        with tempfile.TemporaryDirectory() as tmp, patch("run.command") as command, \
+                patch("run.start_container") as start, patch.object(PostgreSQLRedis, "wait_ready"):
+            backend = PostgreSQLRedis(args, "onehub-smoke-test", Path(tmp),
+                                      ["--network", "onehub-smoke-test-net", "--cap-drop", "ALL"], created)
+            self.assertEqual(created, [("volume", "onehub-smoke-test-postgres-data")])
+            self.assertEqual(start.call_count, 2)
+            for call in start.call_args_list:
+                name, options, tracked = call.args
+                self.assertTrue(name.startswith("onehub-smoke-test-"))
+                self.assertIs(tracked, created)
+                self.assertNotIn("-p", options)
+                self.assertNotIn("--publish", options)
+                self.assertIn("--memory", options)
+                self.assertIn("--cpus", options)
+                self.assertIn("999:999", options)
+            self.assertIn("type=volume,source=onehub-smoke-test-postgres-data,target=/var/lib/postgresql", start.call_args_list[0].args[1])
+            self.assertTrue(any("@database:5432/onehub_smoke?sslmode=disable" in value for value in backend.environment()))
+            backend.sql("SELECT 1;")
+            self.assertIn("--host=127.0.0.1", command.call_args.args)
+            self.assertIn("--set=ON_ERROR_STOP=1", command.call_args.args)
+            self.assertEqual(command.call_args.kwargs["input_text"], "SELECT 1;")
+
     def test_paid_control_preserves_limited_and_unlimited_accounting(self):
         before = (100, 10, 1, 10, 1)
         assert_paid_accounting(before, (95, 15, 2, 15, 2), False)

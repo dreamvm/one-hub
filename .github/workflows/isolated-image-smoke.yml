@@ -27,6 +27,7 @@ jobs:
       # Public, immutable fixtures: One Hub v0.14.27, MySQL 8.2.0, Redis 8.8.0.
       OLD_IMAGE: martialbe/one-api@sha256:a498510e4b847ce59514c60463d505492fc0b627fa278703dba67be7839ae8a7
       MYSQL_IMAGE: mysql@sha256:212fe73edca5df6ff14826d5eb975c914bfb91f82a2e923f9050568f99525da1
+      POSTGRES_IMAGE: postgres@sha256:41fc5342eefba6cc2ccda736aaf034bbbb7c3df0fdb81516eba1ba33f360162c
       REDIS_IMAGE: redis@sha256:2838d5524559494f6f1cd66e97e76b200d64a633a8614200620755ed395daf32
     steps:
       - name: Check out the tested revision
@@ -65,7 +66,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for variable in OLD_IMAGE MYSQL_IMAGE REDIS_IMAGE; do
+          for variable in OLD_IMAGE MYSQL_IMAGE POSTGRES_IMAGE REDIS_IMAGE; do
             reference="${!variable}"
             docker pull --platform linux/amd64 "$reference"
             image_id="$(docker image inspect --format '{{.Id}}' "$reference")"
@@ -96,6 +97,18 @@ jobs:
             --version "v0.0.0-smoke-$SOURCE_SHA" \
             --backend mysql-redis \
             --mysql-image "$MYSQL_IMAGE_ID" \
+            --redis-image "$REDIS_IMAGE_ID"
+
+      - name: Run isolated PostgreSQL and Redis business checks
+        id: postgres_redis
+        timeout-minutes: 6
+        run: |
+          python3 .github/smoke/run.py \
+            --image "onehub-isolated-smoke:$SOURCE_SHA" \
+            --mock-binary "$RUNNER_TEMP/onehub-mock" \
+            --version "v0.0.0-smoke-$SOURCE_SHA" \
+            --backend postgres-redis \
+            --postgres-image "$POSTGRES_IMAGE_ID" \
             --redis-image "$REDIS_IMAGE_ID"
 
       - name: Rehearse upgrade and both rollback paths
