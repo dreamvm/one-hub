@@ -161,11 +161,12 @@ def wait_ready(client):
 
 
 def validate_backend(args):
-    require(args.backend in ("sqlite", "mysql-redis"), "unsupported smoke backend")
-    if args.backend == "mysql-redis":
-        for image in (args.mysql_image, args.redis_image):
+    require(args.backend in ("sqlite", "mysql-redis", "postgres-redis"), "unsupported smoke backend")
+    if args.backend != "sqlite":
+        database_image = args.mysql_image if args.backend == "mysql-redis" else args.postgres_image
+        for image in (database_image, args.redis_image):
             require(isinstance(image, str) and re.fullmatch(r"sha256:[a-f0-9]{64}", image),
-                    "MySQL/Redis require explicit local immutable image IDs; tags and remote pulls are not allowed")
+                    "Database/Redis require explicit local immutable image IDs; tags and remote pulls are not allowed")
 
 
 class MySQLRedis:
@@ -173,6 +174,7 @@ class MySQLRedis:
 
     def __init__(self, args, prefix, tmp, common, created):
         self.mysql, self.redis = prefix + "-mysql", prefix + "-redis"
+        self.database = self.mysql
         self.password, self.redis_password = secrets.token_hex(24), secrets.token_hex(24)
         volume = prefix + "-mysql-data"
         command("docker", "volume", "create", volume)
@@ -183,6 +185,10 @@ class MySQLRedis:
                         "-e", "MYSQL_ROOT_PASSWORD=" + secrets.token_hex(24), "-e", "MYSQL_DATABASE=onehub_smoke",
                         "-e", "MYSQL_USER=smoke", "-e", "MYSQL_PASSWORD=" + self.password,
                         args.mysql_image, "--innodb-buffer-pool-size=128M", "--max-connections=30"], created)
+        self.start_redis(args, tmp, common, created)
+        self.wait_ready()
+
+    def start_redis(self, args, tmp, common, created):
         config = tmp / "redis.conf"
         config.write_text('bind 0.0.0.0\nprotected-mode yes\nsave ""\nappendonly no\nmaxmemory 64mb\n'
                           'maxmemory-policy noeviction\nrequirepass ' + self.redis_password + '\n', encoding="utf-8")
@@ -191,7 +197,6 @@ class MySQLRedis:
                         "--memory", "128m", "--cpus", "0.25", "--tmpfs", "/data:rw,nosuid,size=16m,uid=999,gid=999",
                         "--mount", f"type=bind,source={config},target=/fixture-redis.conf,readonly",
                         args.redis_image, "redis-server", "/fixture-redis.conf"], created)
-        self.wait_ready()
 
     def sql(self, query, check=True):
         return command("docker", "exec", "-i", "-e", "MYSQL_PWD=" + self.password, self.mysql,
@@ -210,7 +215,7 @@ class MySQLRedis:
             if sql.returncode == 0 and sql.stdout.strip() == "1" and cache.stdout.strip() == "PONG":
                 return
             time.sleep(1)
-        raise RuntimeError("isolated MySQL/Redis did not become ready")
+        raise RuntimeError("isolated database/Redis did not become ready")
 
     def environment(self):
         return ["-e", f"SQL_DSN=smoke:{self.password}@tcp(database:3306)/onehub_smoke?charset=utf8mb4&parseTime=True&loc=Local",
@@ -219,16 +224,46 @@ class MySQLRedis:
 
     def assert_used(self, channel_count=3):
         # Counts only: do not print test tokens or session contents.
-        require(int(self.sql("SELECT COUNT(*) FROM users;").stdout.strip()) >= 2, "users not persisted in MySQL")
-        require(int(self.sql("SELECT COUNT(*) FROM channels;").stdout.strip()) == channel_count, "channels not persisted in MySQL")
+        require(int(self.sql("SELECT COUNT(*) FROM users;").stdout.strip()) >= 2, "users not persisted in database")
+        require(int(self.sql("SELECT COUNT(*) FROM channels;").stdout.strip()) == channel_count, "channels not persisted in database")
         require(int(self.cache("DBSIZE").stdout.strip()) > 0, "Redis cache remained empty")
         stats = dict(line.split(":", 1) for line in self.cache("INFO", "stats").stdout.splitlines() if ":" in line)
         require(int(stats.get("keyspace_hits", "0")) > 0, "Redis was configured but cache hits were not observed")
 
     def restart(self):
-        for name in (self.mysql, self.redis):
+        for name in (self.database, self.redis):
             command("docker", "restart", "--time", "15", name)
         self.wait_ready()
+
+
+class PostgreSQLRedis(MySQLRedis):
+    """Same business checks as MySQL, with an isolated PostgreSQL 18 cluster."""
+
+    def __init__(self, args, prefix, tmp, common, created):
+        self.database, self.redis = prefix + "-postgres", prefix + "-redis"
+        self.password, self.redis_password = secrets.token_hex(24), secrets.token_hex(24)
+        volume = prefix + "-postgres-data"
+        command("docker", "volume", "create", volume)
+        created.append(("volume", volume))
+        start_container(self.database, [*common, "--user", "999:999", "--network-alias", "database",
+                        "--memory", "1g", "--cpus", "1", "--mount", f"type=volume,source={volume},target=/var/lib/postgresql",
+                        "--tmpfs", "/var/run/postgresql:rw,nosuid,size=16m,uid=999,gid=999",
+                        "-e", "POSTGRES_DB=onehub_smoke", "-e", "POSTGRES_USER=smoke",
+                        "-e", "POSTGRES_PASSWORD=" + self.password, "-e", "PGDATA=/var/lib/postgresql/18/docker",
+                        args.postgres_image, "-c", "shared_buffers=128MB", "-c", "max_connections=30"], created)
+        self.start_redis(args, tmp, common, created)
+        self.wait_ready()
+
+    def sql(self, query, check=True):
+        return command("docker", "exec", "-i", "-e", "PGPASSWORD=" + self.password, self.database,
+                       "psql", "--no-psqlrc", "--host=127.0.0.1", "--username=smoke", "--dbname=onehub_smoke",
+                       "--tuples-only", "--no-align", "--field-separator=\t", "--set=ON_ERROR_STOP=1",
+                       check=check, input_text=query)
+
+    def environment(self):
+        return ["-e", f"SQL_DSN=postgres://smoke:{self.password}@database:5432/onehub_smoke?sslmode=disable",
+                "-e", f"REDIS_CONN_STRING=redis://:{self.redis_password}@cache:6379/0",
+                "-e", "SYNC_FREQUENCY=600", "-e", "REDIS_DB=0"]
 
 
 def redis_failure_checks(backend, user, token, user_id, mock, passed):
@@ -337,9 +372,10 @@ def run(args):
             command("docker", "volume", "create", volume)
             created.append(("volume", volume))
             common = ["--network", network, "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--pids-limit", "256", "--read-only", "--tmpfs", "/tmp:rw,noexec,nosuid,size=64m"]
-            if args.backend == "mysql-redis":
-                backend = MySQLRedis(args, prefix, tmp, common, created)
-                passed("isolated authenticated MySQL/Redis startup, fresh data volume and resource limits")
+            if args.backend != "sqlite":
+                backend_type = MySQLRedis if args.backend == "mysql-redis" else PostgreSQLRedis
+                backend = backend_type(args, prefix, tmp, common, created)
+                passed(f"isolated authenticated {args.backend} startup, fresh data volume and resource limits")
             # Both containers use the actual built image. Only the mock entrypoint differs.
             start_container(mock, [*common, "--user", f"{os.getuid()}:{os.getgid()}",
                     "--network-alias", "mock-provider", "--memory", "128m", "--cpus", "0.25",
@@ -435,7 +471,7 @@ def run(args):
             passed("ordinary-user chat/tools with admin access denied")
             if backend:
                 backend.assert_used(channel_count=4)
-                passed("MySQL user/channel persistence and verified Redis cache hits")
+                passed(f"{args.backend} user/channel persistence and verified Redis cache hits")
                 redis_failure_checks(backend, user, user_token, user_info["id"], mock, passed)
                 command("docker", "stop", "--time", "10", gateway)
                 backend.restart()
@@ -447,7 +483,7 @@ def run(args):
             login.api("/api/user/login", {"username": "root", "password": password})
             require(chat(user, user_token, "openai-smoke", False)["content"] == "中文对话成功", "persisted user/token/channel failed after restart")
             if backend:
-                # Redis has persistence disabled. A restarted empty cache must refill from MySQL.
+                # Redis has persistence disabled. A restarted empty cache must refill from the database.
                 check_tools(chat(user, user_token, "gemini-smoke", True, initial, tools))
                 backend.assert_used(channel_count=4)
             passed(f"restart persistence: {args.backend}, changed password, users, tokens and channels")
@@ -494,7 +530,8 @@ if __name__ == "__main__":
     parser.add_argument("--image", required=True)
     parser.add_argument("--mock-binary", type=Path, required=True)
     parser.add_argument("--version", required=True)
-    parser.add_argument("--backend", choices=("sqlite", "mysql-redis"), default="sqlite")
+    parser.add_argument("--backend", choices=("sqlite", "mysql-redis", "postgres-redis"), default="sqlite")
     parser.add_argument("--mysql-image", help="Preloaded immutable MySQL image ID; mysql user must have UID 999")
+    parser.add_argument("--postgres-image", help="Preloaded immutable PostgreSQL 18 image ID; postgres user must have UID 999")
     parser.add_argument("--redis-image", help="Preloaded immutable Redis image ID; redis user must have UID 999")
     run(parser.parse_args())
