@@ -3,9 +3,11 @@ import { SET_THEME } from 'store/actions';
 import { useTheme } from '@mui/material/styles';
 import { Avatar, Box, ButtonBase } from '@mui/material';
 import { Icon } from '@iconify/react';
+import { useTranslation } from 'react-i18next';
 
 export default function ThemeButton() {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
 
   const defaultTheme = useSelector((state) => state.customization.theme);
 
@@ -21,7 +23,16 @@ export default function ThemeButton() {
         }
       }}
     >
-      <ButtonBase sx={{ borderRadius: '12px' }}>
+      <ButtonBase
+        type="button"
+        aria-label={t(defaultTheme === 'light' ? 'theme.switchToDark' : 'theme.switchToLight')}
+        sx={{ borderRadius: '12px' }}
+        onClick={() => {
+          const nextTheme = defaultTheme === 'light' ? 'dark' : 'light';
+          dispatch({ type: SET_THEME, theme: nextTheme });
+          localStorage.setItem('theme', nextTheme);
+        }}
+      >
         <Avatar
           variant="rounded"
           sx={{
@@ -39,11 +50,6 @@ export default function ThemeButton() {
               backgroundColor: 'transparent',
               borderRadius: '50%'
             }
-          }}
-          onClick={() => {
-            let theme = defaultTheme === 'light' ? 'dark' : 'light';
-            dispatch({ type: SET_THEME, theme: theme });
-            localStorage.setItem('theme', theme);
           }}
           color="inherit"
         >

@@ -1,4 +1,8 @@
 {
+  "theme": {
+    "switchToDark": "切换为深色主题",
+    "switchToLight": "切换为浅色主题"
+  },
   "dashboard": "仪表盘",
   "analytics": "分析",
   "systemInfo": "系统信息",

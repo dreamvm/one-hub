@@ -1,4 +1,8 @@
 {
+  "theme": {
+    "switchToDark": "ダークテーマに切り替える",
+    "switchToLight": "ライトテーマに切り替える"
+  },
   "System Logs": "システムログ",
   "view_more_logs_on_server": "より多くのシステムログを表示するには、サーバーにアクセスしてください",
   "systemInfo": "システム情報",
