@@ -124,7 +124,7 @@ func (r *RelayModeChatRealtime) getProvider() bool {
 		} else {
 			r.providerConn.Close()
 			usage := r.usage.ToChatUsage()
-			if usage.HasTokenUsage() {
+			if usage.HasTokenUsage() || r.quota.NeedsRealtimeReconciliation() {
 				r.quota.Consume(r.c, usage, false)
 				r.abortWithMessage(err.Error())
 				return false
@@ -160,6 +160,14 @@ func (r *RelayModeChatRealtime) getRealtimeFirstMessage() error {
 		return errors.New("unexpected realtime initial message")
 	}
 	shouldContinue, usage, newMessage, err := r.messageHandler(requester.SupplierMessage, messageType, firstMessage)
+	// Capture unknown accounting even when the completion itself is rejected.
+	if usage != nil && usage.MissingUsage {
+		usageErr := r.usageHandler(usage)
+		usage = nil
+		if err == nil {
+			err = usageErr
+		}
+	}
 	if err != nil {
 		return err
 	}

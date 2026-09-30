@@ -890,3 +890,19 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - 后续独立首帧修复见 [REALTIME_FIRST_USAGE.md](REALTIME_FIRST_USAGE.md)，从上述已合并 main 交付。旧版 9 个失败/3 个正常对照，候选 12 场景及 5 个内部表示控制通过；相关 39 个叶子、规定离线与受影响包 race、策略、vet、编译通过。首帧已报告明细用量时停止退款重试；无效计价保留预留，免费计费语义不变。
 - 全新只读调查完成；新建候选审阅者遭工具线程数上限，使用未参与本项实现的既有审阅者执行一次独立只读审阅，复核旧新对照、模型与用量算术后未发现阻断项。上下文复用的流程限制保留，不声称 fresh-context 审阅。四文件补丁 SHA-256 `445f665d89cc90d9283e6e0eecaec25a1b276dbb4a2cc1c9c1d2c532407c4b32`，更新基线未改变补丁。
 - 首帧候选的准确 CI、PR 与合并尚待完成；缺失用量、运行中崩溃恢复、历史歧义金额等未关闭。RC8 仍未创建标签，未发布或部署。
+
+### Realtime 首帧修复合并与缺失用量恢复位置
+
+- PR #74 合并后 main 的 [36778589455](https://github.com/dreamvm/one-hub/actions/runs/36778589455) 已通过。
+- 首帧修复 [PR #75](https://github.com/dreamvm/one-hub/pull/75) head `4819089f9f514975a46d64d0d0c79220b287d500` 已合并为 `8351770c6eb044f45be0fc3eb3faf3aff27ba49f`。候选、合成、本地计算及实际合并树均为 `0dc9b65293f11f215a5f603b1b1d92b9adf1ad64`；[36778738593](https://github.com/dreamvm/one-hub/actions/runs/36778738593) / [36778739287](https://github.com/dreamvm/one-hub/actions/runs/36778739287) 全 9 项通过。合并后 main 检查仍待核对。
+- 48 个隔离业务/升级回滚 PASS 和 4 种 Compose 启动通过。最终 runner 镜像 `sha256:e4935127c30e0397ecee14019a0e06c3bdc138c21e314cfee8ffe75f423ddd64` 的实际程序为 Go1.25.14 / one-api / linux/amd64 / CGO1，binary SHA256 `67ca3a8acf27592625810a9401ab9e4dda1bada6c9adc82ec8cc02e615c2c415`；未发布。审阅者上下文复用限制见前节，不因 CI 通过而删除。
+- 下一独立分支 `codex/realtime-missing-usage`：源码与只读独立调查确认，供应商 `response.done` 缺失/null usage 会跳过计费回调，最终以零或部分累计生成确定终局。临时副本的首帧和已有正累计后缺失/null 共 4 个场景失败；显式 `{}` 零用量、完整用量、无工作握手 3 个对照通过。调查复用未参与本项的既有 agent 上下文，保留容量限制说明。
+- 当前只保留失败回归与已知边界，尚无缺失用量修复。下一步是供应商专有未知标记、停止重试及持久待核对证据；不得把部分金额写成最终费用，也不得把未知记录交给自动终局恢复。通用异常断连、运行中崩溃窗口和历史核销仍需各自证据。
+
+### Realtime 缺失用量候选
+
+- PR #75 合并后 main [36780297419](https://github.com/dreamvm/one-hub/actions/runs/36780297419) 已成功，更新前节待核对状态。
+- 已实现供应商专有缺失报告标记、停止重试及 `reconcile` 待核对状态，详见 [REALTIME_MISSING_USAGE.md](REALTIME_MISSING_USAGE.md)。保留预留和已知部分证据，不写成最终消费/退款，不进入自动终局恢复。
+- fresh-context 独立审阅发现 response 整体缺失/null 的提前报错绕过；父任务复现 4 个失败、3 个控制通过后修正，原 `invalid_response` 保留。最终 94 个专项叶子、规定回归、vet、编译通过。审阅后修改未独立复审的单次周期限制见专项文档。
+- 当前尚未创建 PR、未完成准确候选 CI 或合并。新增列的 MySQL/PostgreSQL 迁移、通用异常结束、运行中崩溃和历史核对仍待各自证据；本地通过不等于交付完成。RC8 仍只预留。
+- 后续 [PR #76](https://github.com/dreamvm/one-hub/pull/76) 首候选 `f7690802` 的 CI 在 PostgreSQL 迁移夹具失败：同一池删列再加列留下旧 `SELECT *` 执行计划。SQLite/MySQL 及其余检查通过；已修正夹具为旧结构建立后新连接迁移，全部准确候选 CI 需重跑，未合并。

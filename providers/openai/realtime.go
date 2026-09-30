@@ -67,10 +67,13 @@ func (p *OpenAIProvider) HandleMessage(source requester.MessageSource, messageTy
 	// 处理响应完成事件
 	if event.Type == types.EventTypeResponseDone {
 		if event.Response == nil {
-			return false, nil, nil, types.NewErrorEvent("", "invalid_response", "invalid_event", "realtime response.done is missing response")
+			return false, &types.UsageEvent{MissingUsage: true}, nil, types.NewErrorEvent("", "invalid_response", "invalid_event", "realtime response.done is missing response")
 		}
 		if event.Response.Usage != nil {
 			event.Response.Usage.ResponseID = event.Response.ID
+		} else {
+			// Keep an absent report distinct from an explicit zero usage object.
+			return true, &types.UsageEvent{ResponseID: event.Response.ID, MissingUsage: true}, nil, nil
 		}
 		return true, event.Response.Usage, nil, nil
 	}

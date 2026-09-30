@@ -16,12 +16,14 @@ import (
 )
 
 const (
-	QuotaReservationReserved = "reserved"
-	QuotaReservationPending  = "pending"
-	QuotaReservationConsumed = "consumed"
-	QuotaReservationRefunded = "refunded"
-	QuotaOutcomeConsume      = "consume"
-	QuotaOutcomeRefund       = "refund"
+	QuotaReservationReserved  = "reserved"
+	QuotaReservationPending   = "pending"
+	QuotaReservationConsumed  = "consumed"
+	QuotaReservationRefunded  = "refunded"
+	QuotaReservationReconcile = "reconcile"
+	QuotaOutcomeConsume       = "consume"
+	QuotaOutcomeRefund        = "refund"
+	QuotaOutcomeReconcile     = "reconcile"
 )
 
 var ErrQuotaReservationConflict = errors.New("quota reservation operation conflicts with persisted state")
@@ -47,6 +49,7 @@ type QuotaReservation struct {
 	Outcome               string                   `json:"outcome" gorm:"type:varchar(16)"`
 	FinalQuota            int                      `json:"final_quota"`
 	TerminalLog           string                   `json:"-" gorm:"type:text"`
+	ReconciliationData    string                   `json:"-" gorm:"type:text"`
 	RecordLog             bool                     `json:"record_log"`
 	CreatedAt             int64                    `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt             int64                    `json:"updated_at" gorm:"autoUpdateTime"`
@@ -56,10 +59,11 @@ type QuotaReservation struct {
 }
 
 type QuotaTerminal struct {
-	Outcome   string
-	Quota     int
-	Log       *Log
-	RecordLog bool
+	Outcome        string
+	Quota          int
+	Log            *Log
+	RecordLog      bool
+	Reconciliation *QuotaReconciliation
 }
 
 // A real write acquires the row lock before reading it on all three engines.
@@ -147,6 +151,9 @@ type quotaTerminalSnapshot struct {
 var quotaTerminalRetries sync.Map
 
 func snapshotQuotaTerminal(terminal QuotaTerminal) (quotaTerminalSnapshot, error) {
+	if terminal.Outcome == QuotaOutcomeReconcile {
+		return snapshotQuotaReconciliation(terminal)
+	}
 	if terminal.Quota < 0 || (terminal.Outcome != QuotaOutcomeConsume && terminal.Outcome != QuotaOutcomeRefund) || (terminal.Outcome == QuotaOutcomeRefund && terminal.Quota != 0) {
 		return quotaTerminalSnapshot{}, errors.New("invalid quota terminal intent")
 	}
@@ -197,10 +204,16 @@ func prepareQuotaTerminal(ctx context.Context, id string, terminal quotaTerminal
 			return err
 		}
 		if receipt.State != QuotaReservationReserved {
+			if terminal.Outcome == QuotaOutcomeReconcile && receipt.State == QuotaReservationReconcile && receipt.ReconciliationData == terminal.Payload {
+				return nil
+			}
 			if receipt.Outcome == terminal.Outcome && receipt.FinalQuota == terminal.Quota {
 				return nil
 			}
 			return ErrQuotaReservationConflict
+		}
+		if terminal.Outcome == QuotaOutcomeReconcile {
+			return tx.Model(receipt).Updates(map[string]any{"state": QuotaReservationReconcile, "reconciliation_data": terminal.Payload, "failure_code": "realtime_missing_usage", "updated_at": time.Now().Unix()}).Error
 		}
 		return tx.Model(receipt).Updates(map[string]any{"state": QuotaReservationPending, "outcome": terminal.Outcome, "final_quota": terminal.Quota, "terminal_log": terminal.Payload, "record_log": terminal.RecordLog, "failure_code": "", "updated_at": time.Now().Unix()}).Error
 	})
