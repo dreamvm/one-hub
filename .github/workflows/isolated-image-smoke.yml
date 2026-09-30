@@ -40,7 +40,7 @@ jobs:
       - name: Set up Go for the offline mock upstream
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: '1.25.x'
+          go-version: '1.25.14'
           cache: true
       - name: Compile the synthetic mock upstream
         env:
@@ -76,6 +76,19 @@ jobs:
           candidate_id="$(docker image inspect --format '{{.Id}}' "onehub-isolated-smoke:$SOURCE_SHA")"
           [[ "$candidate_id" =~ ^sha256:[a-f0-9]{64}$ ]]
           printf 'CANDIDATE_IMAGE_ID=%s\n' "$candidate_id" >> "$GITHUB_ENV"
+
+      - name: Verify the final candidate compiler identity
+        id: toolchain
+        timeout-minutes: 2
+        shell: bash
+        run: |
+          set -euo pipefail
+          container_id="$(docker create --network none "$CANDIDATE_IMAGE_ID")"
+          trap 'docker rm -f "$container_id" >/dev/null' EXIT
+          docker cp "$container_id:/one-api" "$RUNNER_TEMP/onehub-candidate"
+          go run ./.github/smoke/buildinfo \
+            -binary "$RUNNER_TEMP/onehub-candidate" \
+            -go-version go1.25.14 -goarch amd64
 
       - name: Run isolated SQLite checks
         id: sqlite
