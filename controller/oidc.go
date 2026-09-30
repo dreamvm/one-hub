@@ -3,10 +3,13 @@ package controller
 import (
 	"context"
 	"errors"
+	"net/http"
+	"strings"
+
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"net/http"
+
 	"one-api/common/config"
 	"one-api/common/logger"
 	"one-api/common/oidc"
@@ -52,7 +55,7 @@ func OIDCEndpoint(c *gin.Context) {
 }
 
 // OIDCAuth 通过OIDC登录
-// 首先通过OIDC ID进行登录、如果登录失败尝试使用USERNAME 进行登录（遵循用户禁用条件），如果OIDC ID和USERNAME都不存在则注册新用户（遵循是否开启注册功能条件）
+// 已绑定 subject 可登录；未知 subject 只能注册未占用的用户名，不自动关联已有账号。
 func OIDCAuth(c *gin.Context) {
 	if !config.OIDCAuthEnabled {
 		c.JSON(http.StatusOK, gin.H{
@@ -65,7 +68,8 @@ func OIDCAuth(c *gin.Context) {
 	// 验证state参数
 	session := sessions.Default(c)
 	state := c.Query("state")
-	if state == "" || session.Get("oauth_state") == nil || state != session.Get("oauth_state").(string) {
+	expectedState, validState := session.Get("oauth_state").(string)
+	if state == "" || !validState || state != expectedState {
 		c.JSON(http.StatusForbidden, gin.H{
 			"success": false,
 			"message": "state is empty or not same",
@@ -94,7 +98,12 @@ func OIDCAuth(c *gin.Context) {
 	}
 
 	// 验证ID Token
-	idToken, err := oidcConfig.Verifier.Verify(ctx, token.Extra("id_token").(string))
+	rawIDToken, validToken := token.Extra("id_token").(string)
+	if !validToken || strings.TrimSpace(rawIDToken) == "" {
+		c.String(http.StatusBadRequest, "Missing or invalid ID token")
+		return
+	}
+	idToken, err := oidcConfig.Verifier.Verify(ctx, rawIDToken)
 	if err != nil {
 		c.String(http.StatusBadRequest, "Failed to verify ID token: %v", err)
 		return
@@ -117,8 +126,8 @@ func OIDCAuth(c *gin.Context) {
 	}
 
 	// 获取用户名
-	userName, ok := claims[config.OIDCUsernameClaims]
-	if !ok || userName == nil {
+	userName, ok := claims[config.OIDCUsernameClaims].(string)
+	if !ok || strings.TrimSpace(userName) == "" {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "用户没有OIDC登录权限",
 			"success": false,
@@ -128,12 +137,17 @@ func OIDCAuth(c *gin.Context) {
 
 	// 初始化用户对象
 	user := model.User{
-		Username: userName.(string),
+		Username: userName,
 		OidcId:   idToken.Subject,
 	}
 
 	// 尝试通过OIDCid查询用户
 	if err = user.FillUserByOidcId(); err == nil {
+		// SQL collations may equate distinct case-sensitive OIDC subjects.
+		if user.OidcId != idToken.Subject {
+			c.JSON(http.StatusOK, gin.H{"success": false, "message": "OIDC身份不匹配"})
+			return
+		}
 		if user.Status == config.UserStatusEnabled {
 			setupLogin(&user, c)
 			return
@@ -156,24 +170,9 @@ func OIDCAuth(c *gin.Context) {
 	}
 
 	if err = user.FillUserByUsername(); err == nil {
-		if user.Status == config.UserStatusEnabled {
-			// 如果通过用户名查询用户成功、则补全用户OIDC ID并且登录
-			user.OidcId = idToken.Subject
-			ok := user.Update(false)
-			if ok != nil {
-				c.JSON(http.StatusOK, gin.H{
-					"message": ok.Error(),
-					"success": false,
-				})
-				return
-			}
-			setupLogin(&user, c)
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{
-			"message": "用户已被封禁或不存在",
-			"success": false,
-		})
+		// A username claim is profile data, not proof of control over a local
+		// account. Only the already-bound subject above may log in that account.
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "用户名已存在，无法自动关联OIDC账号"})
 		return
 	}
 
@@ -206,16 +205,20 @@ func OIDCAuth(c *gin.Context) {
 		user.InviterId = inviterId
 	}
 	// 填充用户信息并创建账户
-	user.Username = userName.(string)
-	if email, ok := claims["email"]; ok && email != nil {
-		user.Email = email.(string)
+	user.Username = userName
+	for claim, target := range map[string]*string{"email": &user.Email, "displayName": &user.DisplayName, "avatar": &user.AvatarUrl} {
+		value, present := claims[claim]
+		if !present || value == nil {
+			continue
+		}
+		text, valid := value.(string)
+		if !valid {
+			c.JSON(http.StatusOK, gin.H{"success": false, "message": "OIDC用户资料格式无效"})
+			return
+		}
+		*target = text
 	}
-	if displayName, ok := claims["displayName"]; ok && displayName != nil {
-		user.DisplayName = displayName.(string)
-	}
-	if avatarUrl, ok := claims["avatar"]; ok && avatarUrl != nil {
-		user.AvatarUrl = avatarUrl.(string)
-	}
+
 	user.OidcId = idToken.Subject
 	user.Role = config.RoleCommonUser
 	user.Status = config.UserStatusEnabled
