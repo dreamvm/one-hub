@@ -76,3 +76,24 @@ Monaco 内嵌 3.4.15 不能由单独覆盖传递依赖替换，因此保留公�
 
 回滚应同时回退集成模块、三个 import 和两个依赖条目。回退会恢复旧 CDN 版本脱节，
 不能当作安全边界继续有效。没有创建标签、发布镜像、部署或真实付费调用。
+
+## 合并验收
+
+上述候选随后以 [PR #70](https://github.com/dreamvm/one-hub/pull/70) 交付。
+准确 head `6e84fdf0663dafba4af65a30840620e5a3d29b7c` 的
+[兼容性 CI](https://github.com/dreamvm/one-hub/actions/runs/36766394971) /
+[隔离镜像 CI](https://github.com/dreamvm/one-hub/actions/runs/36766395689) 全 9 项成功。
+实际合并 `4603ed139c3be1353e99c7260b70dd97a314670b`；候选、GitHub 合成、
+最新 main 计算与实际合并树均为 `0e49356a2e26252ee7b055057561edd499814344`。
+
+Linux CI 前端 94 个依赖叶子及 62 项 Vitest、lint/build 通过。三数据库各 284 个测试
+节点、245 个事务叶子；后端 smoke 9/16/16 条及升级/两条回滚 7 条，共 48 个 PASS；
+4 种 Compose 实际启动通过。最终 runner 镜像
+`sha256:afe588d7751dbee37a873ba534fac26d97dce09116ea3ddb72f8a26928a3dad7`
+内实际程序为 Go1.25.14 / one-api / linux/amd64 / CGO_ENABLED=1，binary SHA256
+`af8b992c783fc5a8a232943d81566bc96fc6a5a2ddfb13c8da66148f1c880783`。
+镜像仅供隔离验收，未发布、部署或进行真实付费调用。前述单次审阅覆盖限制与未验证项
+仍有效，不因 CI 成功扩大结论。
+
+合并后准确 main 提交的 [36768041402](https://github.com/dreamvm/one-hub/actions/runs/36768041402)
+亦已成功。
