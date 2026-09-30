@@ -231,10 +231,24 @@ class MySQLRedis:
         self.wait_ready()
 
 
+def assert_paid_accounting(before, after, unlimited):
+    cost = after[1] - before[1]
+    require(cost > 0 and before[0] - after[0] == cost, "recovered request quota mismatch")
+    require(after[2] == before[2] + 1, "recovered request count mismatch")
+    # Unlimited tokens intentionally retain their own quota counters; user accounting still applies.
+    token_cost = 0 if unlimited else cost
+    require(after[3] - before[3] == token_cost and after[4] == before[4] + 1,
+            "recovered request token/ledger mismatch")
+
+
 def redis_failure_checks(backend, user, token, user_id, mock, passed):
     """Fault only this run's synthetic Redis; verify database and upstream effects."""
     user_id = int(user_id)
     upstream = Client("http://mock-provider:8000", mock)
+    mode = backend.sql(f"SELECT CASE WHEN unlimited_quota THEN 1 ELSE 0 END FROM tokens "
+                       f"WHERE user_id={user_id} AND name='sys_playground';").stdout.strip()
+    require(mode in ("0", "1"), "expected exactly one playground token")
+    unlimited = mode == "1"
 
     def snapshot():
         query = (f"SELECT quota,used_quota,request_count,"
@@ -263,10 +277,7 @@ def redis_failure_checks(backend, user, token, user_id, mock, passed):
         while time.monotonic() < deadline:
             after = snapshot()
             if after[2] == before[2] + 1:
-                cost = after[1] - before[1]
-                require(cost > 0 and before[0] - after[0] == cost, "recovered request quota mismatch")
-                require(after[3] - before[3] == cost and after[4] == before[4] + 1,
-                        "recovered request token/ledger mismatch")
+                assert_paid_accounting(before, after, unlimited)
                 return
             time.sleep(0.1)
         raise AssertionError("recovered request did not settle exactly once")
