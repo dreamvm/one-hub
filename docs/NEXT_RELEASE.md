@@ -56,6 +56,7 @@ RC 是预发布候选，编号不代表质量验收。后续候选从 rc.8 起�
 | D6 | 邮件依赖的SMTP信封地址编码 | 引号/转义完整，普通地址、显示名称、TLS与失败回执保持 | [PR #54](https://github.com/dreamvm/one-hub/pull/54) 已合并，全9项CI、48项业务检查、四种Compose与三数据库验收通过 |
 | D7 | Bedrock上游EventStream解析崩溃 | 非法头和缺失异常类型返回错误，正常连续事件与合法头保持 | [PR #55](https://github.com/dreamvm/one-hub/pull/55) 已合并，全9项CI、48项业务检查、四种Compose与三数据库验收通过 |
 | D8 | gRPC接收分片对象放大 | 旧版有界复现，新版数据/EOF完整，IAM正常与错误语义保持 | [PR #57](https://github.com/dreamvm/one-hub/pull/57) 已合并，全9项CI、48项业务检查、四种Compose与三数据库验收通过 |
+| D9 | 顶层Vite开发服务器文件边界 | HTTP deny/query、WebSocket、sourcemap越界拒绝，合法开发流程保持 | 本地旧新对照、30项边界叶子/56项UI、lint/build通过；独立审阅与候选CI待完成，Windows原生验收仍开放，见 [VITE_DEV_BOUNDARY.md](VITE_DEV_BOUNDARY.md) |
 | 后续 D | 依赖/端到端/负载验收 | 固定 Fork 镜像；健康失败正确退出；三数据库及相关故障路径通过 | 待实施，阻断正式版 |
 | E1 | 主题按钮键盘操作和可访问名称 | 桌面/移动端深浅主题、Enter/空格/点击正常 | PR #49 已合并，全9项CI/48项业务/四种Compose与浏览器通过 |
 | E2 | 深色填充标签对比度 | 深浅主题文字可读，选择/删除交互正常 | PR #50 已合并，全9项CI/48项业务/四种Compose与浏览器通过 |
