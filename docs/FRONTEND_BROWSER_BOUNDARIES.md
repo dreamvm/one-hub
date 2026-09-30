@@ -48,8 +48,36 @@ Browser plugin 不可用，采用已有 Playwright CLI；未安装新浏览器�
 
 - 当前依赖公告、原生 Windows、Firefox/Safari、真实移动设备、生产端到端均未关闭。
 - `/jump`、配置中的聊天链接/OIDC endpoint 使用其他导航方式，不属于本节 React Router 结论。
-- Monaco/DOMPurify 目前只有源码与配置调查，实际编辑器加载、格式化、保存和 hover 浏览器证据待补。
+- Monaco/DOMPurify 的后续局部浏览器记录已恢复并核验，详见下节；完整键盘、移动端、hover 可见性与依赖修复仍未完成。
   单独升级 Yarn 中的 DOMPurify 不会替换 Monaco 内嵌副本或默认 CDN 加载的副本。
 - PostCSS 的独立 Vite map 加载器、Rollup 候选独立审阅及其余工具链/i18n CLI 依赖继续按各自边界处理。
 
 本批未创建 RC8 标签、发布镜像或部署。其他发布阻断项见 [NEXT_RELEASE.md](NEXT_RELEASE.md)。
+
+## Monaco：恢复的局部编辑器记录与未通过项
+
+接续时发现此前已执行但未进入台账的检查。记录的应用基线仍为 `34d36a13`，
+Chrome 154.0.8037.58、1440×1000、localhost 合成 API。接续核对确认三个编辑器
+源码与 Vite 配置未改变，15 个实际提供给浏览器的 Monaco 资源 SHA256 与本地
+0.55.1 包逐一相符；本节为已有证据恢复，不宣称重新执行了浏览器验收。
+
+默认 CDN URL 的资源请求被夹具用本地安装包字节响应；未验证真实 CDN 内容或生产网络。
+检查覆盖 EditModal 的额外参数、MapInput、ListInput，真实 React/Monaco 组件保持原样。
+
+- 三处 JSON 编辑器加载成功；通过公开 Monaco model API 放入合成 JSON，再用 UI 格式化
+  快捷键得到预期格式。MapInput 的畸形 JSON 和 ListInput 的对象输入保持对话框且未提交；
+  恢复合法数据后可继续。模拟渠道保存恰好产生一次 POST，映射、额外参数和禁用流式列表
+  与输入一致。HTML 形状的普通字符串作为文本保存，不是对全部 DOMPurify 公告的验证。
+- 深浅色截图与正常流程记录保留；记录中 pageerror 和 error/warning console 均为空。
+  Runtime JSON schema 列表为空且 `enableSchemaRequest=false`。没有加入远程 schema 或
+  自定义 Markdown/hover provider 来构造应用不存在的路径。
+- **键盘输入未通过完整验收**：隐藏 EditContext 的点击超时，keyboard.type/insertText
+  曾产生非预期模型内容；原因未确认。上述 model API 夹具不能代替真实用户键盘输入。
+- **诊断 hover 可见性未通过**：JSON 诊断文本已生成，但浮层在编辑器 `overflow:hidden`
+  容器边界外，截图未显示文字，中心点命中外部表单而非 hover。DOM 中存在文本不等于
+  用户能看到或操作浮层；该问题留在页面行为专项。
+
+没有升级 Monaco 或其内嵌 DOMPurify，也没有关闭其公告。仅升级独立传递 DOMPurify
+不会替换默认 CDN/预构建 Monaco 内嵌副本。移动端完整编辑、原生 Windows、Firefox/Safari、
+真实键盘、生产保存与最终端到端仍待完成。恢复的 JSON、请求/保存记录、资源哈希及截图
+已进入私有验收证据集合；公开台账不包含真实凭据或生产数据。
