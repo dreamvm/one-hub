@@ -15,7 +15,6 @@ import (
 	"github.com/stripe/stripe-go/v80"
 	"github.com/stripe/stripe-go/v80/client"
 	"github.com/stripe/stripe-go/v80/webhook"
-	"github.com/stripe/stripe-go/v80/webhookendpoint"
 )
 
 // Stripe 结构体实现支付接口
@@ -93,64 +92,87 @@ func (e *Stripe) Pay(config *types.PayConfig, gatewayConfig string) (*types.PayR
 }
 
 func (e *Stripe) CreatedPay(notifyURL string, gatewayConfig *model.Payment) error {
-	eventName := "checkout.session.completed"
 	var stripeConfig StripeConfig
-	err := json.Unmarshal([]byte(gatewayConfig.Config), &stripeConfig)
-	if err != nil {
-		fmt.Println("Error parsing JSON:", err)
-		return err
+	if err := json.Unmarshal([]byte(gatewayConfig.Config), &stripeConfig); err != nil {
+		return fmt.Errorf("invalid Stripe configuration: %w", err)
 	}
-	stripe.Key = stripeConfig.SecretKey
+	if stripeConfig.SecretKey == "" {
+		return fmt.Errorf("missing Stripe API key")
+	}
+	sc := &client.API{}
+	sc.Init(stripeConfig.SecretKey, nil)
 	params := &stripe.WebhookEndpointListParams{}
 	params.Limit = stripe.Int64(100)
-	i := webhookendpoint.List(params)
-
-	var existingWebhook *stripe.WebhookEndpoint
-	for i.Next() {
-		webhook := i.WebhookEndpoint()
-		if webhook.URL == notifyURL && contains(webhook.EnabledEvents, eventName) {
-			existingWebhook = webhook
-			break
+	iterator := sc.WebhookEndpoints.List(params)
+	var existing *stripe.WebhookEndpoint
+	for iterator.Next() {
+		endpoint := iterator.WebhookEndpoint()
+		if endpoint.URL != notifyURL {
+			continue
 		}
-	}
-
-	if err := i.Err(); err != nil {
-		return fmt.Errorf("error listing webhooks: %v", err)
-	}
-	// 如果不存在匹配的 Webhook，则创建新的
-	var wh *stripe.WebhookEndpoint
-
-	if existingWebhook == nil {
-		createParams := &stripe.WebhookEndpointParams{
-			URL: stripe.String(notifyURL),
-			EnabledEvents: []*string{
-				stripe.String(eventName),
-			},
-			APIVersion: stripe.String("2024-09-30.acacia"),
+		if existing != nil {
+			return fmt.Errorf("multiple matching Stripe webhooks require reconciliation")
 		}
-		newWebhook, err := webhookendpoint.New(createParams)
+		existing = endpoint
+	}
+	if err := iterator.Err(); err != nil {
+		return fmt.Errorf("error listing webhooks: %w", err)
+	}
+	required := []string{"checkout.session.completed", "checkout.session.async_payment_succeeded"}
+	if existing == nil {
+		endpoint, err := sc.WebhookEndpoints.New(&stripe.WebhookEndpointParams{
+			URL:           stripe.String(notifyURL),
+			EnabledEvents: stripe.StringSlice(required),
+			APIVersion:    stripe.String(stripe.APIVersion),
+		})
 		if err != nil {
-			return fmt.Errorf("error creating webhook: %v", err)
+			return fmt.Errorf("error creating webhook: %w", err)
 		}
-		wh = newWebhook
-		fmt.Printf("Created new webhook: %s\n", newWebhook.ID)
+		if endpoint.Secret == "" {
+			return fmt.Errorf("created webhook has no signing secret; reconcile before retrying")
+		}
+		stripeConfig.WebhookSecret = endpoint.Secret
 	} else {
-		fmt.Printf("Webhook already exists: %s\n", existingWebhook.ID)
-		wh = existingWebhook
+		// Stripe only returns the signing secret on creation. Listing/updating an
+		// endpoint must never erase the secret already saved for this gateway.
+		if stripeConfig.WebhookSecret == "" {
+			return fmt.Errorf("existing webhook signing secret must be configured")
+		}
+		if existing.Status != "enabled" || !compatibleWebhookVersion(existing.APIVersion) {
+			return fmt.Errorf("existing webhook status or API version requires reconciliation")
+		}
+		if !contains(existing.EnabledEvents, "*") {
+			events := append([]string(nil), existing.EnabledEvents...)
+			for _, event := range required {
+				if !contains(events, event) {
+					events = append(events, event)
+				}
+			}
+			if len(events) != len(existing.EnabledEvents) {
+				if _, err := sc.WebhookEndpoints.Update(existing.ID, &stripe.WebhookEndpointParams{EnabledEvents: stripe.StringSlice(events)}); err != nil {
+					return fmt.Errorf("error updating webhook: %w", err)
+				}
+			}
+		}
 	}
-
-	stripeConfig.WebhookSecret = wh.Secret
-	config, err := json.Marshal(stripeConfig)
+	encoded, err := json.Marshal(stripeConfig)
 	if err != nil {
-		return fmt.Errorf("error creating webhook: %v", err)
+		return err
 	}
-
-	gatewayConfig.Config = string(config)
-	err = gatewayConfig.Update(true)
-	if err != nil {
-		return fmt.Errorf("error creating webhook: %v", err)
+	previous := gatewayConfig.Config
+	gatewayConfig.Config = string(encoded)
+	if err := gatewayConfig.Update(true); err != nil {
+		gatewayConfig.Config = previous
+		return fmt.Errorf("error saving webhook configuration; reconcile before retrying: %w", err)
 	}
 	return nil
+}
+
+// Match stripe-go's callback compatibility check: dates within the same
+// release train share the event schema accepted by ConstructEvent.
+func compatibleWebhookVersion(version string) bool {
+	incoming, current := strings.Split(version, "."), strings.Split(stripe.APIVersion, ".")
+	return len(incoming) > 1 && len(current) > 1 && incoming[1] == current[1]
 }
 
 // 辅助函数来检查字符串切片中是否包含特定字符串
