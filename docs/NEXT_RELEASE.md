@@ -53,8 +53,8 @@ RC 是预发布候选，编号不代表质量验收。后续候选从 rc.8 起�
 | D4a | 真实Redis停止/错误类型/旧余额与恢复 | 拒绝请求零上游/零账务，恢复后正常单次结算 | PR #47 已合并，全9项CI、32项业务检查与四种Compose通过 |
 | D4b | PostgreSQL候选镜像业务与Redis故障 | 登录/中英文JSON与SSE/工具/持久化/撤销及账务故障 | PR #48 已合并，全9项CI、48项业务检查与四种Compose通过 |
 | D5 | 容器Go编译器身份与已验证补丁版本一致 | 读取最终候选binary，错误版本/主包/平台/CGO拒绝 | [PR #52](https://github.com/dreamvm/one-hub/pull/52) 已合并，全9项CI、实际Go1.25.14 binary及隔离业务验收通过 |
-| D6 | 邮件依赖的SMTP信封地址编码 | 引号/转义完整，普通地址、显示名称、TLS与失败回执保持 | 已实现并通过本地回归和独立审阅；准确提交CI及合并以该批PR验收记录为准 |
-| D7 | Bedrock上游EventStream解析崩溃 | 非法头和缺失异常类型返回错误，正常连续事件与合法头保持 | 已实现并通过本地回归和独立审阅；准确提交CI及合并以该批PR验收记录为准 |
+| D6 | 邮件依赖的SMTP信封地址编码 | 引号/转义完整，普通地址、显示名称、TLS与失败回执保持 | [PR #54](https://github.com/dreamvm/one-hub/pull/54) 已合并，全9项CI、48项业务检查、四种Compose与三数据库验收通过 |
+| D7 | Bedrock上游EventStream解析崩溃 | 非法头和缺失异常类型返回错误，正常连续事件与合法头保持 | [PR #55](https://github.com/dreamvm/one-hub/pull/55) 已合并，全9项CI、48项业务检查、四种Compose与三数据库验收通过 |
 | 后续 D | 依赖/端到端/负载验收 | 固定 Fork 镜像；健康失败正确退出；三数据库及相关故障路径通过 | 待实施，阻断正式版 |
 | E1 | 主题按钮键盘操作和可访问名称 | 桌面/移动端深浅主题、Enter/空格/点击正常 | PR #49 已合并，全9项CI/48项业务/四种Compose与浏览器通过 |
 | E2 | 深色填充标签对比度 | 深浅主题文字可读，选择/删除交互正常 | PR #50 已合并，全9项CI/48项业务/四种Compose与浏览器通过 |
@@ -683,7 +683,7 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 
 - [GO-2025-3988](https://pkg.go.dev/vuln/GO-2025-3988)涉及go-mail把解析后的原始地址写入SMTP信封命令。应用验证邮件、密码重置、额度提醒和通知共用`StmpConfig.Send`；公开入口使用的邮箱校验允许合法quoted local part，不能据此排除该问题。
 - 本地STARTTLS模拟服务直接记录`StmpConfig.Send`产生的MAIL FROM/RCPT TO和DATA。旧0.6.2在发件人/收件人边界、空格、转义引号和反斜杠五项失败，普通地址、plus tag、显示名以及AUTH/RCPT/DATA失败控制通过。没有连接真实邮件服务器或证明某个真实MTA发生了重路由。
-- 升级到0.7.2：0.7.1虽修复信封编码，却会丢失显示名；0.7.2的官方修复使用地址副本，正常显示名得到保留。必要模块闭包同时将x/text提升至0.29.0、x/sync提升至0.17.0，没有改变应用SMTP配置、TLS策略或其他模块版本。
+- 升级到0.7.2：0.7.1虽修复信封编码，却会丢失显示名；0.7.2的官方修复使用地址副本，正常显示名得到保留。必要模块闭包同时将x/text提升至0.29.0、x/sync提升至0.17.0；完整模块图还将x/tools提升至0.36.0、x/mod提升至0.27.0，并移除旧x/telemetry节点。后三项不在`go list -deps .`的主程序编译依赖中。没有改变应用SMTP配置或TLS策略。
 - 升级后11项叶子用例race通过；8项地址/显示名控制和3项失败回执控制均检查真实协议结果。测试CA只在子进程中启用，生产信任链不变。专项使用`go test -race -count=1 ./common/stmp -run '^TestSMTPEnvelope'`；禁止无过滤执行会读取外部配置的旧`TestSend`。
 - 相关model/types/providers/requester离线race、SMTP/通知/cache vet、策略检查和providers/relay构建通过；目标包govulncheck不再报告GO-2025-3988，其他依赖公告仍分别核实。全仓库准确提交CI和隔离镜像结果记录在本修复PR中，本段本地记录不替代远端验收。
 - 新鲜只读调查与另一名新鲜只读审阅完成，未确认存活绕过或回归。回退此依赖会恢复旧地址编码问题；RC8仍仅预留，未发布或部署。
@@ -702,3 +702,24 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - GO-2026-5004：当前pgx 5.7.5仍在公告版本范围内，但本次检查的应用路径无需改动。`model/main.go`同时设置`PreferSimpleProtocol=true`与`PrepareStmt=true`，GORM普通/事务查询显式prepare，pgx优先使用已准备语句；没有发现关闭此设置或包含dollar-quoted占位符的运行时SQL。
 - 临时PostgreSQL 18对照通过：当前配置在普通查询与事务中均保留SQL字面量和独立参数；关闭prepare的测试对照会复现旧驱动的字面量错误替换。只运行无害SELECT，临时数据库已关闭，未访问生产。
 - 结论是当前受检路径`no_change`，不是依赖已修补，也不排除未来查询/配置变化后的风险；动态探针与完整依据保存在本地安全验收证据中。
+
+### D6 合并验收
+
+- [PR #54](https://github.com/dreamvm/one-hub/pull/54) head `cd011d32b9713b8afdd5cd7af9f4a1be94a506c7`，合并 `13541bb502e42f49c25cc229373ea2de0f612daa`；候选、GitHub合成、当前main计算和实际合并树均为`9b3fcdbb6037ff0942abce6aa0b0213c20990056`。
+- CI [36693881691](https://github.com/dreamvm/one-hub/actions/runs/36693881691) / [36693882358](https://github.com/dreamvm/one-hub/actions/runs/36693882358) 全9项成功；日志确认48项业务PASS、四种Compose启动，以及SQLite/MySQL/PostgreSQL各245个事务叶子用例。
+- 实际候选程序为Go1.25.14、one-api、linux/amd64、CGO1，SHA256 `1daf9f1a7db59cdbe87727c846e7ce41b8ae7d36dba83c4cddc0e21ab1302fcf`；runner镜像`sha256:d127e9d490c68bb9da3a273bf5a9fcaa5e6789b8325e7fb4dec9ce80e5650b56`仅本地加载，未发布。升级及两条回滚路径通过，未发送真实邮件或部署生产。
+
+### 依赖可达性核实：Markdown与OIDC
+
+- GO-2026-5208：当前gomarkdown版本的直接Smartypants调用可以越界/panic，但邮件正文的`Renderer.Text`先转义再处理；HTML节点不经过Smartypants。另一处标题处理需要`CompletePage`，应用未启用且邮件subject单独传给SMTP。
+- 离线验证直接依赖的panic及多读一个哨兵字节；应用相同parser/renderer选项的15组输入全部完成，覆盖裸/不完整尖括号、实体、反斜杠、代码、HTML、分段和中文通知，正常链接/列表/格式化保持。未调用真实SMTP。结论为当前路径`no_change`，不是库已修补，也不代表HTML安全性整体验收。
+- GO-2026-4945：当前go-jose/v4版本仍受JWE解密公告影响；应用OIDC使用`ParseSigned`和JWS签名验证，没有`ParseEncrypted/Decrypt/KeyUnwrap`调用。模块级全部符号标记不能证明JWE解密业务可达。
+- 离线验证依赖在空wrapped key下panic；当前OIDC verifier拒绝正常/畸形compact JWE、JSON JWE、伪装有效claims的五段输入及附加分段，合法RS256签名身份通过。使用临时密钥和静态公钥，无真实OIDC连接。结论为当前路径`no_change`，不关闭issuer归属/subject唯一性等既有业务阻断项。
+- 三项`no_change`均有父代理源码核对、独立只读调查和动态探针；证据保存在本地安全验收集合。未来查询模式、渲染选项或令牌解密能力变化时重新检查。其余x/image、x/text、x/net、gRPC、OTel及前端公告仍开放，不能将本批结果写成依赖已全部安全。
+
+### D7 合并验收与下一依赖项
+
+- [PR #55](https://github.com/dreamvm/one-hub/pull/55) head `88ada2a567affcde8c64722e652ab1dfede2ff20`，合并 `bda4c40acca99fe0a667721b46accb7d30b3cb77`；在D6已合并基线上重新计算，候选、合成、新计算及实际合并树均为`2b110d259cb5dc5587dd10fa05787693396ee241`。
+- CI [36695527963](https://github.com/dreamvm/one-hub/actions/runs/36695527963) / [36695529036](https://github.com/dreamvm/one-hub/actions/runs/36695529036) 全9项成功；48项业务PASS、四种Compose和三数据库各245个事务叶子用例通过。
+- 实际候选程序Go1.25.14、one-api、linux/amd64、CGO1，SHA256 `8f82651389e24391aa976fff69292706f70c3aa23578e4e0edc3e39ad066db99`；runner镜像`sha256:24dbdd008ea13b412c0ab4ab27242876832da352ea2398bc3b29acf56ffaadb2`未发布。未创建RC8、未部署。
+- 下一项优先核实GO-2026-6348：VertexAI IAM客户端进入gRPC接收队列，SDK允许较大的接收消息；TLS身份验证不能替代分片内存边界。先做有界分片与正常响应对照，再评估1.83.1及其模块闭包，不能以真实OOM作为验收目标。GO-2026-6061涉及的xDS服务端RBAC及服务端流重置路径未在当前应用中发现，不能由此扩大为所有gRPC公告均不受影响。
