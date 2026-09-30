@@ -22,7 +22,7 @@
     "@mui/x-data-grid": "^6.19.4",
     "@mui/x-date-pickers": "^6.18.5",
     "@tabler/icons-react": "^2.46.0",
-    "@vitejs/plugin-react": "^4.3.1",
+    "@vitejs/plugin-react": "4.7.0",
     "apexcharts": "3.35.3",
     "axios": "^1.8.2",
     "country-flag-icons": "^1.5.19",
@@ -51,7 +51,7 @@
     "react-router-dom": "6.21.3",
     "react-turnstile": "^1.1.2",
     "redux": "^5.0.1",
-    "vite": "7.1.11",
+    "vite": "7.3.5",
     "vite-jsconfig-paths": "^2.0.1",
     "web-vitals": "^4.2.3",
     "yup": "^0.32.11"
@@ -60,11 +60,12 @@
     "dev": "vite",
     "start": "vite preview",
     "build": "vite build --outDir build",
-    "test": "vitest run",
+    "test": "yarn test:dev && vitest run",
     "i18n": "lobe-i18n",
     "lint": "eslint \"src/**/*.{js,jsx,ts,tsx}\"",
     "lint:fix": "eslint --fix \"src/**/*.{js,jsx,ts,tsx}\"",
-    "prettier": "prettier --write \"src/**/*.{js,jsx,ts,tsx}\""
+    "prettier": "prettier --write \"src/**/*.{js,jsx,ts,tsx}\"",
+    "test:dev": "node --test tests/vite-file-boundary.test.mjs"
   },
   "eslintConfig": {
     "extends": [

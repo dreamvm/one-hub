@@ -30,5 +30,18 @@ The existing compatibility workflow runs these tests, lint and build for PRs
 and the exact source revision requested by the manual image workflow. This
 does not enable automatic image publication or deployment.
 
+`yarn test` first runs `yarn test:dev`: Node's native test runner loads the
+top-level Vite used by dev/build, rather than Vitest's separate Vite dependency.
+The real project plugins run against a temporary synthetic root with dotenv
+loading and browser opening disabled, on loopback and an OS-assigned port.
+The 30 leaf checks cover HTTP deny/query and absolute-path forms, optimizer map
+traversal and encoded forms, WebSocket module access, and legitimate raw/inline,
+in-cache map, HMR and server-side module controls. Fixtures are removed after
+the server and socket close. No real credentials or upstream services are used.
+
+These checks exercise the Unix dev-server boundary; Windows ADS/short filenames
+and UNC editor behavior still require native verification. Upgrading Vite does
+not establish that all frontend runtime or tooling advisories are resolved.
+
 jsdom does not verify visual layout. Also check the rendered editor and sidebar
 in light/dark mode, at desktop and narrow mobile widths, before release.
