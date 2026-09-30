@@ -905,3 +905,4 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - 已实现供应商专有缺失报告标记、停止重试及 `reconcile` 待核对状态，详见 [REALTIME_MISSING_USAGE.md](REALTIME_MISSING_USAGE.md)。保留预留和已知部分证据，不写成最终消费/退款，不进入自动终局恢复。
 - fresh-context 独立审阅发现 response 整体缺失/null 的提前报错绕过；父任务复现 4 个失败、3 个控制通过后修正，原 `invalid_response` 保留。最终 94 个专项叶子、规定回归、vet、编译通过。审阅后修改未独立复审的单次周期限制见专项文档。
 - 当前尚未创建 PR、未完成准确候选 CI 或合并。新增列的 MySQL/PostgreSQL 迁移、通用异常结束、运行中崩溃和历史核对仍待各自证据；本地通过不等于交付完成。RC8 仍只预留。
+- 后续 [PR #76](https://github.com/dreamvm/one-hub/pull/76) 首候选 `f7690802` 的 CI 在 PostgreSQL 迁移夹具失败：同一池删列再加列留下旧 `SELECT *` 执行计划。SQLite/MySQL 及其余检查通过；已修正夹具为旧结构建立后新连接迁移，全部准确候选 CI 需重跑，未合并。

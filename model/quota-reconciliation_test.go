@@ -33,6 +33,15 @@ func TestQuotaTransactionReconciliationMigration(t *testing.T) {
 	// Model the previous ledger schema, with an existing live reservation.
 	require.NoError(t, db.Migrator().DropColumn(&model.QuotaReservation{}, "ReconciliationData"))
 	require.False(t, db.Migrator().HasColumn(&model.QuotaReservation{}, "ReconciliationData"))
+	// A new binary starts with a new pool. Reusing the pre-downgrade pool here
+	// would retain PostgreSQL SELECT * plans for the artificially removed column.
+	previous := db
+	reopened, err := gorm.Open(db.Dialector, &gorm.Config{NamingStrategy: db.Config.NamingStrategy})
+	require.NoError(t, err)
+	sqlDB, err := reopened.DB()
+	require.NoError(t, err)
+	db, model.DB = reopened, reopened
+	t.Cleanup(func() { model.DB = previous; _ = sqlDB.Close() })
 	require.NoError(t, db.AutoMigrate(&model.QuotaReservation{}))
 	require.True(t, db.Migrator().HasColumn(&model.QuotaReservation{}, "ReconciliationData"))
 	var receipt model.QuotaReservation
