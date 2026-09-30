@@ -21,13 +21,28 @@ Node 22.20 与 Yarn 1.22.22 满足工具要求。默认开发配置及 Go 静态
 
 30 个叶子用例覆盖普通与绝对文件路径、查询顺序、编码路径、WebSocket 模块访问及直接拒绝控制。
 正常 raw/inline、缓存内 sourcemap、HMR 自定义消息与服务端模块加载保持成功。
-原始锁文件的隔离旧版副本中 17 个叶子失败，均实际返回合成保护内容；正常控制通过。
+原始锁文件的隔离旧版副本中 17 个叶子失败，均实际返回合成保护内容；其余 13 个正常或拒绝控制通过。
 修复版 30 个叶子全部通过，保护内容不再返回。Node 汇总另包含父测试，因此显示 31 项。
 SPA fallback 的 HTTP 200 本身不表示泄漏，断言核对实际合成内容是否返回。
 
 本地 frozen 安装、边界回归、56 项 UI 回归、lint、build 已通过；lint 仍有 9 条既存警告，
-构建仍有大 chunk 提示，留给后续行为与体积专项。候选 SHA、独立审阅、CI 与合并事实
-按 [NEXT_RELEASE.md](NEXT_RELEASE.md) 和最终 PR 记录，不从本地通过推断已合并。
+构建仍有大 chunk 提示，留给后续行为与体积专项。
+
+## 合并验收
+
+[PR #60](https://github.com/dreamvm/one-hub/pull/60) 已合并，最终候选为
+`377844081bc9f5c1d5b199242637fa25e0c9e31e`，实际合并为
+`3da2b6d3a525cce66e8091742006d34aacfd71d4`。候选、GitHub 合成、合并前 main 计算和
+实际合并树均为 `43f30e9cd8d8be311e3d3e4513c59d24dc32b65c`。
+新鲜只读独立调查和候选审阅未确认存活绕过或兼容性回归。
+
+准确候选 [兼容性 CI](https://github.com/dreamvm/one-hub/actions/runs/36729060363) 和
+[隔离镜像验收](https://github.com/dreamvm/one-hub/actions/runs/36729060822) 全 9 项成功。
+Linux 前端日志确认 30 个边界叶子、56 项 UI 测试及 lint 零错误/9 条既存警告。
+三数据库各 245 个事务叶子通过；三后端 smoke 41 项检查与升级/两条回滚 7 项检查
+合计 48 个 PASS，另有四种 Compose 实际启动通过。
+最终程序的 Go/平台/CGO 与 binary SHA256、runner image ID 记录在
+[NEXT_RELEASE.md](NEXT_RELEASE.md) 的 D9 合并验收中；该镜像仅在隔离 runner 加载，未发布。
 
 ## 未完成边界与回滚
 

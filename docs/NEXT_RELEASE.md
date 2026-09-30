@@ -56,7 +56,7 @@ RC 是预发布候选，编号不代表质量验收。后续候选从 rc.8 起�
 | D6 | 邮件依赖的SMTP信封地址编码 | 引号/转义完整，普通地址、显示名称、TLS与失败回执保持 | [PR #54](https://github.com/dreamvm/one-hub/pull/54) 已合并，全9项CI、48项业务检查、四种Compose与三数据库验收通过 |
 | D7 | Bedrock上游EventStream解析崩溃 | 非法头和缺失异常类型返回错误，正常连续事件与合法头保持 | [PR #55](https://github.com/dreamvm/one-hub/pull/55) 已合并，全9项CI、48项业务检查、四种Compose与三数据库验收通过 |
 | D8 | gRPC接收分片对象放大 | 旧版有界复现，新版数据/EOF完整，IAM正常与错误语义保持 | [PR #57](https://github.com/dreamvm/one-hub/pull/57) 已合并，全9项CI、48项业务检查、四种Compose与三数据库验收通过 |
-| D9 | 顶层Vite开发服务器文件边界 | HTTP deny/query、WebSocket、sourcemap越界拒绝，合法开发流程保持 | 本地旧新对照、30项边界叶子/56项UI、lint/build通过；独立审阅与候选CI待完成，Windows原生验收仍开放，见 [VITE_DEV_BOUNDARY.md](VITE_DEV_BOUNDARY.md) |
+| D9 | 顶层Vite开发服务器文件边界 | HTTP deny/query、WebSocket、sourcemap越界拒绝，合法开发流程保持 | [PR #60](https://github.com/dreamvm/one-hub/pull/60) 已合并；旧新对照、独立审阅、准确候选全9项CI与隔离镜像验收通过，Windows原生验收仍开放，见 [VITE_DEV_BOUNDARY.md](VITE_DEV_BOUNDARY.md) |
 | 后续 D | 依赖/端到端/负载验收 | 固定 Fork 镜像；健康失败正确退出；三数据库及相关故障路径通过 | 待实施，阻断正式版 |
 | E1 | 主题按钮键盘操作和可访问名称 | 桌面/移动端深浅主题、Enter/空格/点击正常 | PR #49 已合并，全9项CI/48项业务/四种Compose与浏览器通过 |
 | E2 | 深色填充标签对比度 | 深浅主题文字可读，选择/删除交互正常 | PR #50 已合并，全9项CI/48项业务/四种Compose与浏览器通过 |
@@ -757,4 +757,19 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - 完整解码阳性控制在旧版构造不匹配画布后像素访问panic，临时修复版拒绝；合法匹配画布对照均通过。该完整解码路径不由当前业务尺寸查询调用。旧尺寸API仍在三个入口接受`65536×32768`，临时修复版拒绝；相邻`65536×32767`两版均接受。这是验证行为差异，不是32位损坏图片panic复现，也不能写成旧版已拒绝超大尺寸。
 - 未完整解码超大头，完整解码夹具小于一百万像素；没有读取真实远端图片、生产数据或调用付费模型。当前维护架构为64位，32位支持和未来完整解码消费者需重新分析；实际arm64镜像运行仍待验收。私有探针与旧新版本/媒体日志保留，仓库未因本项改变x/image依赖。
 - D8闭包后的go-jose/v4为4.1.4，已达到GO-2026-4945修复版；上文Markdown/OIDC的`no_change`是此前受检基线结论。当前依赖扫描仍有其他公告，需继续逐项区分模块存在、包/符号可达和业务动态证据；OIDC issuer/subject业务约束及其余发布阻断项保持开放。
-- 下一项为顶层Vite开发工具整改。预留RC8仍未创建标签，未发布镜像、未部署；本调查与台账补录不代替全部Go依赖或最终候选验收。
+- 顶层Vite开发工具专项已完成合并验收（见D9）；其余Go与前端依赖继续逐项核对。预留RC8仍未创建标签，未发布镜像、未部署；本调查与台账补录不代替全部Go依赖或最终候选验收。
+
+### WebP 台账补录合并核对
+
+- [PR #59](https://github.com/dreamvm/one-hub/pull/59) head `b0d2bb58726fec3e35e906375908f9032968832a`，合并 `8c6ff760bbf12c268c10a1c24ae8ba920a827025`；候选、GitHub合成、合并前main计算及实际合并树均为`f6648d584dd50c14866675a6029ec7ab1f3ad9e9`。
+- 准确候选CI [36726182894](https://github.com/dreamvm/one-hub/actions/runs/36726182894) / [36726183967](https://github.com/dreamvm/one-hub/actions/runs/36726183967) 全9项成功。隔离smoke日志为三后端41项检查（SQLite 9、MySQL+Redis 16、PostgreSQL+Redis 16）及7项升级/两条回滚检查，合计48个PASS，另有四种Compose启动通过。
+- 本PR只补录已完成的WebP受检路径结论，没有改变x/image依赖；CI成功不把`no_change`改写为依赖已修复，也不关闭其余Go公告或实际arm64镜像验收。
+
+### D9 Vite 合并验收
+
+- 独立分支`codex/vite-dev-file-boundary`；[PR #60](https://github.com/dreamvm/one-hub/pull/60)最终head `377844081bc9f5c1d5b199242637fa25e0c9e31e`，实际合并 `3da2b6d3a525cce66e8091742006d34aacfd71d4`。在PR #59已合并基线上核对，候选、GitHub合成、合并前main计算及实际合并树均为`43f30e9cd8d8be311e3d3e4513c59d24dc32b65c`。
+- 顶层Vite 7.1.11升至7.3.5，plugin-react 4.3.1升至4.7.0及必要锁文件闭包；Vitest自己的Vite 7.3.6没有被当作旧版复现对象。原始锁文件隔离副本中17个边界叶子失败、13个正常或拒绝控制通过；修复版30个叶子通过。测试使用合成文件、localhost与随机端口，覆盖HTTP query、WebSocket及sourcemap边界，不读取真实秘密。
+- 新鲜只读独立调查与独立候选审阅完成，未确认存活绕过或兼容性回归；本地frozen安装、边界回归、UI、lint和build通过。准确候选CI [36729060363](https://github.com/dreamvm/one-hub/actions/runs/36729060363) / [36729060822](https://github.com/dreamvm/one-hub/actions/runs/36729060822) 全9项成功，Linux日志确认30个边界叶子（Node汇总31项包含父测试）、56项UI测试、lint零错误/9条既存警告，构建仍有既存大chunk提示。
+- SQLite/MySQL/PostgreSQL各245个事务叶子用例通过。三后端smoke共41项检查（SQLite 9、MySQL+Redis 16、PostgreSQL+Redis 16），另有7项升级/两条回滚检查，合计48个PASS；四种Compose实际启动通过。Redis停止、错误类型、旧余额和恢复属于已覆盖的隔离场景，请求中途故障与网络分区仍分别开放。
+- 从最终runner镜像`sha256:80e32a0ebf337d16c61a28e9549af1bdf74645dace51c673c55eda5a2e3347b4`提取的实际程序为`Go=go1.25.14 main=one-api GOOS=linux GOARCH=amd64 CGO_ENABLED=1`，binary SHA256 `570a11a580b502bfef0ad2d78c36b4c66ca6cbb9bed89802a9bfd76c666a0988`。镜像只在runner加载，未发布；未复制生产数据，真实模型调用为0。
+- Windows ADS/短文件名和UNC editor修复只核实了上游版本/源码，未做Windows/NTFS原生或NTLM验收；其余浏览器运行依赖、开发工具公告与发布阻断项保持开放。撤销本批依赖提交会恢复旧版风险；RC8仍只预留，未创建标签、未发布镜像、未部署生产。
