@@ -52,8 +52,23 @@ API 既有错误拦截器处理后返回 `undefined`，本批没有改变该约�
 上述是库核心、jsdom XHR 和 API 集成控制，不是原生浏览器、真实跨站服务、完整页面或生产验收。
 Cookie/重定向/代理的所有变体、应用原型污染入口及其他前端公告没有因此关闭。
 取消控制检验库兼容性，当前应用没有 signal/cancelToken 消费点。
-本地完整检查、独立审阅、准确候选 CI 和实际合并事实在
-[NEXT_RELEASE.md](NEXT_RELEASE.md) 随进度分别记录。
+本地完整检查与独立审阅通过；准确候选 CI 和实际合并事实如下，完整隔离镜像身份及剩余项见
+[NEXT_RELEASE.md](NEXT_RELEASE.md) 的 D10 合并验收。
+
+## 合并验收
+
+[PR #62](https://github.com/dreamvm/one-hub/pull/62) 已合并，最终候选
+`93d58cb9a7d7add43b3c22e448b0a588468493ad`，实际合并
+`49ddd66ec3826d2b440ea23dd79104ba0680d0d1`；候选、GitHub 合成、合并前 main 计算与
+实际合并树均为 `985c2565a5c26223e7b8efee311441a3355a5c42`。
+[兼容性 CI](https://github.com/dreamvm/one-hub/actions/runs/36735528407) 和
+[隔离镜像验收](https://github.com/dreamvm/one-hub/actions/runs/36735528944) 全 9 项成功。
+
+Linux 前端日志确认 30 个 Vite 与 20 个 Axios 的 Node 原生 runner 叶子、60 项 Vitest、lint 零错误/9 条既存警告及构建通过。
+三数据库各 245 个事务叶子通过；三后端 smoke 41 项与升级/两条回滚 7 项合计 48 个 PASS，
+另有四种 Compose 实际启动通过。独立审阅未确认存活绕过或兼容性回归。
+升级后的依赖审计已无 Axios 匹配；其余包仍有匹配记录，应用污染来源仍未证实，原生浏览器验收仍未完成。
+本批 runner 镜像仅在隔离环境加载，未发布。
 
 回退本批提交会恢复旧依赖缺陷；没有数据库或生产配置变更。
 RC8 仍只预留，标签、发布镜像、部署和真实付费验收分别核对授权。
