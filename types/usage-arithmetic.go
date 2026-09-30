@@ -14,6 +14,26 @@ func (u *Usage) countFields() []*int {
 		&c.AudioTokens, &c.TextTokens, &c.ReasoningTokens, &c.AcceptedPredictionTokens, &c.RejectedPredictionTokens, &c.ImageTokens}
 }
 
+// HasTokenUsage recognizes reported work independently of its price. Callers
+// deciding whether to retry must include details and internal extra counts,
+// even when the accepted usage is free or cannot yet be priced safely.
+func (u *Usage) HasTokenUsage() bool {
+	if u == nil {
+		return false
+	}
+	for _, count := range u.countFields() {
+		if *count > 0 {
+			return true
+		}
+	}
+	for _, count := range u.ExtraTokens {
+		if count > 0 {
+			return true
+		}
+	}
+	return false
+}
+
 func (u *Usage) Validate() error {
 	if u == nil {
 		return errors.New("missing usage")
