@@ -23,184 +23,100 @@ lastUpdated: true
 - `USER_TOKEN_SECRET`: 必填，用于生成用户令牌的密钥
 - `SESSION_SECRET`: 推荐填写，用于保持用户登录状态，如果不设置，每次重启后已登录用户需要重新登录
 
-## Docker 部署
+## 本 Fork 的 Docker Compose 部署
 
-### 准备工作
+维护入口是本仓库的四个 `docker-compose*.yml` 文件。请从**同一个已审阅提交**复制四份文件到部署目录，不能只替换主文件。
+使用 Docker Compose 插件（`docker compose`）；隔离验收固定使用 Compose 5.5.1。
+模板使用 [extends](https://docs.docker.com/compose/how-tos/multiple-compose-files/extends/) 共享配置，仍允许普通 Compose override。
 
-1. 创建数据目录：
+默认 `docker-compose.yml` 保持 MySQL + Redis，以及已有 `./data:/data`、`./data/mysql:/var/lib/mysql` 路径。
+应用只接受 `ghcr.io/dreamvm/one-hub` 的明确 digest；没有 `latest` 或尚未发布的 RC 默认值。
+MySQL/Redis 使用与隔离 smoke 相同的固定镜像；当前运行验收为 `linux/amd64`，不据此承诺 ARM 兼容。
+这不是部署指令的自动授权；发布、现有数据库升级与生产切换遵循 [发布流程](../RELEASE_PROCESS.md)。
 
-```bash
-# 创建主数据目录
-sudo mkdir -p /data/one-hub
-cd /data/one-hub
-```
+### 先准备配置
 
-2. 确保 Docker 已正确安装并启动：
+**已有部署**：备份 Compose、`.env`、`data/config.yaml` 和数据库，保留原数据路径、项目名称、会话密钥及令牌密钥。
+填入现有 MySQL 应用和 root 密码；修改容器环境变量不会轮换已有数据库账号密码。
+不要运行下面的新建密钥命令覆盖旧配置。应用密钥改变会影响既有登录和用户令牌。
 
-```bash
-# 检查 Docker 状态
-sudo systemctl status docker
-# 如果未启动，则启动 Docker
-sudo systemctl start docker
-```
-
-::: warning 注意
-
-- `-p 3000:3000` 中的第一个 `3000` 是宿主机的端口，可以根据需要进行修改。
-- 数据和日志将会保存在宿主机的 `/data/one-hub` 目录，请确保该目录存在且具有写入权限，或者更改为合适的目录。
-- 如果启动失败，请添加 `--privileged=true`，具体参考 [issue #482](https://github.com/songquanpeng/one-api/issues/482)。
-- 如果你的并发量较大，**务必**设置 `SQL_DSN`。
-  :::
-
-### 使用环境变量部署
-
-更多环境变量说明请参考 [环境变量](./env.md)。
-
-#### 使用 SQLite
-
-```shell
-docker run -d -p 3000:3000 \
-  --name one-hub \
-  --restart always \
-  -e TZ=Asia/Shanghai \
-  -e USER_TOKEN_SECRET="user_token_secret" \
-  -e SESSION_SECRET="session_secret" \
-  -v /data/one-hub:/data \
-  ghcr.io/martialbe/one-api
-```
-
-#### 使用 MySQL
-
-在 SQLite 的基础上，添加 `-e SQL_DSN="root:123456@tcp(localhost:3306)/oneapi"`。请根据实际情况修改数据库连接参数。
-
-```shell
-docker run -d -p 3000:3000 \
-  --name one-hub \
-  --restart always \
-  -e TZ=Asia/Shanghai \
-  -e USER_TOKEN_SECRET="user_token_secret" \
-  -e SESSION_SECRET="session_secret" \
-  -e SQL_DSN="root:123456@tcp(localhost:3306)/oneapi" \
-  -v /data/one-hub:/data \
-  ghcr.io/martialbe/one-api
-
-```
-
-#### 使用 PostgreSQL
-
-```shell
-docker run -d -p 3000:3000 \
-  --name one-hub \
-  --restart always \
-  -e TZ=Asia/Shanghai \
-  -e USER_TOKEN_SECRET="user_token_secret" \
-  -e SESSION_SECRET="session_secret" \
-  -e SQL_DSN="postgres://postgres:123456@localhost:5432/oneapi" \
-  -v /data/one-hub:/data \
-  ghcr.io/martialbe/one-api
-```
-
-部署完毕后，访问 `http://localhost:3000` 即可。
-
-### 使用配置文件部署
-
-1. 下载配置文件模板：
+**全新部署**：在部署目录生成独立随机值，命令拒绝覆盖已有 `.env`：
 
 ```bash
-cd /data/one-hub
-wget https://raw.githubusercontent.com/MartialBE/one-hub/refs/heads/main/config.example.yaml -O config.yaml
+umask 077
+(
+  set -eC
+  # 新实例建议 hex 密码，避免 DSN 与 .env 特殊字符转义问题。
+  session_secret=$(openssl rand -hex 32)
+  token_secret=$(openssl rand -hex 32)
+  db_password=$(openssl rand -hex 32)
+  root_password=$(openssl rand -hex 32)
+  printf 'ONEHUB_IMAGE_DIGEST=\nONEHUB_SESSION_SECRET=%s\nONEHUB_USER_TOKEN_SECRET=%s\nONEHUB_MYSQL_PASSWORD=%s\nONEHUB_MYSQL_ROOT_PASSWORD=%s\n' \
+    "$session_secret" "$token_secret" "$db_password" "$root_password" > .env
+)
 ```
 
-2. 根据需要修改配置文件内容，常用配置项包括：
+编辑 `.env` 的 `ONEHUB_IMAGE_DIGEST`，填入已发布且已验收镜像的 `sha256:` 加64位十六进制摘要。
+不要把 CI 本地 image ID、Git SHA 或计划版本号当作 registry digest。
+必填值为空时 Compose 拒绝解析；这个检查只保证非空，**不验证密钥强度**。
+`.env` 不应提交或分享；本仓库 Git 和 Docker 上下文均排除该文件。
+有特殊字符的既有密码需按 Compose `.env` 规则正确转义，并验证解析后的 DSN，不能为了适配示例擅自改密钥。
 
-```yaml
-# 必要配置
-user_token_secret: "your-secret-key" # 用户令牌密钥
-session_secret: "your-session-secret" # 会话密钥
+### 选择数据库与 Redis
 
-# 数据库配置
-sql_dsn: "root:123456@tcp(localhost:3306)/oneapi" # MySQL配置示例
-```
+| 组合 | 命令前缀 |
+| --- | --- |
+| MySQL + Redis（保留默认） | `docker compose` |
+| SQLite，无 Redis | `docker compose -f docker-compose.sqlite.yml` |
+| SQLite + Redis | `docker compose -f docker-compose.sqlite.yml -f docker-compose.redis.yml` |
+| MySQL，无 Redis | `docker compose -f docker-compose.sqlite.yml -f docker-compose.mysql.yml` |
 
-3. 运行容器
+后续操作始终使用相同前缀。SQLite 组合不需要两个 MySQL 密码；它没有 `SQL_DSN` 环境变量。
+同时必须核对 `./data/config.yaml`：SQLite 需要**省略** `sql_dsn`，不能设置为空字符串；
+禁用 Redis 时省略 `redis_conn_string`。已有配置文件仍会被应用读取，不能只根据模板判断实际后端。
+启用 Redis 时还要保留非零 `sync_frequency`（默认600）。
+切换数据库类型不迁移数据，不应作为现有实例升级步骤。
 
-```shell
-docker run -d -p 3000:3000 \
-  --name one-hub \
-  --restart always \
-  -e TZ=Asia/Shanghai \
-  -v /data/one-hub:/data \
-  ghcr.io/martialbe/one-api
-```
+### 验证与启动
 
-## Docker Compose 部署
-
-### 准备工作
-
-1. 创建必要的目录结构：
+以下以默认组合为例；运行前确认已经获得本次部署授权：
 
 ```bash
-# 创建主目录
-sudo mkdir -p /data/one-hub
-cd /data/one-hub
-# 创建子目录
-mkdir data
+docker compose config --quiet
+docker compose up -d --wait
+docker compose ps
 ```
 
-2. 下载配置文件：
+`config --quiet` 只检查配置，不输出插值后的秘密；不应把完整 `config` 或 `config --environment` 上传到工单。
+MySQL 探针使用专用账号执行查询，Redis 检查实际 PING，应用依赖二者健康后启动。
+默认不公开数据库/Redis主机端口，应用仍通过3000端口提供服务；对外服务应接入已有 HTTPS 反向代理并完成初始化。
 
-```bash
-# 下载 docker-compose 配置文件
-wget https://raw.githubusercontent.com/MartialBE/one-api/main/docker-compose.yml
+模板的 MySQL/Redis 摘要是已测试的固定版本，不能据此推断你现有数据库可直接跨版本升级。
+升级前核实运行版本、数据备份和回滚兼容性；回滚恢复原模板、镜像摘要与配置，数据库恢复单独决定。
+PostgreSQL 或外部数据库实例需要另行准备对应配置和验收，不要启动默认 MySQL 后误认为使用了外部数据库。
 
-
-```
-
-3. 编辑 `docker-compose.yml` 文件，修改环境变量值。
-
-如果使用配置文件，执行下面命令，并删除 `docker-compose.yml` 文件中的 `SQL_DSN`/`REDIS_CONN_STRING`/`SESSION_SECRET` / `USER_TOKEN_SECRET` 参数：
-
-```shell
-# 下载应用配置文件模板
-wget https://raw.githubusercontent.com/MartialBE/one-api/main/config.example.yaml -O ./data/config.yaml
-```
-
-### 启动服务
-
-```shell
-docker-compose up -d
-```
-
-启动服务后，你可以通过运行以下命令来查看部署状态：
-
-```shell
-docker-compose ps
-```
-
-请确保所有的服务都已经成功启动，并且状态为 'Up'。
-
-部署完毕后，访问 `http://localhost:3000` 即可。
+隔离 CI 用四种组合实际启动候选；仅替换候选镜像为已加载本地 image ID，并隔离数据卷、容器名称、网络和主机端口。
+模板健康探针与启动依赖原样执行；隔离测试关闭token编码器下载和自动价格更新。该测试不证明真实 registry digest 可拉取，也不构成生产部署验收。
 
 ## 手动部署
 
-1. **获取源码**：从 [GitHub Releases](https://github.com/MartialBE/one-hub/releases/latest) 下载最新的可执行文件，或者直接从源码编译。如果你选择编译源码，可以使用以下命令：
+1. **获取源码**：从 [GitHub Releases](https://github.com/dreamvm/one-hub/releases) 下载最新的可执行文件，或者直接从源码编译。如果你选择编译源码，可以使用以下命令：
 
    ```shell
-   git clone https://github.com/MartialBE/one-hub.git
+   git clone https://github.com/dreamvm/one-hub.git
    ```
 
 2. **构建**：进入代码目录，构建：
 
    ```shell
    cd one-hub
-   make
+   task build
    ```
 
-3. **运行应用**：为构建的应用添加执行权限，并运行：
+3. **运行应用**：先配置独立密钥与实际数据库参数，再运行：
 
    ```shell
-   chmod u+x one-api
-   ./one-api --port 3000 --log-dir ./logs
+   ./_output/one-hub --port 3000 --log-dir ./logs
    ```
 
 4. **访问应用**：在浏览器中访问 `http://localhost:3000` 并登录。初始账号用户名为 `root`，密码为 `123456`。
@@ -208,8 +124,7 @@ docker-compose ps
 5. **重新编译**：如果需要重新编译，可以使用以下命令：
 
    ```shell
-   make clean
-   make
+   task build
    ```
 
 请确保在执行以上步骤时，你的环境已经安装了必要的工具，如 Git、Node.js、yarn 和 Go。

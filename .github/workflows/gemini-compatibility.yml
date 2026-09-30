@@ -136,13 +136,17 @@ jobs:
           cache: true
       - name: Check formatting of patched Go files
         run: |
-          test -z "$(gofmt -l types/common.go types/usage-arithmetic.go types/usage-arithmetic_test.go types/events.go types/chat.go types/responses.go types/tool-contract.go types/tool-contract_test.go types/chat-tool-metadata_test.go providers/gemini/type.go providers/gemini/chat.go providers/gemini/tool-contract.go providers/gemini/tool-contract_test.go providers/gemini/thought-signature_test.go .github/tests/release-policy_test.go .github/tests/deployment_test.go .github/tests/build-entry_test.go)"
+          test -z "$(gofmt -l types/common.go types/usage-arithmetic.go types/usage-arithmetic_test.go types/events.go types/chat.go types/responses.go types/tool-contract.go types/tool-contract_test.go types/chat-tool-metadata_test.go providers/gemini/type.go providers/gemini/chat.go providers/gemini/tool-contract.go providers/gemini/tool-contract_test.go providers/gemini/thought-signature_test.go .github/tests/release-policy_test.go .github/tests/deployment_test.go .github/tests/build-entry_test.go .github/tests/compose-config_test.go)"
       - name: Check workflow syntax
         run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
       - name: Install pinned Task for build-entry regression
         run: |
           GOBIN="$RUNNER_TEMP/onehub-tools" go install github.com/go-task/task/v3/cmd/task@v3.53.1
           echo "ONEHUB_TASK_BIN=$RUNNER_TEMP/onehub-tools/task" >> "$GITHUB_ENV"
+      - name: Install pinned Compose for offline template checks
+        run: |
+          bash .github/smoke/install-compose.sh "$RUNNER_TEMP/onehub-compose"
+          echo "ONEHUB_COMPOSE_BIN=$RUNNER_TEMP/onehub-compose/docker-compose" >> "$GITHUB_ENV"
       - name: Verify manual-release policy
         run: go test -count=1 ./.github/tests
       - name: Test isolated-smoke fixtures without Docker or external APIs

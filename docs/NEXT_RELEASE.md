@@ -45,11 +45,12 @@ RC 是预发布候选，编号不代表质量验收。后续候选从 rc.8 起�
 | rc.8 / C3d | 创建前金额/额度准入、先持久订单、微信整数分 | 非法输入零外部调用，提前/超时回调正常，原定价兼容 | [PR #40](https://github.com/dreamvm/one-hub/pull/40) 已合并，三数据库/CI/隔离验收通过，见 [PAYMENT_ORDER_ADMISSION.md](PAYMENT_ORDER_ADMISSION.md) |
 | rc.8 / C3e | 已关闭订单与停用/软删除渠道的合法延迟支付 | 严格绑定事实、单次入账，旧渠道不能创建新支付 | [PR #41](https://github.com/dreamvm/one-hub/pull/41) 已合并，三数据库/CI/隔离验收通过，见 [PAYMENT_LATE_SETTLEMENT.md](PAYMENT_LATE_SETTLEMENT.md) |
 | rc.8 / C3f | Stripe webhook注册/复用、密钥保留与异步成功订阅 | 不改global key，正常兼容版本可用，失败不误报保存 | [PR #42](https://github.com/dreamvm/one-hub/pull/42) 已合并，三数据库/CI/隔离验收通过，见 [STRIPE_WEBHOOK_REGISTRATION.md](STRIPE_WEBHOOK_REGISTRATION.md) |
-| rc.8 / OIDC1 | 声明类型、同名拒绝关联与subject精确匹配 | 已绑定/新注册正常，异常声明和非精确身份拒绝 | 本地通过，精确候选CI待执行，见 [OIDC_CLAIMS.md](OIDC_CLAIMS.md) |
+| rc.8 / OIDC1 | 声明类型、同名拒绝关联与subject精确匹配 | 已绑定/新注册正常，异常声明和非精确身份拒绝 | PR #43 已合并，9项CI通过，见 [OIDC_CLAIMS.md](OIDC_CLAIMS.md) |
 | 后续 C1 / C2 / C3 | 未报告用量核对、数据库支付幂等与绑定 | 缓存与批量计费不放行耗尽额度；并发不超支；多实例重复回调只入账一次；故障可重试 | 待实施，阻断正式版 |
-| D1 | Compose健康探针退出状态 | 正常状态成功，网络/HTTP/业务失败返回非零 | 本地7项执行回归通过，精确候选CI待执行 |
-| D2 | 锁定依赖、当前前端、失败传播及本地镜像构建 | 实际Task正常/故障对照，依赖输入哈希不变 | 本地候选，精确CI待执行 |
-| 后续 D | Fork 部署模板、健康检查、构建入口、PostgreSQL/依赖/端到端验收 | 固定 Fork 镜像；健康失败正确退出；三数据库及相关故障路径通过 | 待实施，阻断正式版 |
+| D1 | Compose健康探针退出状态 | 正常状态成功，网络/HTTP/业务失败返回非零 | PR #44 已合并，9项CI及7项本地回归通过 |
+| D2 | 锁定依赖、当前前端、失败传播及本地镜像构建 | 实际Task正常/故障对照，依赖输入哈希不变 | PR #45 已合并，全9项CI通过 |
+| D3 | Fork镜像、显式秘密、私有数据库及可选依赖 | 默认保留MySQL+Redis，SQLite组合不引入依赖 | 本地配置与独立审阅完成，实际容器CI待验收 |
+| 后续 D | PostgreSQL/依赖/端到端验收 | 固定 Fork 镜像；健康失败正确退出；三数据库及相关故障路径通过 | 待实施，阻断正式版 |
 | 后续 E | 前端既存警告与加载体积 | 行为回归通过、深浅主题可用、性能变化有依据 | 待实施，按影响安排 |
 
 rc.6 只覆盖身份与凭据；rc.7 增加媒体与 Midjourney 边界。
@@ -312,8 +313,8 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 4. 已完成确定意图恢复（PR #35）：持久预留、结算幂等及重启、数据库错误、多实例恢复。
 5. 已完成本批（PR #36）：Suno / Kling / MJ 后台退款成对记账和重复通知幂等。
 6. 已合并 PR #37–#41：兑换码、支付幂等/事实绑定、下单与延迟支付；Stripe注册 PR #42 亦已合并验收。
-7. 实施中：OIDC 声明/同名关联；身份迁移、历史凭据暴露等剩余安全核实。
-8. Fork 部署模板、健康检查、可重复构建入口。
+7. OIDC 声明/同名关联与精确subject已合并（PR #43）；身份迁移、历史凭据暴露等剩余安全核实仍开放。
+8. 健康检查已合并（PR #44），构建入口已合并（PR #45）；Fork 部署模板正在实施。
 9. 三数据库业务覆盖、真实 Redis 故障、浏览器 E2E、依赖扫描及负载验收。
 10. 前端既存警告、加载体积和深浅主题；按影响安排。
 11. 候选版本和正式发布准备；标签、镜像发布、生产部署、真实付费验收分别核对授权。
@@ -554,3 +555,24 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - 固定Task v3.53.1实际执行5类正常/故障/本地Docker命令夹具，旧实现均违反至少一项契约，修复后通过；策略测试/脚本语法/actionlint通过。
 - Node22.20.0/Yarn1.22.22/Go1.25.14真实task build通过，go.mod/go.sum/package.json/yarn.lock前后哈希不变。构建体积提示仍保留，未提高阈值掩盖；依赖升级/前端体积另批处理。
 - 同一提交/工作树与固定工具链连续两次真实构建二进制SHA256相同：`92071a16681bb5240966a7f7b8a25796c955a07107053a59590223bcceb3cfba`；这是本机重复性证明，不代表跨平台产物相同。
+
+### OIDC1 / D1 合并验收
+
+- PR #43 head `6c4719cedeee9d21a218ee649b8a16cff8daa539`，合并 `6cac316a1bd73800794c3dc72b9fc0ad35c45002`；CI [36674884050](https://github.com/dreamvm/one-hub/actions/runs/36674884050) / [36674884234](https://github.com/dreamvm/one-hub/actions/runs/36674884234) 全9项通过。
+- PR #44 head `0108f373999bf0171c5be80debc86b1097e126e9`，合并 `16b3d41cc76180e94e85e82465c66b522537dc94`；CI [36675089885](https://github.com/dreamvm/one-hub/actions/runs/36675089885) / [36675090349](https://github.com/dreamvm/one-hub/actions/runs/36675090349) 全9项通过。
+- 两者均三数据库各245事务叶子用例、smoke28 PASS，候选/合成/实际合并树一致；runner镜像分别为 `sha256:5bdeb03ce52a10aab73cbd5d8c973a4d744589fe50d204c52573f31b44611868`、`sha256:3d0914ab60bfc7f84d4c8343c80477528279cffc20f51640abb7952a0f26ba09`，未发布。
+
+### D3 部署模板候选
+
+- 分支 `codex/explicit-deployment-config` 依赖 PR #45。默认保持MySQL+Redis，数据路径不变；独立SQLite模板与MySQL/Redis叠加文件共享配置。
+- 旧模板真实Compose正常控制通过，缺失显式参数仍解析、上游浮动镜像、公开DB和仅等待启动的回归失败；测试夹具先分离stderr弃用提示与JSON输出，再取得有效边界证据。
+- 新模板要求Fork镜像digest和显式秘密，DB/Redis不公开端口、依赖健康。缺失/空参数、四种组合和探针故障对照本地通过；密钥非空不等于强度验收。
+- 固定Compose 5.5.1二进制校验官方SHA256；CI增加四种模板的实际候选启动（本地image ID、临时数据卷、隔离网络）。本机无Docker，运行验收待准确候选CI，不能以配置解析替代。
+- 文档去掉上游/固定秘密的Docker示例，说明已有密钥/数据库密码保留、SQLite配置文件省略SQL_DSN、镜像摘要身份与回滚边界。未改生产、未发布RC8。
+- 一次独立审阅发现SIGTERM跳过临时Compose资源清理；父任务补充失败回归复现，沿用既有signal转异常模式。正常四模式/启动失败/信号清理3项通过；隔离测试关闭编码器下载和自动价格更新，真实业务网络未开放。
+
+### D2 合并验收
+
+- PR #45 head `025667aea168979dec0848b9e3f29002bae9207d`，合并 `6e8cf650518060770919bc268b7d410ac9994f62`，候选/合成/实际合并树一致。
+- CI [36676186620](https://github.com/dreamvm/one-hub/actions/runs/36676186620) / [36676186794](https://github.com/dreamvm/one-hub/actions/runs/36676186794) 全9项通过，三数据库各245事务叶子用例、smoke28 PASS。
+- runner镜像 `sha256:bc514ed1b8fd319fb00c270518edcc9ba2da949e2c2d64e09f5121d0830dc116` 未发布；RC8仍未创建。

@@ -110,3 +110,12 @@ jobs:
             --mysql-image "$MYSQL_IMAGE_ID" \
             --redis-image "$REDIS_IMAGE_ID" \
             --mock-binary "$RUNNER_TEMP/onehub-mock"
+
+      - name: Exercise deployment templates with local images and disposable data
+        timeout-minutes: 12
+        run: |
+          bash .github/smoke/install-compose.sh "$RUNNER_TEMP/onehub-compose"
+          python3 .github/smoke/compose.py \
+            --compose "$RUNNER_TEMP/onehub-compose/docker-compose" \
+            --image "$CANDIDATE_IMAGE_ID" \
+            --version "v0.0.0-smoke-$SOURCE_SHA"

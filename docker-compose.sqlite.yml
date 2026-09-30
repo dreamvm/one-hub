@@ -1,0 +1,23 @@
+# Standalone SQLite. Omit sql_dsn from /data/config.yaml as well.
+services:
+  one-hub:
+    image: ghcr.io/dreamvm/one-hub@${ONEHUB_IMAGE_DIGEST:?Set an approved published sha256 digest}
+    container_name: one-hub
+    restart: always
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/data
+    environment:
+      SESSION_SECRET: ${ONEHUB_SESSION_SECRET:?Set the existing or independently generated session secret}
+      USER_TOKEN_SECRET: ${ONEHUB_USER_TOKEN_SECRET:?Set the existing or independently generated user token secret}
+      TZ: Asia/Shanghai
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          response=$$(wget -q -O - http://127.0.0.1:3000/api/status) &&
+          printf '%s' "$$response" | grep -Eq '"success"[[:space:]]*:[[:space:]]*true([,}]|[[:space:]])'
+      interval: 30s
+      timeout: 10s
+      retries: 3
