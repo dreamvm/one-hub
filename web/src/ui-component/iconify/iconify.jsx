@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { forwardRef } from 'react';
 import { Icon, disableCache } from '@iconify/react';
 
@@ -22,5 +23,10 @@ const Iconify = forwardRef(({ width = 20, sx, ...other }, ref) => (
 ));
 
 disableCache('local');
+
+Iconify.propTypes = {
+  width: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+  sx: PropTypes.object
+};
 
 export default Iconify;

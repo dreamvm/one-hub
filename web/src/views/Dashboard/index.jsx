@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { useEffect, useState } from 'react';
 import { Grid, Box, Stack, Typography, Button } from '@mui/material';
 import { gridSpacing } from 'store/constant';
@@ -26,6 +27,12 @@ function TabPanel(props) {
     </div>
   );
 }
+
+TabPanel.propTypes = {
+  children: PropTypes.node,
+  value: PropTypes.number,
+  index: PropTypes.number
+};
 
 const Dashboard = () => {
   const [isLoading, setLoading] = useState(true);

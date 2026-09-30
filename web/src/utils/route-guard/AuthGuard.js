@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { useSelector } from 'react-redux';
 import { useEffect, useContext } from 'react';
 import { UserContext } from 'contexts/UserContext';
@@ -21,6 +22,10 @@ const AuthGuard = ({ children }) => {
   }
 
   return children;
+};
+
+AuthGuard.propTypes = {
+  children: PropTypes.node
 };
 
 export default AuthGuard;

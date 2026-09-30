@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { forwardRef } from 'react';
 import UnknownType from 'assets/images/icons/unknown_type.svg';
 import { styled } from '@mui/material/styles';
@@ -25,5 +26,10 @@ const IconWrapper = forwardRef(({ children, url, ...other }, ref) => {
     </IconWrapperStyled>
   );
 });
+
+IconWrapper.propTypes = {
+  children: PropTypes.node,
+  url: PropTypes.string
+};
 
 export default IconWrapper;

@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 
@@ -35,6 +36,10 @@ const LogoSection = ({ isMini = false }) => {
       </Box>
     </ButtonBase>
   );
+};
+
+LogoSection.propTypes = {
+  isMini: PropTypes.bool
 };
 
 export default LogoSection;

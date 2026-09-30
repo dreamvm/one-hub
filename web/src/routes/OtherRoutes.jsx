@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { lazy } from 'react';
 import { Box } from '@mui/material';
 
@@ -31,6 +32,10 @@ const WithMargins = ({ children }) => (
     {children}
   </Box>
 );
+
+WithMargins.propTypes = {
+  children: PropTypes.node
+};
 
 // ==============================|| AUTHENTICATION ROUTING ||============================== //
 

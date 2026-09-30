@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { useState, useEffect } from 'react';
 
 import { LoadingButton } from '@mui/lab';
@@ -369,3 +370,9 @@ export function ChannelCheck({ item, open, onClose }) {
     </Dialog>
   );
 }
+
+ChannelCheck.propTypes = {
+  item: PropTypes.shape({ id: PropTypes.number, models: PropTypes.string }),
+  open: PropTypes.bool,
+  onClose: PropTypes.func
+};
