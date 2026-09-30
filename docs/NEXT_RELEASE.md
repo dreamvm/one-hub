@@ -59,6 +59,7 @@ RC 是预发布候选，编号不代表质量验收。后续候选从 rc.8 起�
 | D9 | 顶层Vite开发服务器文件边界 | HTTP deny/query、WebSocket、sourcemap越界拒绝，合法开发流程保持 | [PR #60](https://github.com/dreamvm/one-hub/pull/60) 已合并；旧新对照、独立审阅、准确候选全9项CI与隔离镜像验收通过，Windows原生验收仍开放，见 [VITE_DEV_BOUNDARY.md](VITE_DEV_BOUNDARY.md) |
 | D10 | Axios浏览器共享配置边界 | 合成前置污染下忽略继承data/reviver，合法XHR与API行为保持 | [PR #62](https://github.com/dreamvm/one-hub/pull/62) 已合并；旧新对照、独立审阅、准确候选全9项CI与隔离镜像验收通过，应用污染来源未证实，见 [AXIOS_BROWSER_BOUNDARY.md](AXIOS_BROWSER_BOUNDARY.md) |
 | D11 | PostCSS 编译器 map 文件读取 | 旧版失败及合法 CSS/map 对照，真实 Vite 构建/import 验证 | [PR #64](https://github.com/dreamvm/one-hub/pull/64) 已合并；本地 16 项、只读审阅与准确候选全 9 项 CI 通过，审阅上下文限制见下文；Vite 独立开发加载器边界仍保留，见 [POSTCSS_FILE_BOUNDARY.md](POSTCSS_FILE_BOUNDARY.md) |
+| D13 | Babel 开发依赖 source map 文件边界 | 六种编译 API 的词法包外读取拒绝，普通包内/inline/显式 map 与 JSX 保持 | 7.29.7 旧新对照、全新只读候选审阅及本地回归完成；保留符号链接与少见文件名限制，准确候选 CI/合并待完成；见 [BABEL_SOURCE_MAP_BOUNDARY.md](BABEL_SOURCE_MAP_BOUNDARY.md) |
 | 后续 D | 依赖/端到端/负载验收 | 固定 Fork 镜像；健康失败正确退出；三数据库及相关故障路径通过 | 待实施，阻断正式版 |
 | E1 | 主题按钮键盘操作和可访问名称 | 桌面/移动端深浅主题、Enter/空格/点击正常 | PR #49 已合并，全9项CI/48项业务/四种Compose与浏览器通过 |
 | E2 | 深色填充标签对比度 | 深浅主题文字可读，选择/删除交互正常 | PR #50 已合并，全9项CI/48项业务/四种Compose与浏览器通过 |
