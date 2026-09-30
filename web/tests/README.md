@@ -55,3 +55,10 @@ source, native browser behavior or production end-to-end acceptance.
 
 jsdom does not verify visual layout. Also check the rendered editor and sidebar
 in light/dark mode, at desktop and narrow mobile widths, before release.
+
+The dependency suite also runs 16 PostCSS leaf checks against the version used
+by top-level Vite: standalone map boundaries, real Vite build/import processing,
+and legitimate CSS, CSS Modules, SCSS, local assets and source maps. Only
+synthetic temporary files are observed. These checks cover PostCSS processing;
+Vite's separate development source-map loader remains a documented boundary in
+`docs/POSTCSS_FILE_BOUNDARY.md`, not a claimed fix of every source-map read.

@@ -58,6 +58,7 @@ RC 是预发布候选，编号不代表质量验收。后续候选从 rc.8 起�
 | D8 | gRPC接收分片对象放大 | 旧版有界复现，新版数据/EOF完整，IAM正常与错误语义保持 | [PR #57](https://github.com/dreamvm/one-hub/pull/57) 已合并，全9项CI、48项业务检查、四种Compose与三数据库验收通过 |
 | D9 | 顶层Vite开发服务器文件边界 | HTTP deny/query、WebSocket、sourcemap越界拒绝，合法开发流程保持 | [PR #60](https://github.com/dreamvm/one-hub/pull/60) 已合并；旧新对照、独立审阅、准确候选全9项CI与隔离镜像验收通过，Windows原生验收仍开放，见 [VITE_DEV_BOUNDARY.md](VITE_DEV_BOUNDARY.md) |
 | D10 | Axios浏览器共享配置边界 | 合成前置污染下忽略继承data/reviver，合法XHR与API行为保持 | [PR #62](https://github.com/dreamvm/one-hub/pull/62) 已合并；旧新对照、独立审阅、准确候选全9项CI与隔离镜像验收通过，应用污染来源未证实，见 [AXIOS_BROWSER_BOUNDARY.md](AXIOS_BROWSER_BOUNDARY.md) |
+| D11 | PostCSS 编译器 map 文件读取 | 旧版失败及合法 CSS/map 对照，真实 Vite 构建/import 验证 | 8.5.23 本地 16 项及独立审阅通过；准确候选 CI 和合并待完成；Vite 独立开发加载器边界仍保留，见 [POSTCSS_FILE_BOUNDARY.md](POSTCSS_FILE_BOUNDARY.md) |
 | 后续 D | 依赖/端到端/负载验收 | 固定 Fork 镜像；健康失败正确退出；三数据库及相关故障路径通过 | 待实施，阻断正式版 |
 | E1 | 主题按钮键盘操作和可访问名称 | 桌面/移动端深浅主题、Enter/空格/点击正常 | PR #49 已合并，全9项CI/48项业务/四种Compose与浏览器通过 |
 | E2 | 深色填充标签对比度 | 深浅主题文字可读，选择/删除交互正常 | PR #50 已合并，全9项CI/48项业务/四种Compose与浏览器通过 |
@@ -791,3 +792,11 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - 最终runner镜像`sha256:89304e82d84fad61cb38d96ec7e0adde1888fd580996023ecd6b0a72eaed761a`提取的实际程序为`Go=go1.25.14 main=one-api GOOS=linux GOARCH=amd64 CGO_ENABLED=1`，binary SHA256 `21024bb5067ca5bcf4426cc17352d3fae9c0ba82f329015e4d92237c095c274b`。镜像仅在隔离runner加载，未发布；未复制生产数据，真实模型调用为0。
 - 升级后的新鲜审计仍有238条路径记录、111个Yarn advisory ID及85个唯一GHSA，Axios匹配为0。此计数是依赖路径匹配，不是238个已证实应用漏洞，也不代表全部前端依赖已安全。ReactRouter/Monaco当前只做源码路径核对，尚无动态边界验收；原生浏览器、Windows、实际arm64镜像及计费/身份/故障发布阻断项继续开放。
 - 下一项核对PostCSS开发工具边界：当前8.5.6仍匹配4个GHSA、12条审计路径记录，拟评估8.5.23。只读调查及脱离业务的合成初探不等于Vite业务回归、候选升级、独立审阅、CI或合并完成。回退D10依赖提交会恢复旧库缺陷；RC8仍仅预留，未创建标签、未发布镜像、未部署。
+
+### D11 PostCSS 编译器依赖候选
+
+- 独立调查后，在 `codex/postcss-map-boundary` 将锁定 PostCSS 8.5.6 升至 8.5.23，并更新必需 nanoid 闭包至 3.3.19；不更换 Vite、不新增直接依赖或 resolutions。
+- 旧版 7 个边界检查失败、9 个正常对照通过；新版 16 个叶子检查通过。测试覆盖真实顶层 Vite 生产构建/import 和独立库边界，普通 CSS、CSS Modules、SCSS、资源与合法 map 保持，见 [POSTCSS_FILE_BOUNDARY.md](POSTCSS_FILE_BOUNDARY.md)。
+- Vite 自身的开发加载器仍会异步读取直接 CSS map 注释指向的合成文件；默认关闭开发 sourcemap 的探针未见内容进入返回 map，不能据此关闭所有 Vite 文件读取或其他配置的披露风险。Windows、符号链接 realpath、原生浏览器与完整端到端尚未验证。
+- 本地 frozen 安装、30 个 Vite / 20 个 Axios / 16 个 PostCSS 叶子检查及 60 个 Vitest 检查、lint 零错误/9 条既存警告、build 通过。用户授权的新审计有 217 条路径记录、104 个 Yarn 公告 ID、78 个唯一 GHSA；PostCSS 的 4 个和 nanoid 的 3 个 GHSA 不再匹配，其他公告保留，不将审计计数当成应用可利用性结论。
+- 新鲜只读候选审阅完成，独立复跑 16 项及相邻路径/受信任正常控制通过，未确认阻断项；准确提交 CI、合并与镜像验收待完成。RC8 仍预留，未创建标签、发布或部署。
