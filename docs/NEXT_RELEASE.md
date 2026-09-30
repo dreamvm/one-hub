@@ -54,7 +54,7 @@ RC 是预发布候选，编号不代表质量验收。后续候选从 rc.8 起�
 | D4b | PostgreSQL候选镜像业务与Redis故障 | 登录/中英文JSON与SSE/工具/持久化/撤销及账务故障 | PR #48 已合并，全9项CI、48项业务检查与四种Compose通过 |
 | D5 | 容器Go编译器身份与已验证补丁版本一致 | 读取最终候选binary，错误版本/主包/平台/CGO拒绝 | [PR #52](https://github.com/dreamvm/one-hub/pull/52) 已合并，全9项CI、实际Go1.25.14 binary及隔离业务验收通过 |
 | D6 | 邮件依赖的SMTP信封地址编码 | 引号/转义完整，普通地址、显示名称、TLS与失败回执保持 | [PR #54](https://github.com/dreamvm/one-hub/pull/54) 已合并，全9项CI、48项业务检查、四种Compose与三数据库验收通过 |
-| D7 | Bedrock上游EventStream解析崩溃 | 非法头和缺失异常类型返回错误，正常连续事件与合法头保持 | [PR #55](https://github.com/dreamvm/one-hub/pull/55)：本地回归及独立审阅通过；准确提交CI/合并证据以该PR验收记录为准 |
+| D7 | Bedrock上游EventStream解析崩溃 | 非法头和缺失异常类型返回错误，正常连续事件与合法头保持 | [PR #55](https://github.com/dreamvm/one-hub/pull/55) 已合并，全9项CI、48项业务检查、四种Compose与三数据库验收通过 |
 | 后续 D | 依赖/端到端/负载验收 | 固定 Fork 镜像；健康失败正确退出；三数据库及相关故障路径通过 | 待实施，阻断正式版 |
 | E1 | 主题按钮键盘操作和可访问名称 | 桌面/移动端深浅主题、Enter/空格/点击正常 | PR #49 已合并，全9项CI/48项业务/四种Compose与浏览器通过 |
 | E2 | 深色填充标签对比度 | 深浅主题文字可读，选择/删除交互正常 | PR #50 已合并，全9项CI/48项业务/四种Compose与浏览器通过 |
@@ -716,3 +716,10 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - GO-2026-4945：当前go-jose/v4版本仍受JWE解密公告影响；应用OIDC使用`ParseSigned`和JWS签名验证，没有`ParseEncrypted/Decrypt/KeyUnwrap`调用。模块级全部符号标记不能证明JWE解密业务可达。
 - 离线验证依赖在空wrapped key下panic；当前OIDC verifier拒绝正常/畸形compact JWE、JSON JWE、伪装有效claims的五段输入及附加分段，合法RS256签名身份通过。使用临时密钥和静态公钥，无真实OIDC连接。结论为当前路径`no_change`，不关闭issuer归属/subject唯一性等既有业务阻断项。
 - 三项`no_change`均有父代理源码核对、独立只读调查和动态探针；证据保存在本地安全验收集合。未来查询模式、渲染选项或令牌解密能力变化时重新检查。其余x/image、x/text、x/net、gRPC、OTel及前端公告仍开放，不能将本批结果写成依赖已全部安全。
+
+### D7 合并验收与下一依赖项
+
+- [PR #55](https://github.com/dreamvm/one-hub/pull/55) head `88ada2a567affcde8c64722e652ab1dfede2ff20`，合并 `bda4c40acca99fe0a667721b46accb7d30b3cb77`；在D6已合并基线上重新计算，候选、合成、新计算及实际合并树均为`2b110d259cb5dc5587dd10fa05787693396ee241`。
+- CI [36695527963](https://github.com/dreamvm/one-hub/actions/runs/36695527963) / [36695529036](https://github.com/dreamvm/one-hub/actions/runs/36695529036) 全9项成功；48项业务PASS、四种Compose和三数据库各245个事务叶子用例通过。
+- 实际候选程序Go1.25.14、one-api、linux/amd64、CGO1，SHA256 `8f82651389e24391aa976fff69292706f70c3aa23578e4e0edc3e39ad066db99`；runner镜像`sha256:24dbdd008ea13b412c0ab4ab27242876832da352ea2398bc3b29acf56ffaadb2`未发布。未创建RC8、未部署。
+- 下一项优先核实GO-2026-6348：VertexAI IAM客户端进入gRPC接收队列，SDK允许较大的接收消息；TLS身份验证不能替代分片内存边界。先做有界分片与正常响应对照，再评估1.83.1及其模块闭包，不能以真实OOM作为验收目标。GO-2026-6061涉及的xDS服务端RBAC及服务端流重置路径未在当前应用中发现，不能由此扩大为所有gRPC公告均不受影响。
