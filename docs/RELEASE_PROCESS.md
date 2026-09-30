@@ -72,6 +72,8 @@ python3 .github/security/check_secrets.py --staged
 构建使用 `task build`：先以 Yarn frozen lockfile 构建当前前端，再以 Go `-mod=readonly -trimpath` 编译，
 普通构建不执行 tidy 或改写版本清单。显式维护依赖才使用 `task gomod`。`task docker` 仅构建本地镜像，
 维护版发布仍只使用手动 GHCR 工作流。Task 回归使用固定 v3.53.1；本地执行策略测试时将该工具的绝对路径传入 `ONEHUB_TASK_BIN`。
+Compose 配置回归需将固定5.5.1工具路径传入 `ONEHUB_COMPOSE_BIN`；可用 `bash .github/smoke/install-compose.sh /tmp/onehub-compose` 安装校验后的临时工具。
+未提供工具的本地跳过不能视为模板验收；CI同时执行真实配置解析及四种部署模板的隔离启动。
 
 ## 标签、镜像与上线
 

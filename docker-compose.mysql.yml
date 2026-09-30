@@ -1,0 +1,32 @@
+# Overlay: docker compose -f docker-compose.sqlite.yml -f docker-compose.mysql.yml ...
+services:
+  one-hub:
+    environment:
+      SQL_DSN: oneapi:${ONEHUB_MYSQL_PASSWORD:?Set the existing or generated database password}@tcp(db:3306)/one-api
+    depends_on:
+      db:
+        condition: service_healthy
+  db:
+    # Same immutable MySQL fixture accepted by the isolated smoke workflow.
+    image: mysql@sha256:212fe73edca5df6ff14826d5eb975c914bfb91f82a2e923f9050568f99525da1
+    container_name: mysql
+    restart: always
+    volumes:
+      - ./data/mysql:/var/lib/mysql
+    environment:
+      TZ: Asia/Shanghai
+      MYSQL_ROOT_PASSWORD: ${ONEHUB_MYSQL_ROOT_PASSWORD:?Set the existing or generated database root password}
+      MYSQL_USER: oneapi
+      MYSQL_PASSWORD: ${ONEHUB_MYSQL_PASSWORD:?Set the existing or generated database password}
+      MYSQL_DATABASE: one-api
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          response=$$(MYSQL_PWD="$$MYSQL_PASSWORD" mysql --protocol=TCP -h 127.0.0.1
+          -u "$$MYSQL_USER" -D "$$MYSQL_DATABASE" -Nse 'SELECT 1') &&
+          [ "$$response" = 1 ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
