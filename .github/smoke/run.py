@@ -231,6 +231,95 @@ class MySQLRedis:
         self.wait_ready()
 
 
+def assert_paid_accounting(before, after, unlimited):
+    cost = after[1] - before[1]
+    require(cost > 0 and before[0] - after[0] == cost, "recovered request quota mismatch")
+    require(after[2] == before[2] + 1, "recovered request count mismatch")
+    # Unlimited tokens intentionally retain their own quota counters; user accounting still applies.
+    token_cost = 0 if unlimited else cost
+    require(after[3] - before[3] == token_cost and after[4] == before[4] + 1,
+            "recovered request token/ledger mismatch")
+
+
+def redis_failure_checks(backend, user, token, user_id, mock, passed):
+    """Fault only this run's synthetic Redis; verify database and upstream effects."""
+    user_id = int(user_id)
+    upstream = Client("http://mock-provider:8000", mock)
+    mode = backend.sql(f"SELECT CASE WHEN unlimited_quota THEN 1 ELSE 0 END FROM tokens "
+                       f"WHERE user_id={user_id} AND name='sys_playground';").stdout.strip()
+    require(mode in ("0", "1"), "expected exactly one playground token")
+    unlimited = mode == "1"
+
+    def snapshot():
+        query = (f"SELECT quota,used_quota,request_count,"
+                 f"(SELECT COALESCE(SUM(used_quota),0) FROM tokens WHERE user_id={user_id}),"
+                 f"(SELECT COUNT(*) FROM quota_reservations WHERE user_id={user_id}) "
+                 f"FROM users WHERE id={user_id};")
+        return tuple(int(value) for value in backend.sql(query).stdout.strip().split("\t"))
+
+    def counter():
+        code, _, body = upstream.request("/stats")
+        require(code == 200, "mock stats unavailable")
+        return json.loads(body).get("openai-smoke_false", 0)
+
+    def refused():
+        before, calls = snapshot(), counter()
+        code, _, _ = user.request("/v1/chat/completions", token=token,
+                                 data={"model": "openai-smoke", "messages": [{"role": "user", "content": "fault fixture"}]})
+        require(400 <= code < 600, "fault request unexpectedly succeeded")
+        require(counter() == calls, "refused request reached upstream")
+        require(snapshot() == before, "refused request changed persistent accounting")
+
+    def paid_control():
+        before = snapshot()
+        require(chat(user, token, "openai-smoke", False)["content"] == "中文对话成功", "recovered chat failed")
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline:
+            after = snapshot()
+            if after[2] == before[2] + 1:
+                assert_paid_accounting(before, after, unlimited)
+                return
+            time.sleep(0.1)
+        raise AssertionError("recovered request did not settle exactly once")
+
+    # Establish a completed paid control before taking failure snapshots.
+    paid_control()
+    command("docker", "stop", "--time", "1", backend.redis)
+    try:
+        refused()
+    finally:
+        command("docker", "start", backend.redis)
+        backend.wait_ready()
+    paid_control()
+    passed("Redis stopped: rejected before upstream/accounting; empty-cache restart recovers paid chat")
+
+    group_key = f"user_group:{user_id}"
+    backend.cache("DEL", group_key)
+    backend.cache("LPUSH", group_key, "fixture-wrong-type")
+    try:
+        refused()
+    finally:
+        backend.cache("DEL", group_key)
+    paid_control()
+    passed("Redis wrong-type group cache: rejected without side effects; cache miss refills")
+
+    quota_key = f"user_quota:{user_id}"
+    backend.cache("SET", quota_key, "0")
+    paid_control()
+    passed("stale zero Redis quota does not override positive database balance")
+
+    balance = snapshot()[0]
+    backend.sql(f"UPDATE users SET quota=0 WHERE id={user_id};")
+    backend.cache("SET", quota_key, "999999999")
+    try:
+        refused()
+    finally:
+        backend.sql(f"UPDATE users SET quota={balance} WHERE id={user_id};")
+        backend.cache("DEL", quota_key)
+    paid_control()
+    passed("stale high Redis quota cannot authorize zero database balance; restored balance recovers")
+
+
 def run(args):
     require(re.fullmatch(r"onehub-isolated-smoke:[a-f0-9]{40}", args.image), "only the local smoke image is allowed")
     validate_backend(args)
@@ -358,6 +447,7 @@ def run(args):
             if backend:
                 backend.assert_used(channel_count=4)
                 passed("MySQL user/channel persistence and verified Redis cache hits")
+                redis_failure_checks(backend, user, user_token, user_info["id"], mock, passed)
                 command("docker", "stop", "--time", "10", gateway)
                 backend.restart()
                 command("docker", "start", gateway)
