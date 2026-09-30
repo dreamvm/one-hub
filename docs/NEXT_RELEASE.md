@@ -733,3 +733,17 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - 官方修复默认开启，但`GRPC_GO_EXPERIMENTAL_ENABLE_RECEIVE_BUFFER_COMPACTION=false`（忽略大小写）会关闭保护。独立进程负向对照已复现退化；仓库配置未设置该变量，生产环境未验收。运行时不得关闭此保护；本批不自动更改生产配置。
 - providers/relay构建、VertexAI race/vet、核心/model、controller/middleware（含OIDC）、媒体、SMTP、Bedrock回归与vet、模块校验、工作流策略和actionlint通过；目标包govulncheck不再报告GO-2026-6348。独立审阅、准确候选CI及隔离镜像验收继续按流程执行，以本批PR最终记录为准。回退此提交将恢复旧依赖风险。
 - x/text闭包只升至0.37.0，尚未达到GO-2026-5970修复版本0.39.0；其余依赖、OIDC业务归属和历史额度/支付阻断项分别保持开放。预留标签仍为`v0.14.27-dreamvm.1-rc.8`，未创建、未发布镜像、未部署。
+
+### D8 合并验收
+
+- [PR #57](https://github.com/dreamvm/one-hub/pull/57) head `2dc55b0736205aa3204c326ee5e63d30156aa26e`，合并 `75613fb0a977ccc127a883adb37674c27828d34c`；候选、GitHub合成、当前main计算及实际合并树均为`3729d8342a59e615f10bc3fdcaf88f6b6c1a5d41`。
+- fresh只读独立审阅未发现具体绕过或回归，并独立通过离线IAM race/vet。准确候选CI [36701221389](https://github.com/dreamvm/one-hub/actions/runs/36701221389) / [36701221897](https://github.com/dreamvm/one-hub/actions/runs/36701221897) 全9项成功。
+- 日志确认48项业务PASS、四种Compose启动、SQLite/MySQL/PostgreSQL各245个事务叶子用例、Redis故障、升级与两条回滚路径通过；前端56项测试通过，lint零错误/9条既存警告。
+- 实际程序Go1.25.14、one-api、linux/amd64、CGO1，SHA256 `c7c7358fcd3b1b6d8ec1d67f9057d94481c37197a85ce4a4f97a2351ada5c67c`；runner镜像`sha256:6c35683d0415bef557494783a77404d7195455f5584efdaa6eacd2d1bac46021`仅加载在隔离环境，未发布。预留RC8仍未创建，未部署；生产不得关闭接收缓冲合并保护，真实运行配置另行验收。
+
+### 依赖可达性核实：文本规范化
+
+- GO-2026-5970：当前x/text 0.37.0仍包含有缺陷的`norm.Iter`；父任务及独立只读调查核对Darwin arm64、Linux amd64/CGO1实际主程序编译包，均未发现外部`norm.Iter`消费者。IDNA调用`norm.Form`方法，precis/afero使用transformer，cases使用属性查询；不能从共享属性函数的宽泛受影响符号集合推断迭代器业务可达。
+- 有界探针验证库缺陷：NFC/NFKC、Init/InitString四种形式在非法UTF8夹具下均无法在128次迭代内结束，四项合法重音文本对照通过；临时0.39.0模块下八项均通过。没有实际挂死或OOM；仓库依赖未因此额外升级。
+- 实际`mediaHostname`的4项正常对照及24项非法UTF8变体均有界返回；旧新模块的规范化结果/错误完全一致。部分非法字节会映射为ASCII punycode，不能写成全部拒绝。域名经同一规范化值执行DNS/IP检查及TLS，拨号固定到校验后的IP；现有IDNA/SNI正常控制race通过。
+- 此项结论是当前受检应用路径`no_change`，不是依赖已修补或全部输入安全；未来新增Iter/排序消费者时重新检查。私有探针、旧新日志和两平台实际编译包证据已保留；下一项继续核实x/image剩余公告及前端依赖，再推进业务阻断项。
