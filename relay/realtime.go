@@ -123,8 +123,9 @@ func (r *RelayModeChatRealtime) getProvider() bool {
 			return true
 		} else {
 			r.providerConn.Close()
-			if r.usage.InputTokens > 0 || r.usage.OutputTokens > 0 {
-				r.quota.Consume(r.c, r.usage.ToChatUsage(), false)
+			usage := r.usage.ToChatUsage()
+			if usage.HasTokenUsage() {
+				r.quota.Consume(r.c, usage, false)
 				r.abortWithMessage(err.Error())
 				return false
 			}

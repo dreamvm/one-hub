@@ -881,3 +881,12 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - 独立分支 `codex/realtime-response-accounting` 在该 main 上处理同一连接内已标识响应的重复/冲突用量，详见 [REALTIME_RESPONSE_RECEIPTS.md](REALTIME_RESPONSE_RECEIPTS.md)。旧版 4 个失败、2 个正常对照通过；候选相关专项 53 个叶子通过，项目规定与受影响包 race、策略、vet、编译通过。
 - 全新只读独立调查与候选审阅完成，审阅未发现当前范围内存活绕过或阻断回归。六文件源码/测试补丁 SHA-256 `f4cfb306723a487432a6c4dd15ea9d4a69481a6adfd2c3531ff49185240ab94b` 在文档基线更新后保持不变。准确候选 CI、PR 和合并待完成，本地通过不是交付完成。
 - 缺失/null usage、匿名响应、跨连接/崩溃恢复、有歧义金额规则仍开放。首帧错误路径的正 extra/audio 费用另列下一独立修复；不与当前收据修复混为一项。没有标签、镜像发布、生产变更或真实付费调用。
+
+### Realtime 响应收据合并与首帧收尾候选
+
+- PR #73 合并后 main 的 [36776820608](https://github.com/dreamvm/one-hub/actions/runs/36776820608) 已通过，更新前节的待核对状态。
+- 响应收据 [PR #74](https://github.com/dreamvm/one-hub/pull/74) head `ba4df83279e04e3c73e50f4d8876f80be2356e30` 已合并为 `b01e0ffc7a0032efab7dd8571bd679a3e5813b00`。候选、合成、本地计算及实际合并树均为 `23fd0ebbd9da03f67fe8894817e7a700d0103782`；[36777026553](https://github.com/dreamvm/one-hub/actions/runs/36777026553) / [36777027193](https://github.com/dreamvm/one-hub/actions/runs/36777027193) 全 9 项通过。合并后 main 检查待核对。
+- PR #74 最终 runner 镜像 `sha256:9ca73b69bd7a402e1c3e281d867059517f40adc1ff9698a884bd75d264244819` 的实际程序为 Go1.25.14 / one-api / linux/amd64 / CGO1，binary SHA256 `89821ff73a1f1bb5b70263ab3d7b8ca5d05eb3d132d747155bd8858be3d39239`。48 个隔离业务/升级回滚 PASS 与 4 种 Compose 启动通过；未发布。
+- 后续独立首帧修复见 [REALTIME_FIRST_USAGE.md](REALTIME_FIRST_USAGE.md)，从上述已合并 main 交付。旧版 9 个失败/3 个正常对照，候选 12 场景及 5 个内部表示控制通过；相关 39 个叶子、规定离线与受影响包 race、策略、vet、编译通过。首帧已报告明细用量时停止退款重试；无效计价保留预留，免费计费语义不变。
+- 全新只读调查完成；新建候选审阅者遭工具线程数上限，使用未参与本项实现的既有审阅者执行一次独立只读审阅，复核旧新对照、模型与用量算术后未发现阻断项。上下文复用的流程限制保留，不声称 fresh-context 审阅。四文件补丁 SHA-256 `445f665d89cc90d9283e6e0eecaec25a1b276dbb4a2cc1c9c1d2c532407c4b32`，更新基线未改变补丁。
+- 首帧候选的准确 CI、PR 与合并尚待完成；缺失用量、运行中崩溃恢复、历史歧义金额等未关闭。RC8 仍未创建标签，未发布或部署。
