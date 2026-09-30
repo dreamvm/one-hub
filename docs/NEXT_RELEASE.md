@@ -810,3 +810,10 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - 已合并主分支的 PostCSS 后审计为 217 条路径、104 个 Yarn ID、78 个唯一 GHSA，其他依赖公告保持开放。Vite 独立异步 map 加载器、Windows 原生、符号链接 realpath、浏览器及生产端到端仍未完成；受检 PostCSS 路径通过不代表整个 Vite 文件读取边界关闭。只读审阅有上述非盲审上下文限制，不写成无偏差完成全部审阅规范。
 - 前置 Axios 台账 [PR #63](https://github.com/dreamvm/one-hub/pull/63) head `8d19b57a6ab4aaa788e6640b9ecea1ee5bfcdb42` 合并至 `8d885bda002429de279faeba555ff236a57ddc6e`，候选及实际树 `2bc0610d4081dd57f615845bf61cdac899802a8a`；[36740013903](https://github.com/dreamvm/one-hub/actions/runs/36740013903) 与 [36740015255](https://github.com/dreamvm/one-hub/actions/runs/36740015255) 第 2 次尝试合计全 9 项成功。后者首次在 Go 模块代理 HTTP/2 下载错误处失败，随后对同一提交重跑；失败与成功证据分别保留。
 - 下一项 Rollup 仅有本地候选 `codex/rollup-output-boundary` / `42988901fad12c44bdedfda1455bfe4ba4537037`：4.59.0 的 20 项与完整前端检查通过，但独立审阅被平台内容检查中断、无结论，未创建 PR、未完成候选 CI、未合并。其 214 条路径/77 个 GHSA 的本地审计不能替代已合并主分支数据；当前主分支 Rollup 仍为 4.53.3。此项保持待审阅，其余可独立工作继续。RC8 远端标签仍未创建，未发布或部署。
+
+### D11 台账合并与 D12 React Router 当前路径
+
+- PostCSS 台账 [PR #65](https://github.com/dreamvm/one-hub/pull/65) head `3e7bcef9e7b22b7cb9d752745c4b68203916e87f` 已合并至 `34d36a135d43235bb542a19c52eaafe69e2b2d60`。候选、GitHub 合成、本地计算及实际合并树均为 `947badba3a7659ef3a3ae254bf66a95cf2637ecd`；[36745622940](https://github.com/dreamvm/one-hub/actions/runs/36745622940) / [36745623855](https://github.com/dreamvm/one-hub/actions/runs/36745623855) 全 9 项成功，不以 PR #64 的 CI 代替。
+- PR #65 隔离镜像实际提取程序为 Go1.25.14 / one-api / linux/amd64 / CGO_ENABLED=1，二进制 SHA256 `4ee19406a9629f9c125c0c863dfc0d50c632805d424e8e404b1ab96ba3bf0ac8`，镜像 ID `sha256:6835031b982b411fb13a4dd3c58de04daa4e8fc5ba3192c1b83a7b6857640d44`；SQLite/MySQL/PostgreSQL 41 条与升级/回滚 7 条 PASS、4 种 Compose 模板成功。镜像仅在 CI runner 加载，未发布。
+- 在该前端源码与锁文件上完成真实 Chrome/BrowserRouter 合成账单检查，详见 [FRONTEND_BROWSER_BOUNDARIES.md](FRONTEND_BROWSER_BOUNDARIES.md)。桌面和移动视口共 24 个日期输入组合均保持同源；正常查看/返回/侧栏/前进后退、浅深色通过。异常日期仍有空白路由及坏编码警告，列入页面行为专项，不写成所有页面状态通过。
+- React Router 6.21.3 / router 1.14.2 未升级，12 条审计路径保持开放；结论仅为受检业务路径 `no_change`。Monaco/DOMPurify 动态编辑器验收、Rollup 缺失审阅及其余依赖继续推进；这次局部浏览器证据不替代生产端到端、实际 arm64 镜像或最终 RC8 验收。未创建标签、发布或部署。
