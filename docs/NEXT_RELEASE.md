@@ -865,3 +865,11 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - [I18N_TOOLCHAIN_TRIAGE.md](I18N_TOOLCHAIN_TRIAGE.md) 逐条保留 19 条输入路径，18 条在当前调用缺少公告必要前提，1 条 `lodash-es.unset` 路径仍为待验证；未升级依赖，不能将静态不适用写成库已修补。
 - 当前翻译 CLI 使用普通 JSON 解析，没有 LangChain load、LangSmith Hub/anonymizer 或流式 handler；浏览器仅导入静态语言文件。自动 tracing 是否在真实环境启用未读取，也未授权外发。
 - 下一项继续合成语言文件差异/正常控制及其余 i18n 公告，再处理 Axios 1.18.0 新增 12 条公告；官方当前 Axios 1.20.0 的修复与兼容性尚未完成本项目验收。没有执行真实模型、凭据读取、标签、镜像发布或部署。
+
+### 依赖路径后续核对与台账验收
+
+- 上述台账 [PR #72](https://github.com/dreamvm/one-hub/pull/72) head `05319927743b0a8116f8815ce93ff6f7729e3300` 已合并为 `5f0a7fc8139757ec31bfb297806a7bd6ab9e5690`。候选、合成、本地计算和实际合并树均为 `15f9878523987aa50e2bf2343e0f8683afbd5c05`；[36771742772](https://github.com/dreamvm/one-hub/actions/runs/36771742772) / [36771743406](https://github.com/dreamvm/one-hub/actions/runs/36771743406) 全 9 项及合并后 [36773447676](https://github.com/dreamvm/one-hub/actions/runs/36773447676) 均通过。
+- 该台账候选通过 94 个依赖叶子、62 项 Vitest、三数据库与 48 个隔离业务/升级回滚检查、4 种 Compose；最终镜像 `sha256:a1b7dc156714d1a7c4f17558f438a2e66b0e07a3c47cff981658f12319555294` 的程序为 Go1.25.14 / one-api / linux/amd64 / CGO1，binary SHA256 `d9317368ae075b9f60b6a93bbd3d6d702e9be7b0d446615f1f8540d1b94ed29e`。未发布。
+- i18n 后续 56 条静态记录为 36 条当前路径不适用、20 条待核实，逐条保留在 [I18N_TOOLCHAIN_TRIAGE.md](I18N_TOOLCHAIN_TRIAGE.md)。007 的合成 JSON 对照未见原型标记删除，普通对象控制通过，但数组缩短控制失败；四份当前语言文件无数组。未据此宣布库安全或实施推测性补丁。
+- [AXIOS_NEW_ADVISORIES.md](AXIOS_NEW_ADVISORIES.md) 记录新增 12 条公告的实际浏览器路径；必要的 Node、表单序列化、请求拦截器或 fetch/重定向边界不在当前产品调用中。结论仅为静态 no_change，保留 Axios 1.18.0 版本匹配，不声称已升级至 1.20.0 或新漏洞动态验收通过。
+- Rollup/Vite 独立审阅仍受平台限制，无结论，草稿不合并；i18n 可选 Markdown/glob/debug 边界继续开放。下一独立专项为 Realtime 重复/缺失用量、异常结束与恢复规则，先调查真实路径和正常计费控制。RC8 仍未创建，正式发布阻断项未全部关闭。

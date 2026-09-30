@@ -74,3 +74,107 @@ SDK 的其余公告、Markdown/目录 glob 模式及工具更新兼容性仍开�
 逐输入规范化、源码证据、反证、缺口及排名保留在私有 triage JSON 中。
 
 本项没有修复提交，因此不以静态分流代替未来补丁的旧新验证、独立审阅或准确 CI。
+
+## 后续有界对照与其余 56 条静态记录（2026-09-30）
+
+以下为首批记录之后的新证据，不覆盖前面的历史判断。基线为 main `5f0a7fc8`，
+i18n 依赖与 `4603ed13` 相同。未升级翻译工具或执行真实模型。
+
+首批 007 的全新只读调查未找到普通 JSON 语言文件到内建原型删除的路径。
+父任务提取已安装 CLI 的原样纯 diff 函数，不启动 CLI、dotenv 或网络：7 组合成输入
+保持测试自建标记及原输入，普通对象增删对照通过；直接 lodash 控制能删除同一自建标记，
+说明库本身的缺陷与本项目调用可达性不同。只对 JSON 来源、未预先改写的标准原型作此判断，
+不扩展为库安全结论，也未增加推测性补丁。
+
+**数组正常对照失败**：源数组缩短到一个元素时，译文结果为 `[null, "two"]`，
+而非预期 `["one"]`。旧工具使用 delete 而非 splice；失败日志单独保留，不能用后续驱动
+退出码 0 代表全部正常对照通过。四份当前语言文件均没有数组值，独立调查也确认这一点；
+数组兼容性仍开放，没有顺带改写旧行为。
+
+其余 56 条输入逐条保留如下，静态结果为 36 条当前调用不适用、20 条证据不足。
+与首批合计 75 条初筛记录：54 条 not_actionable、21 条 needs_review；007 的后续证据
+另记如上，未悄悄改写初筛结果。重复依赖路径没有删除。
+
+| 编号 | GHSA | 包 | 静态结果 | 待核实排名 |
+|---|---|---|---|---|
+| 020 | w5hq-g745-h8pq | uuid | not_actionable | — |
+| 021 | w5hq-g745-h8pq | uuid | not_actionable | — |
+| 022 | w5hq-g745-h8pq | uuid | not_actionable | — |
+| 023 | w5hq-g745-h8pq | uuid | not_actionable | — |
+| 024 | v6h2-p8h4-qcjw | brace-expansion | needs_review | 10 |
+| 025 | f886-m6hf-6m8v | brace-expansion | needs_review | 11 |
+| 026 | 3jxr-9vmj-r5cp | brace-expansion | needs_review | 12 |
+| 027 | mh99-v99m-4gvg | brace-expansion | needs_review | 13 |
+| 028 | rgw5-rvv9-x895 | brace-expansion | needs_review | 14 |
+| 029 | q2hr-2g5m-vwhr | brace-expansion | needs_review | 15 |
+| 030 | qhr7-859c-m2p7 | brace-expansion | needs_review | 16 |
+| 031 | 6j4f-fj2g-mc7p | brace-expansion | needs_review | 17 |
+| 032 | fjxv-7rqg-78g4 | form-data | not_actionable | — |
+| 033 | fjxv-7rqg-78g4 | form-data | not_actionable | — |
+| 034 | hmw2-7cc7-3qxx | form-data | not_actionable | — |
+| 035 | hmw2-7cc7-3qxx | form-data | not_actionable | — |
+| 036 | 73rr-hh4g-fpgx | diff | not_actionable | — |
+| 037 | 73rr-hh4g-fpgx | diff | not_actionable | — |
+| 038 | 73rr-hh4g-fpgx | diff | not_actionable | — |
+| 039 | 73rr-hh4g-fpgx | diff | not_actionable | — |
+| 040 | 73rr-hh4g-fpgx | diff | not_actionable | — |
+| 041 | 73rr-hh4g-fpgx | diff | not_actionable | — |
+| 042 | 2g4f-4pwh-qvx6 | ajv | not_actionable | — |
+| 043 | 2g4f-4pwh-qvx6 | ajv | not_actionable | — |
+| 044 | 48c2-rrv3-qjmp | yaml | not_actionable | — |
+| 045 | 58qx-3vcg-4xpx | ws | needs_review | 6 |
+| 046 | 58qx-3vcg-4xpx | ws | needs_review | 7 |
+| 047 | 96hv-2xvq-fx4p | ws | needs_review | 8 |
+| 048 | 96hv-2xvq-fx4p | ws | needs_review | 9 |
+| 049 | v2hh-gcrm-f6hx | fast-uri | not_actionable | — |
+| 050 | v2hh-gcrm-f6hx | fast-uri | not_actionable | — |
+| 051 | 7p8r-x3mc-p8w7 | fast-uri | not_actionable | — |
+| 052 | 7p8r-x3mc-p8w7 | fast-uri | not_actionable | — |
+| 053 | q3j6-qgpj-74h6 | fast-uri | not_actionable | — |
+| 054 | q3j6-qgpj-74h6 | fast-uri | not_actionable | — |
+| 055 | v39h-62p7-jpjc | fast-uri | not_actionable | — |
+| 056 | v39h-62p7-jpjc | fast-uri | not_actionable | — |
+| 057 | f65p-4m7j-42xc | fast-uri | not_actionable | — |
+| 058 | f65p-4m7j-42xc | fast-uri | not_actionable | — |
+| 059 | jqff-g426-hqxp | fast-uri | not_actionable | — |
+| 060 | jqff-g426-hqxp | fast-uri | not_actionable | — |
+| 061 | 4c8g-83qw-93j6 | fast-uri | not_actionable | — |
+| 062 | 4c8g-83qw-93j6 | fast-uri | not_actionable | — |
+| 063 | qw65-cvwx-89v3 | fast-uri | not_actionable | — |
+| 064 | qw65-cvwx-89v3 | fast-uri | not_actionable | — |
+| 065 | hrr3-gc8f-f4qj | fast-uri | not_actionable | — |
+| 066 | hrr3-gc8f-f4qj | fast-uri | not_actionable | — |
+| 067 | 5j98-mcp5-4vw2 | glob | not_actionable | — |
+| 068 | mh29-5h37-fv8m | js-yaml | needs_review | 1 |
+| 069 | h67p-54hq-rp68 | js-yaml | needs_review | 2 |
+| 070 | 52cp-r559-cp3m | js-yaml | needs_review | 3 |
+| 071 | 5p4m-2wfm-xmqj | js-yaml | needs_review | 4 |
+| 072 | 2883-xcg3-v3hh | js-yaml | needs_review | 5 |
+| 073 | 3ppc-4f35-3m26 | minimatch | needs_review | 18 |
+| 074 | 7r86-cg39-jmmj | minimatch | needs_review | 19 |
+| 075 | 23c5-xmqv-rm74 | minimatch | needs_review | 20 |
+
+- **020–023 UUID**：当前 core/LangSmith 回调使用 v4；indexing 中的 v5 只传值与 namespace，
+  不传外部输出缓冲区，缺少公告必要前提。
+- **032–035 form-data**：依赖来自 OpenAI 的 @types/node-fetch 声明；运行时使用
+  formdata-node/form-data-encoder，翻译请求为 JSON，并未使用受影响的 form-data 编码器。
+- **036–041 diff**：uvu 错误格式化只调用 diffArrays/diffLines/diffChars，包含 development
+  条件导出；没有调用公告要求的 parsePatch/applyPatch。
+- **042–043 Ajv**：conf 固定 schema 只有 apiBaseUrl/openaiToken 字符串，未启用 $data，
+  不接受动态 pattern。**049–066 fast-uri** 仅解析这套固定 schema 的引用，未连到
+  请求目的地、文件访问或异步 loadSchema，不能把库 URL 差异直接推断为项目 SSRF。
+- **044 yaml**：LangChain 的 YAML config loader 不在 CLI 的 text_splitter 导入链；
+  Markdown 使用的是另一包 js-yaml，后者单独列为待核实。
+- **067 glob**：CLI 使用 globSync 库，不调用 glob 可执行文件的 --cmd/shell 分支。
+  此结论不关闭下面的 glob 模式复杂度公告。
+- **068–072 js-yaml**：工具支持 md/--with-md，输入前言会进入 gray-matter.safeLoad；
+  当前项目配置仅用 JSON。仍需明确 Markdown 来源及支持的信任边界和受影响 merge/omap
+  语义，不能仅凭默认模式关闭可选模式。
+- **045–048 ws**：Ink 在 DEV=true 时尝试载入 react-devtools-core，且仅在没有全局
+  WebSocket 时使用 ws。当前安装树没有 react-devtools-core，但它是 Ink 声明的 peer；
+  支持的调试环境、对端归属和 TypedArray close reason 路径仍需核实，没有读取真实环境。
+- **024–031、073–075**：目录/Markdown 模式能将自定义配置模式交给 glob/minimatch。
+  是否允许较低信任来源提供模式仍不明确；未做真实耗尽、长时间阻塞或外部目标验证。
+
+详细逐路径来源、源码行号、反证及未决事实保留在 triage JSON。此静态阶段没有运行漏洞
+探针、翻译任务或模型，不以它替代未来补丁的旧新对照、独立审阅和准确候选 CI。
