@@ -5,32 +5,34 @@ version: '3'
 vars:
   GOPROXY: 'https://goproxy.cn,direct'
   GOSUMDB: sum.golang.google.cn
-  ROOT_DIR: $(pwd)
-  BUILD_DIR: $(pwd)/_output
-  BIN_DIR: $(pwd)/_output/one-hub
+  ROOT_DIR: "{{.TASKFILE_DIR}}"
+  BUILD_DIR: "{{.ROOT_DIR}}/_output"
+  BIN_DIR: "{{.BUILD_DIR}}/one-hub"
   VERSION_PKG: one-api/common/config
-  BUILD_VERSION: $(git describe --tags || echo "dev")
-  BUILD_DATE: $(date +%Y%m%d)
+  BUILD_VERSION:
+    sh: git describe --tags --always --dirty 2>/dev/null || printf dev
+  BUILD_DATE:
+    sh: git show -s --format=%cs HEAD 2>/dev/null | tr -d -
   GIT_BRANCH: $(git branch -r --contains | head -1 | sed -E -e "s%(HEAD ->|origin|upstream)/?%%g" | xargs)
-  GIT_COMMIT: $(git rev-parse --short HEAD || echo "abcdefgh")
+  GIT_COMMIT:
+    sh: git rev-parse --short HEAD 2>/dev/null || printf unknown
   BUILD_RELEASE: "{{.BUILD_VERSION}}-{{.BUILD_DATE}}-{{.GIT_COMMIT}}"
-  IMAGE: "ttl.sh/one-hub:{{.BUILD_RELEASE}}"
+  IMAGE: "one-hub:local"
   LOCAL_OS: $(go version | awk '{print $NF}')
   GOOS: $(go env GOOS)
   GOARCH: $(go env GOARCH)
   LDFLAGS: "-w -s \
-    -extldflags '-static' \
     -X '{{.VERSION_PKG}}.Version={{.BUILD_VERSION}}' \
     -X '{{.VERSION_PKG}}.BuildTime={{.BUILD_DATE}}' \
     -X '{{.VERSION_PKG}}.Commit={{.GIT_COMMIT}}'"
 
 tasks:
   web:
-    desc: build web
+    desc: build current frontend using the committed Yarn lockfile
+    env:
+      ONEHUB_BUILD_VERSION: "{{.BUILD_VERSION}}"
     cmds:
-      - hack/scripts/genui.sh {{.BUILD_VERSION}}
-    status:
-      - test -f web/build/index.html
+      - bash hack/scripts/genui.sh "$ONEHUB_BUILD_VERSION"
 
   gomod:
     desc: update go mod
@@ -74,21 +76,22 @@ tasks:
       - "{{.BIN_DIR}}"
 
   build:
-    desc: build binary
-    deps:
-      - gomod
-      - web
+    desc: build frontend and backend without changing dependency manifests
+    env:
+      ONEHUB_BUILD_DIR: "{{.BUILD_DIR}}"
+      ONEHUB_BIN_DIR: "{{.BIN_DIR}}"
+      ONEHUB_LDFLAGS: "{{.LDFLAGS}}"
     cmds:
-      - go build -o {{.BIN_DIR}} -ldflags "{{.LDFLAGS}}"
+      - task: web
+      - mkdir -p "$ONEHUB_BUILD_DIR"
+      - go build -mod=readonly -trimpath -o "$ONEHUB_BIN_DIR" -ldflags "$ONEHUB_LDFLAGS"
 
   docker:
-    desc: build docker image
-    deps:
-      - gomod
-      - web
+    desc: build a local image; publication uses the manual GHCR workflow
+    env:
+      ONEHUB_LOCAL_IMAGE: "{{.IMAGE}}"
     cmds:
-      - GOOS=linux GOARCH=amd64 go build -o {{.BIN_DIR}} -ldflags "{{.LDFLAGS}}"
-      - docker buildx build --pull --push --platform linux/amd64 -t "{{.IMAGE}}" .
+      - docker build -t "$ONEHUB_LOCAL_IMAGE" .
 
   default:
     cmds:

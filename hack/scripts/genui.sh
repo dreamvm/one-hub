@@ -1,16 +1,9 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
-version=${1}
+version=${1:-dev}
+repo_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
+cd "$repo_root/web"
 
-if [ -d "web" ]; then
-  pushd web || exit
-  cp package.json package.json.example
-  # cat package.json  | jq '.version="'${version}'"' > package.json.new
-  jq '.version="'"${version}"'"' package.json > package.json.new && mv package.json.new package.json
-  if [ ! -d "node_modules" ];then
-    npm install
-  fi
-  DISABLE_ESLINT_PLUGIN='true' VITE_APP_VERSION=$version npm run build
-  mv package.json.example package.json
-  popd || exit
-fi
+yarn install --frozen-lockfile --non-interactive
+DISABLE_ESLINT_PLUGIN=true VITE_APP_VERSION="$version" yarn build

@@ -69,8 +69,9 @@ python3 .github/security/check_secrets.py --staged
 如果安装方式仅使用环境变量，则保留已有的绝对路径，不执行上面从 Git 配置读取的赋值。
 前端变更执行 `cd web && yarn install --frozen-lockfile --non-interactive && yarn test && yarn lint && yarn build`。
 工作流变更执行 `go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12`。
-构建可使用 `task build`，但目前会执行 `go mod tidy` 且可能复用既存前端产物，构建后需检查差异；
-其改造列入后续工程批次。`task docker` 含旧的直接推送行为，不作为维护版发布入口。
+构建使用 `task build`：先以 Yarn frozen lockfile 构建当前前端，再以 Go `-mod=readonly -trimpath` 编译，
+普通构建不执行 tidy 或改写版本清单。显式维护依赖才使用 `task gomod`。`task docker` 仅构建本地镜像，
+维护版发布仍只使用手动 GHCR 工作流。Task 回归使用固定 v3.53.1；本地执行策略测试时将该工具的绝对路径传入 `ONEHUB_TASK_BIN`。
 
 ## 标签、镜像与上线
 
