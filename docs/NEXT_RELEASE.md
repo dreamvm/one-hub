@@ -58,7 +58,7 @@ RC 是预发布候选，编号不代表质量验收。后续候选从 rc.8 起�
 | D8 | gRPC接收分片对象放大 | 旧版有界复现，新版数据/EOF完整，IAM正常与错误语义保持 | [PR #57](https://github.com/dreamvm/one-hub/pull/57) 已合并，全9项CI、48项业务检查、四种Compose与三数据库验收通过 |
 | D9 | 顶层Vite开发服务器文件边界 | HTTP deny/query、WebSocket、sourcemap越界拒绝，合法开发流程保持 | [PR #60](https://github.com/dreamvm/one-hub/pull/60) 已合并；旧新对照、独立审阅、准确候选全9项CI与隔离镜像验收通过，Windows原生验收仍开放，见 [VITE_DEV_BOUNDARY.md](VITE_DEV_BOUNDARY.md) |
 | D10 | Axios浏览器共享配置边界 | 合成前置污染下忽略继承data/reviver，合法XHR与API行为保持 | [PR #62](https://github.com/dreamvm/one-hub/pull/62) 已合并；旧新对照、独立审阅、准确候选全9项CI与隔离镜像验收通过，应用污染来源未证实，见 [AXIOS_BROWSER_BOUNDARY.md](AXIOS_BROWSER_BOUNDARY.md) |
-| D11 | PostCSS 编译器 map 文件读取 | 旧版失败及合法 CSS/map 对照，真实 Vite 构建/import 验证 | 8.5.23 本地 16 项及独立审阅通过；准确候选 CI 和合并待完成；Vite 独立开发加载器边界仍保留，见 [POSTCSS_FILE_BOUNDARY.md](POSTCSS_FILE_BOUNDARY.md) |
+| D11 | PostCSS 编译器 map 文件读取 | 旧版失败及合法 CSS/map 对照，真实 Vite 构建/import 验证 | [PR #64](https://github.com/dreamvm/one-hub/pull/64) 已合并；本地 16 项、只读审阅与准确候选全 9 项 CI 通过，审阅上下文限制见下文；Vite 独立开发加载器边界仍保留，见 [POSTCSS_FILE_BOUNDARY.md](POSTCSS_FILE_BOUNDARY.md) |
 | 后续 D | 依赖/端到端/负载验收 | 固定 Fork 镜像；健康失败正确退出；三数据库及相关故障路径通过 | 待实施，阻断正式版 |
 | E1 | 主题按钮键盘操作和可访问名称 | 桌面/移动端深浅主题、Enter/空格/点击正常 | PR #49 已合并，全9项CI/48项业务/四种Compose与浏览器通过 |
 | E2 | 深色填充标签对比度 | 深浅主题文字可读，选择/删除交互正常 | PR #50 已合并，全9项CI/48项业务/四种Compose与浏览器通过 |
@@ -799,4 +799,14 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - 旧版 7 个边界检查失败、9 个正常对照通过；新版 16 个叶子检查通过。测试覆盖真实顶层 Vite 生产构建/import 和独立库边界，普通 CSS、CSS Modules、SCSS、资源与合法 map 保持，见 [POSTCSS_FILE_BOUNDARY.md](POSTCSS_FILE_BOUNDARY.md)。
 - Vite 自身的开发加载器仍会异步读取直接 CSS map 注释指向的合成文件；默认关闭开发 sourcemap 的探针未见内容进入返回 map，不能据此关闭所有 Vite 文件读取或其他配置的披露风险。Windows、符号链接 realpath、原生浏览器与完整端到端尚未验证。
 - 本地 frozen 安装、30 个 Vite / 20 个 Axios / 16 个 PostCSS 叶子检查及 60 个 Vitest 检查、lint 零错误/9 条既存警告、build 通过。用户授权的新审计有 217 条路径记录、104 个 Yarn 公告 ID、78 个唯一 GHSA；PostCSS 的 4 个和 nanoid 的 3 个 GHSA 不再匹配，其他公告保留，不将审计计数当成应用可利用性结论。
-- 新鲜只读候选审阅完成，独立复跑 16 项及相邻路径/受信任正常控制通过，未确认阻断项；准确提交 CI、合并与镜像验收待完成。RC8 仍预留，未创建标签、发布或部署。
+- 新鲜只读候选审阅者独立复跑 16 项及相邻路径/受信任正常控制，未确认阻断项；分派消息包含父任务测试结果与范围解释，因此不是盲审，保留此流程限制。准确提交 CI、合并与镜像验收事实见下方。RC8 仍预留，未创建标签、发布或部署。
+
+### D11 PostCSS 合并验收
+
+- [PR #64](https://github.com/dreamvm/one-hub/pull/64) 最终 head `60aa55eab6270992dbd1426c9715531f30005351`，实际合并 `04ea23dbc3cf45a0f6d1f0477a0cd0c3dd755634`。候选、GitHub 合成、合并前 main 计算及实际合并树均为 `8ae8d22ab43ac126f4378b64572d8a85093719e2`。更新基线时只解决台账追加位置，已审阅源码、测试和依赖内容保持一致。
+- 准确候选 CI [36742294716](https://github.com/dreamvm/one-hub/actions/runs/36742294716) / [36742295282](https://github.com/dreamvm/one-hub/actions/runs/36742295282) 全 9 项成功。Linux 前端通过 30 个 Vite、20 个 Axios、16 个 PostCSS 叶子检查与 60 个 Vitest 检查；Node 汇总分别为 31 和 38（包含父节点）。Lint 零错误/9 条既存警告，build 通过并保留大 chunk 提示。
+- SQLite/MySQL/PostgreSQL 各 284 个测试节点、245 个事务叶子用例通过。三后端 smoke 共 41 个 PASS（9/16/16），另有 7 个升级/两条回滚 PASS，合计 48；四种 Compose 实际启动通过。未覆盖的请求中途故障、网络分区及并发负载不因此关闭。
+- 最终 runner 镜像 `sha256:1e5350b05eee550c11ab5bd5a4c76eef0460d83b487976bbae67db36505d5408` 中实际程序为 `Go=go1.25.14 main=one-api GOOS=linux GOARCH=amd64 CGO_ENABLED=1`，binary SHA256 `2ed56f7aaf528acb063b511b77d8d529f884a2644b552cb922fda7e50ac734cf`。镜像仅在 runner 加载，未发布；无生产数据复制或真实付费模型调用。
+- 已合并主分支的 PostCSS 后审计为 217 条路径、104 个 Yarn ID、78 个唯一 GHSA，其他依赖公告保持开放。Vite 独立异步 map 加载器、Windows 原生、符号链接 realpath、浏览器及生产端到端仍未完成；受检 PostCSS 路径通过不代表整个 Vite 文件读取边界关闭。只读审阅有上述非盲审上下文限制，不写成无偏差完成全部审阅规范。
+- 前置 Axios 台账 [PR #63](https://github.com/dreamvm/one-hub/pull/63) head `8d19b57a6ab4aaa788e6640b9ecea1ee5bfcdb42` 合并至 `8d885bda002429de279faeba555ff236a57ddc6e`，候选及实际树 `2bc0610d4081dd57f615845bf61cdac899802a8a`；[36740013903](https://github.com/dreamvm/one-hub/actions/runs/36740013903) 与 [36740015255](https://github.com/dreamvm/one-hub/actions/runs/36740015255) 第 2 次尝试合计全 9 项成功。后者首次在 Go 模块代理 HTTP/2 下载错误处失败，随后对同一提交重跑；失败与成功证据分别保留。
+- 下一项 Rollup 仅有本地候选 `codex/rollup-output-boundary` / `42988901fad12c44bdedfda1455bfe4ba4537037`：4.59.0 的 20 项与完整前端检查通过，但独立审阅被平台内容检查中断、无结论，未创建 PR、未完成候选 CI、未合并。其 214 条路径/77 个 GHSA 的本地审计不能替代已合并主分支数据；当前主分支 Rollup 仍为 4.53.3。此项保持待审阅，其余可独立工作继续。RC8 远端标签仍未创建，未发布或部署。

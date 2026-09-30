@@ -51,7 +51,25 @@ map：升级前后均会异步读取合成父目录文件。当前默认 `devSou
 新审计仍有 217 条路径记录、104 个 Yarn 公告 ID、78 个唯一 GHSA；PostCSS 及
 nanoid 公告已无匹配，其他依赖保留。Lint 仍有 9 条既存警告，构建仍有大 chunk 提示。新鲜只读候选审阅已独立复跑 16 项，
 并验证归一化父目录拒绝、大写扩展名/合法子目录 map 与显式受信任回调正常，
-未确认阻断项。准确提交 CI 及合并核对尚待完成；未创建标签、发布镜像或部署。
+未确认阻断项。审阅分派包含父任务测试结果和范围解释，因此并非盲审；此流程
+限制仍保留。准确提交 CI 和合并已完成，见下方；未创建标签、发布镜像或部署。
 
 回滚使用本项独立提交的反向提交并重跑 frozen 安装和前端回归；回滚会重新引入
 旧版公告匹配，不能作为依赖问题已关闭的版本。
+
+## 合并与准确候选验收
+
+[PR #64](https://github.com/dreamvm/one-hub/pull/64) head
+`60aa55eab6270992dbd1426c9715531f30005351` 合并为
+`04ea23dbc3cf45a0f6d1f0477a0cd0c3dd755634`；候选、GitHub 合成、计算和
+实际合并树均为 `8ae8d22ab43ac126f4378b64572d8a85093719e2`。
+[兼容性 CI](https://github.com/dreamvm/one-hub/actions/runs/36742294716) 与
+[隔离镜像 CI](https://github.com/dreamvm/one-hub/actions/runs/36742295282)
+全 9 项通过，包括 Linux 前端 66 个原生叶子及 60 个 Vitest、三数据库各
+245 个事务叶子、41 个后端 smoke 加 7 个升级/回滚检查、四种 Compose 启动。
+
+实际 linux/amd64、CGO=1 程序确认使用 Go 1.25.14，binary SHA256 为
+`2ed56f7aaf528acb063b511b77d8d529f884a2644b552cb922fda7e50ac734cf`；
+隔离 runner 镜像 ID 为
+`sha256:1e5350b05eee550c11ab5bd5a4c76eef0460d83b487976bbae67db36505d5408`。
+镜像没有发布或部署。CI 通过不扩展上文的工具路径、审阅上下文和未验证边界。
