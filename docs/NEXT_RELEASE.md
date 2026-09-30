@@ -723,3 +723,13 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - CI [36695527963](https://github.com/dreamvm/one-hub/actions/runs/36695527963) / [36695529036](https://github.com/dreamvm/one-hub/actions/runs/36695529036) 全9项成功；48项业务PASS、四种Compose和三数据库各245个事务叶子用例通过。
 - 实际候选程序Go1.25.14、one-api、linux/amd64、CGO1，SHA256 `8f82651389e24391aa976fff69292706f70c3aa23578e4e0edc3e39ad066db99`；runner镜像`sha256:24dbdd008ea13b412c0ab4ab27242876832da352ea2398bc3b29acf56ffaadb2`未发布。未创建RC8、未部署。
 - 下一项优先核实GO-2026-6348：VertexAI IAM客户端进入gRPC接收队列，SDK允许较大的接收消息；TLS身份验证不能替代分片内存边界。先做有界分片与正常响应对照，再评估1.83.1及其模块闭包，不能以真实OOM作为验收目标。GO-2026-6061涉及的xDS服务端RBAC及服务端流重置路径未在当前应用中发现，不能由此扩大为所有gRPC公告均不受影响。
+
+### D8 gRPC 接收分片边界候选
+
+- 基线为已合并`f5a77ef14509f11d04092d7e789fb50193a9f0ab`，该主分支CI [36698841110](https://github.com/dreamvm/one-hub/actions/runs/36698841110)成功；独立分支`codex/grpc-receive-buffer-boundary`处理[GO-2026-6348](https://pkg.go.dev/vuln/GO-2026-6348)。VertexAI聊天、原生Gemini/Claude和图片请求共用IAM取令牌路径；数据须来自通过TLS身份验证的IAM对端，普通请求用户不能直接提交该对端的响应帧。
+- gRPC从1.73.0升级到官方修复版1.83.1，仅接受其必需MVS闭包；完整模块图157个节点变化，其中22个属于当前主程序编译依赖。Google API/IAM、auth、genproto、protobuf、OTel及x/*等版本变化是闭包约束，testify同步至1.11.1；不是157个库全部进入程序。Go声明规范化为1.25.0，实际工具链仍固定1.25.14。
+- 独立临时依赖副本的64KiB接收队列探针先证明旧版在1/2/7字节分片下越过2048对象上限，正常16KiB分片对照通过；新版race下分别保留1024/576/103个对象，正常对照仍为4，内容和EOF顺序保持。此证据验证实际接收队列组件，不是完整IAM线上攻击或真实OOM演示；探针及旧新日志保存在本地安全验收集合。
+- 新增7项离线IAM SDK兼容性回归并接入CI：真实SDK构造与内存gRPC连接，精确核对服务账号/Scope、token/expiry、大响应连续性、默认Unavailable重试、权限/认证错误、调用中取消与超时。旧新依赖均通过；GAX可能直接返回context错误，断言保留此语义。测试不调用Google，不改变应用凭据、TLS、代理、缓存或30秒后台上下文，也不宣称HTTP取消已传播到GetToken。
+- 官方修复默认开启，但`GRPC_GO_EXPERIMENTAL_ENABLE_RECEIVE_BUFFER_COMPACTION=false`（忽略大小写）会关闭保护。独立进程负向对照已复现退化；仓库配置未设置该变量，生产环境未验收。运行时不得关闭此保护；本批不自动更改生产配置。
+- providers/relay构建、VertexAI race/vet、核心/model、controller/middleware（含OIDC）、媒体、SMTP、Bedrock回归与vet、模块校验、工作流策略和actionlint通过；目标包govulncheck不再报告GO-2026-6348。独立审阅、准确候选CI及隔离镜像验收继续按流程执行，以本批PR最终记录为准。回退此提交将恢复旧依赖风险。
+- x/text闭包只升至0.37.0，尚未达到GO-2026-5970修复版本0.39.0；其余依赖、OIDC业务归属和历史额度/支付阻断项分别保持开放。预留标签仍为`v0.14.27-dreamvm.1-rc.8`，未创建、未发布镜像、未部署。
