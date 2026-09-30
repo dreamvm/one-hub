@@ -555,7 +555,7 @@ export default function componentStyleOverrides(theme) {
           borderRadius: `${theme?.customization?.borderRadius || 8}px`
         },
         filled: {
-          color: '#FFFFFF',
+          color: isDark ? theme.colors?.grey800 : '#FFFFFF',
           backgroundColor: theme.darkTextPrimary,
           '&:hover': {
             backgroundColor: isDark ? theme.colors?.grey100 : theme.colors?.grey700
