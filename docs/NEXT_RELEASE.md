@@ -54,6 +54,7 @@ RC 是预发布候选，编号不代表质量验收。后续候选从 rc.8 起�
 | D4b | PostgreSQL候选镜像业务与Redis故障 | 登录/中英文JSON与SSE/工具/持久化/撤销及账务故障 | PR #48 已合并，全9项CI、48项业务检查与四种Compose通过 |
 | D5 | 容器Go编译器身份与已验证补丁版本一致 | 读取最终候选binary，错误版本/主包/平台/CGO拒绝 | [PR #52](https://github.com/dreamvm/one-hub/pull/52) 已合并，全9项CI、实际Go1.25.14 binary及隔离业务验收通过 |
 | D6 | 邮件依赖的SMTP信封地址编码 | 引号/转义完整，普通地址、显示名称、TLS与失败回执保持 | 已实现并通过本地回归和独立审阅；准确提交CI及合并以该批PR验收记录为准 |
+| D7 | Bedrock上游EventStream解析崩溃 | 非法头和缺失异常类型返回错误，正常连续事件与合法头保持 | 已实现并通过本地回归和独立审阅；准确提交CI及合并以该批PR验收记录为准 |
 | 后续 D | 依赖/端到端/负载验收 | 固定 Fork 镜像；健康失败正确退出；三数据库及相关故障路径通过 | 待实施，阻断正式版 |
 | E1 | 主题按钮键盘操作和可访问名称 | 桌面/移动端深浅主题、Enter/空格/点击正常 | PR #49 已合并，全9项CI/48项业务/四种Compose与浏览器通过 |
 | E2 | 深色填充标签对比度 | 深浅主题文字可读，选择/删除交互正常 | PR #50 已合并，全9项CI/48项业务/四种Compose与浏览器通过 |
@@ -686,3 +687,18 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - 升级后11项叶子用例race通过；8项地址/显示名控制和3项失败回执控制均检查真实协议结果。测试CA只在子进程中启用，生产信任链不变。专项使用`go test -race -count=1 ./common/stmp -run '^TestSMTPEnvelope'`；禁止无过滤执行会读取外部配置的旧`TestSend`。
 - 相关model/types/providers/requester离线race、SMTP/通知/cache vet、策略检查和providers/relay构建通过；目标包govulncheck不再报告GO-2025-3988，其他依赖公告仍分别核实。全仓库准确提交CI和隔离镜像结果记录在本修复PR中，本段本地记录不替代远端验收。
 - 新鲜只读调查与另一名新鲜只读审阅完成，未确认存活绕过或回归。回退此依赖会恢复旧地址编码问题；RC8仍仅预留，未发布或部署。
+
+### D7 Bedrock事件流解析边界
+
+- 独立分支`codex/bedrock-eventstream-dependency`基于D6候选`cd011d32b9713b8afdd5cd7af9f4a1be94a506c7`；顺序为D6验收合并后再合并本项。
+- [GO-2026-5764](https://pkg.go.dev/vuln/GO-2026-5764)涉及EventStream未知头值类型panic。Bedrock上游响应在`Recv`启动的独立goroutine中解码，请求入口的恢复无法捕获；同一边界缺少`:exception-type`还会产生nil调用。来源是配置的上游响应，不把它表述为客户端可以直接注入任意上游帧。
+- 先以真实`RequestStream/Recv`和内存响应体复现两类进程崩溃，其余10项正常/错误控制通过。升级eventstream至1.7.8及必要smithy-go至1.24.2；缺失异常类型在调用前明确返回错误，保持既有错误封装。
+- 新增12组回归：覆盖全部10种合法头类型、连续Unicode事件、246种非法类型在首个/后续头的位置，以及异常、错误、JSON/base64、CRC和EOF控制。所有用例race通过，未调用真实模型。
+- Bedrock vet、providers/relay构建、types/Gemini/Claude/requester race、工作流策略与actionlint通过；新增专项接入CI。新鲜只读独立审阅未发现具体绕过或回归，并另行通过专项race/vet/构建。
+- 目标包govulncheck不再报告GO-2026-5764；其他公告保持分别核实。此次仅关闭两类解析崩溃，不宣称覆盖所有截断/流终止语义。回退会恢复崩溃路径；准确提交CI和隔离镜像验收以本批PR记录为准。
+
+### 依赖可达性核实：PostgreSQL驱动
+
+- GO-2026-5004：当前pgx 5.7.5仍在公告版本范围内，但本次检查的应用路径无需改动。`model/main.go`同时设置`PreferSimpleProtocol=true`与`PrepareStmt=true`，GORM普通/事务查询显式prepare，pgx优先使用已准备语句；没有发现关闭此设置或包含dollar-quoted占位符的运行时SQL。
+- 临时PostgreSQL 18对照通过：当前配置在普通查询与事务中均保留SQL字面量和独立参数；关闭prepare的测试对照会复现旧驱动的字面量错误替换。只运行无害SELECT，临时数据库已关闭，未访问生产。
+- 结论是当前受检路径`no_change`，不是依赖已修补，也不排除未来查询/配置变化后的风险；动态探针与完整依据保存在本地安全验收证据中。

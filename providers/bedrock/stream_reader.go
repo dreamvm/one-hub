@@ -8,14 +8,15 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"one-api/common"
-	"one-api/common/requester"
-	"one-api/types"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream"
 	"github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream/eventstreamapi"
 	"github.com/aws/smithy-go"
+
+	"one-api/common"
+	"one-api/common/requester"
+	"one-api/types"
 )
 
 type streamReader[T any] struct {
@@ -88,6 +89,9 @@ func (stream *streamReader[T]) deserializeEventMessage(msg *eventstream.Message)
 
 	case eventstreamapi.ExceptionMessageType:
 		exceptionType := msg.Headers.Get(eventstreamapi.ExceptionTypeHeader)
+		if exceptionType == nil {
+			return nil, fmt.Errorf("%s event header not present", eventstreamapi.ExceptionTypeHeader)
+		}
 		return nil, errors.New("Exception message :" + exceptionType.String())
 
 	case eventstreamapi.ErrorMessageType:
