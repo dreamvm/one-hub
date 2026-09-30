@@ -844,3 +844,17 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - 旧版实际请求 0.55.1 CDN；候选真实页面的旧 CDN 请求为零，JSON/core worker 为同源文件。三个入口正常键入、格式化、映射/列表错误拒绝、一次合成渠道保存以及深色模式的输入/撤销有新证据。零间隔自动化输入、真实剪贴板、hover 裁剪、移动端及生产流程不因此关闭。
 - 本地 frozen 安装、94 个依赖叶子与 62 项 Vitest、lint 零错误/9 条既存警告及 build 通过。新鲜审计 205 条路径、72 个唯一 GHSA；DOMPurify 剩一条依赖 IN_PLACE/hook 的公告，受检调用没有该前提但保留跟踪。
 - 全新独立只读审阅确认直接加载候选存在渠道列表提前加载 Monaco 的资源回归；父任务改为既有 Loadable/lazy 模式并重验加载时机及编辑器流程。按单次审阅周期，随后添加的懒加载边界未被独立复审，保留流程限制。准确候选 CI 与合并仍待完成；未创建标签、发布镜像、部署或付费调用。
+
+### Monaco 合并验收
+
+- [PR #70](https://github.com/dreamvm/one-hub/pull/70) head `6e84fdf0663dafba4af65a30840620e5a3d29b7c` 已合并为 `4603ed139c3be1353e99c7260b70dd97a314670b`。候选、合成、最新 main 计算与实际合并树均为 `0e49356a2e26252ee7b055057561edd499814344`。
+- [36766394971](https://github.com/dreamvm/one-hub/actions/runs/36766394971) / [36766395689](https://github.com/dreamvm/one-hub/actions/runs/36766395689) 全 9 项成功，94 个依赖叶子、62 项 Vitest、lint/build、三数据库各 284 个节点、48 个业务及升级回滚 PASS 和 4 种 Compose 启动均有准确候选证据。镜像与实际程序身份见 [MONACO_RUNTIME_BOUNDARY.md](MONACO_RUNTIME_BOUNDARY.md#合并验收)。
+- 单次审阅覆盖限制、余下 DOMPurify IN_PLACE 公告、hover 裁剪、移动与最终端到端仍开放。Rollup PR #68 保持独立审阅受限、未合并；不把此 Monaco 交付或后续构建链迁移算作 Rollup 候选审阅通过。RC8 未创建标签；没有发布或部署。
+- 合并后准确 main 的 [36768041402](https://github.com/dreamvm/one-hub/actions/runs/36768041402) 已成功。
+
+### Vite 独立 source map 候选
+
+- 从 Monaco 已合并 main `4603ed13` 建立独立分支；采用 Vite 8.3.1 / plugin-react 5.2.0 / Vitest 4.1.11，上游同时控制依赖外部 map 和 sources 补读，保留原 JS 浏览器目标。范围及迁移影响见 [VITE_SOURCE_MAP_BOUNDARY.md](VITE_SOURCE_MAP_BOUNDARY.md)。
+- 旧版 9 项边界失败、6 项正常对照通过，候选 15 项通过；本地全部 109 个依赖叶子、62 项 Vitest、lint（0 错误/9 既存 warning）及构建通过。实际静态页面三个 JSON 入口与深色模式、同源 worker、模拟保存及开发热更新有证据。
+- 新鲜官方审计 191 条路径、69 个唯一 GHSA。候选独立审阅、准确 CI 与合并未完成；锁文件移除 Rollup 不等于未合并 PR #68 获得审阅结论。RC8 标签与发布步骤仍未执行。
+- 新鲜独立候选审阅被平台内容检查中断，无审阅结论；未改写、绕路或重试。继续正常开发页面/worker 验收及准确候选 CI，保留为待审阅草稿，不合并。
