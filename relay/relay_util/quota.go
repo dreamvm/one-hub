@@ -30,6 +30,8 @@ type Quota struct {
 	outputRatio      float64
 	preConsumedQuota int
 	realtimeChunk    int
+	realtimeReceipts map[[32]byte][32]byte
+	realtimeFull     bool
 	userId           int
 	channelId        int
 	tokenId          int
@@ -152,8 +154,12 @@ func (q *Quota) UpdateUserRealtimeQuota(usage *types.UsageEvent, nowUsage *types
 	if nowUsage == nil {
 		return nil
 	}
-	if err := usage.Merge(nowUsage); err != nil {
+	accepted, err := q.mergeRealtimeReceipt(usage, nowUsage)
+	if err != nil {
 		return err
+	}
+	if !accepted {
+		return nil
 	}
 	quota := q.GetTotalQuotaByUsage(usage.ToChatUsage())
 	if quota < 0 {

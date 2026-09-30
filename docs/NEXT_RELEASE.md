@@ -873,3 +873,11 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - i18n 后续 56 条静态记录为 36 条当前路径不适用、20 条待核实，逐条保留在 [I18N_TOOLCHAIN_TRIAGE.md](I18N_TOOLCHAIN_TRIAGE.md)。007 的合成 JSON 对照未见原型标记删除，普通对象控制通过，但数组缩短控制失败；四份当前语言文件无数组。未据此宣布库安全或实施推测性补丁。
 - [AXIOS_NEW_ADVISORIES.md](AXIOS_NEW_ADVISORIES.md) 记录新增 12 条公告的实际浏览器路径；必要的 Node、表单序列化、请求拦截器或 fetch/重定向边界不在当前产品调用中。结论仅为静态 no_change，保留 Axios 1.18.0 版本匹配，不声称已升级至 1.20.0 或新漏洞动态验收通过。
 - Rollup/Vite 独立审阅仍受平台限制，无结论，草稿不合并；i18n 可选 Markdown/glob/debug 边界继续开放。下一独立专项为 Realtime 重复/缺失用量、异常结束与恢复规则，先调查真实路径和正常计费控制。RC8 仍未创建，正式发布阻断项未全部关闭。
+
+### 依赖台账合并与 Realtime 响应收据候选
+
+- [PR #73](https://github.com/dreamvm/one-hub/pull/73) head `3af16b9d9815550edfef05ac4b50ab8d5fbe07f7` 已合并为 `8105887756030a843064396cb278c7ffefd74625`；候选、GitHub 合成、本地计算及实际合并树均为 `bcaa0c7fa7ed47da6294ebbd98bd6ea908324d79`。[36774578516](https://github.com/dreamvm/one-hub/actions/runs/36774578516) / [36774578737](https://github.com/dreamvm/one-hub/actions/runs/36774578737) 全 9 项通过；合并后 main 检查仍待核对。
+- PR #73 隔离 smoke 为 48 个业务/升级回滚 PASS、4 种 Compose 启动。最终 runner 镜像 `sha256:dc8844a58203ecbd12391175302f957c73c8d32db4007970008e6773b929128f` 的实际程序为 Go1.25.14 / one-api / linux/amd64 / CGO1，binary SHA256 `7afe1e5f9e8d1d6be14155e73b5767a72e611606a041f86ac41858241d70a558`；未发布。
+- 独立分支 `codex/realtime-response-accounting` 在该 main 上处理同一连接内已标识响应的重复/冲突用量，详见 [REALTIME_RESPONSE_RECEIPTS.md](REALTIME_RESPONSE_RECEIPTS.md)。旧版 4 个失败、2 个正常对照通过；候选相关专项 53 个叶子通过，项目规定与受影响包 race、策略、vet、编译通过。
+- 全新只读独立调查与候选审阅完成，审阅未发现当前范围内存活绕过或阻断回归。六文件源码/测试补丁 SHA-256 `f4cfb306723a487432a6c4dd15ea9d4a69481a6adfd2c3531ff49185240ab94b` 在文档基线更新后保持不变。准确候选 CI、PR 和合并待完成，本地通过不是交付完成。
+- 缺失/null usage、匿名响应、跨连接/崩溃恢复、有歧义金额规则仍开放。首帧错误路径的正 extra/audio 费用另列下一独立修复；不与当前收据修复混为一项。没有标签、镜像发布、生产变更或真实付费调用。

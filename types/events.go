@@ -71,6 +71,8 @@ type ResponseEvent struct {
 }
 
 type UsageEvent struct {
+	// ResponseID is provider-validated metadata, never read from usage JSON.
+	ResponseID         string                  `json:"-"`
 	InputTokens        int                     `json:"input_tokens"`
 	OutputTokens       int                     `json:"output_tokens"`
 	TotalTokens        int                     `json:"total_tokens"`

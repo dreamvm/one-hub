@@ -69,6 +69,9 @@ func (p *OpenAIProvider) HandleMessage(source requester.MessageSource, messageTy
 		if event.Response == nil {
 			return false, nil, nil, types.NewErrorEvent("", "invalid_response", "invalid_event", "realtime response.done is missing response")
 		}
+		if event.Response.Usage != nil {
+			event.Response.Usage.ResponseID = event.Response.ID
+		}
 		return true, event.Response.Usage, nil, nil
 	}
 
