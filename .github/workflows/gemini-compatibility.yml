@@ -183,6 +183,11 @@ jobs:
           test -z "$(gofmt -l common/token.go common/token-image-quota_test.go)"
           go test -race -count=1 ./common -run '^TestImageQuotaEstimate'
           go vet ./relay/relay_util ./relay/task
+      - name: Test Bedrock event stream boundaries without upstream services
+        run: |
+          test -z "$(gofmt -l providers/bedrock/stream_reader.go providers/bedrock/stream-boundary_test.go)"
+          go test -race -count=1 ./providers/bedrock -run '^TestBedrockStreamBoundary'
+          go vet ./providers/bedrock
       - name: Test SMTP envelope encoding without external mail
         run: |
           test -z "$(gofmt -l common/stmp/email-envelope_test.go)"
