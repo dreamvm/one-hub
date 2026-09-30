@@ -24,7 +24,7 @@
     "@tabler/icons-react": "^2.46.0",
     "@vitejs/plugin-react": "4.7.0",
     "apexcharts": "3.35.3",
-    "axios": "^1.8.2",
+    "axios": "1.18.0",
     "country-flag-icons": "^1.5.19",
     "dayjs": "^1.11.10",
     "decimal.js": "^10.4.3",
@@ -60,12 +60,13 @@
     "dev": "vite",
     "start": "vite preview",
     "build": "vite build --outDir build",
-    "test": "yarn test:dev && vitest run",
+    "test": "yarn test:dev && yarn test:deps && vitest run",
     "i18n": "lobe-i18n",
     "lint": "eslint \"src/**/*.{js,jsx,ts,tsx}\"",
     "lint:fix": "eslint --fix \"src/**/*.{js,jsx,ts,tsx}\"",
     "prettier": "prettier --write \"src/**/*.{js,jsx,ts,tsx}\"",
-    "test:dev": "node --test tests/vite-file-boundary.test.mjs"
+    "test:dev": "node --test tests/vite-file-boundary.test.mjs",
+    "test:deps": "node --test tests/axios-browser-boundary.test.mjs tests/axios-xhr.test.mjs"
   },
   "eslintConfig": {
     "extends": [

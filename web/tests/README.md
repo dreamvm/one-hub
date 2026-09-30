@@ -43,5 +43,15 @@ These checks exercise the Unix dev-server boundary; Windows ADS/short filenames
 and UNC editor behavior still require native verification. Upgrading Vite does
 not establish that all frontend runtime or tooling advisories are resolved.
 
+`yarn test:deps` loads the explicit top-level Axios browser distribution. Each
+synthetic prototype precondition runs in its own child process; normal JSON,
+explicit DELETE data/reviver, query encoding, Blob and cancellation stay valid.
+A second fixture uses actual jsdom XMLHttpRequest and two synthetic loopback
+HTTP servers on random ports, including an allowed CORS price request. The 20
+leaf checks are followed by four Vitest checks through the real application API
+factories, with only responses, notifications and store simulated. These verify
+library and API compatibility; they do not prove an application pollution
+source, native browser behavior or production end-to-end acceptance.
+
 jsdom does not verify visual layout. Also check the rendered editor and sidebar
 in light/dark mode, at desktop and narrow mobile widths, before release.
