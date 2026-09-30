@@ -151,8 +151,14 @@ func (q *Quota) PreRealtimeQuotaConsumption() *types.OpenAIErrorWithStatusCode {
 // another reservation window can be funded. A rejected top-up must not erase
 // usage that the provider has already incurred.
 func (q *Quota) UpdateUserRealtimeQuota(usage *types.UsageEvent, nowUsage *types.UsageEvent) error {
+	if q.NeedsRealtimeReconciliation() {
+		return errors.New("realtime usage requires reconciliation")
+	}
 	if nowUsage == nil {
 		return nil
+	}
+	if nowUsage.MissingUsage {
+		return q.recordMissingRealtimeUsage(usage, nowUsage.ResponseID)
 	}
 	accepted, err := q.mergeRealtimeReceipt(usage, nowUsage)
 	if err != nil {
@@ -228,6 +234,9 @@ func (q *Quota) finish(c *gin.Context, build func() (*model.QuotaTerminal, error
 	}
 	if err := model.SubmitQuotaTerminal(q.reservationID, *q.terminal); err != nil {
 		logger.LogError(c.Request.Context(), "failed to persist quota terminal intent")
+		return
+	}
+	if q.terminal.Outcome == model.QuotaOutcomeReconcile {
 		return
 	}
 	if err := model.FinalizeQuotaReservation(q.reservationID); err != nil {
