@@ -66,7 +66,7 @@
     "lint:fix": "eslint --fix \"src/**/*.{js,jsx,ts,tsx}\"",
     "prettier": "prettier --write \"src/**/*.{js,jsx,ts,tsx}\"",
     "test:dev": "node --test tests/vite-file-boundary.test.mjs",
-    "test:deps": "node --test tests/axios-browser-boundary.test.mjs tests/axios-xhr.test.mjs tests/postcss-file-boundary.test.mjs tests/babel-file-boundary.test.mjs"
+    "test:deps": "node --test tests/axios-browser-boundary.test.mjs tests/axios-xhr.test.mjs tests/postcss-file-boundary.test.mjs tests/babel-file-boundary.test.mjs tests/rollup-output-boundary.test.mjs"
   },
   "eslintConfig": {
     "extends": [

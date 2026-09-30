@@ -60,6 +60,7 @@ RC 是预发布候选，编号不代表质量验收。后续候选从 rc.8 起�
 | D10 | Axios浏览器共享配置边界 | 合成前置污染下忽略继承data/reviver，合法XHR与API行为保持 | [PR #62](https://github.com/dreamvm/one-hub/pull/62) 已合并；旧新对照、独立审阅、准确候选全9项CI与隔离镜像验收通过，应用污染来源未证实，见 [AXIOS_BROWSER_BOUNDARY.md](AXIOS_BROWSER_BOUNDARY.md) |
 | D11 | PostCSS 编译器 map 文件读取 | 旧版失败及合法 CSS/map 对照，真实 Vite 构建/import 验证 | [PR #64](https://github.com/dreamvm/one-hub/pull/64) 已合并；本地 16 项、只读审阅与准确候选全 9 项 CI 通过，审阅上下文限制见下文；Vite 独立开发加载器边界仍保留，见 [POSTCSS_FILE_BOUNDARY.md](POSTCSS_FILE_BOUNDARY.md) |
 | D13 | Babel 开发依赖 source map 文件边界 | 六种编译 API 的词法包外读取拒绝，普通包内/inline/显式 map 与 JSX 保持 | 7.29.7 旧新对照、全新只读候选审阅及本地回归完成；保留符号链接与少见文件名限制，准确候选 CI/合并待完成；见 [BABEL_SOURCE_MAP_BOUNDARY.md](BABEL_SOURCE_MAP_BOUNDARY.md) |
+| D14 | Rollup 最终输出名称边界 | 异常名称拒绝，合法嵌套/归一化路径与构建保持 | 4.59.0 本地旧新 20 项对照通过，原依赖 PR #64 已合并；完整回归通过；独立审阅被平台中断、无结论，准确 CI 待完成，见 [ROLLUP_OUTPUT_BOUNDARY.md](ROLLUP_OUTPUT_BOUNDARY.md) |
 | 后续 D | 依赖/端到端/负载验收 | 固定 Fork 镜像；健康失败正确退出；三数据库及相关故障路径通过 | 待实施，阻断正式版 |
 | E1 | 主题按钮键盘操作和可访问名称 | 桌面/移动端深浅主题、Enter/空格/点击正常 | PR #49 已合并，全9项CI/48项业务/四种Compose与浏览器通过 |
 | E2 | 深色填充标签对比度 | 深浅主题文字可读，选择/删除交互正常 | PR #50 已合并，全9项CI/48项业务/四种Compose与浏览器通过 |
@@ -818,3 +819,12 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - PR #65 隔离镜像实际提取程序为 Go1.25.14 / one-api / linux/amd64 / CGO_ENABLED=1，二进制 SHA256 `4ee19406a9629f9c125c0c863dfc0d50c632805d424e8e404b1ab96ba3bf0ac8`，镜像 ID `sha256:6835031b982b411fb13a4dd3c58de04daa4e8fc5ba3192c1b83a7b6857640d44`；SQLite/MySQL/PostgreSQL 41 条与升级/回滚 7 条 PASS、4 种 Compose 模板成功。镜像仅在 CI runner 加载，未发布。
 - 在该前端源码与锁文件上完成真实 Chrome/BrowserRouter 合成账单检查，详见 [FRONTEND_BROWSER_BOUNDARIES.md](FRONTEND_BROWSER_BOUNDARIES.md)。桌面和移动视口共 24 个日期输入组合均保持同源；正常查看/返回/侧栏/前进后退、浅深色通过。异常日期仍有空白路由及坏编码警告，列入页面行为专项，不写成所有页面状态通过。
 - React Router 6.21.3 / router 1.14.2 未升级，12 条审计路径保持开放；结论仅为受检业务路径 `no_change`。Monaco/DOMPurify 动态编辑器验收、Rollup 缺失审阅及其余依赖继续推进；这次局部浏览器证据不替代生产端到端、实际 arm64 镜像或最终 RC8 验收。未创建标签、发布或部署。
+
+### D14 Rollup 构建工具候选（原候选记录）
+
+
+- `codex/rollup-output-boundary` 从 PostCSS PR #64 候选 `60aa55eab6270992dbd1426c9715531f30005351` 叠加，合并前须核实前置 PR 及最终基线。此项独立升级 Rollup 4.53.3 至 4.59.0 和发布清单要求的原生可选包；其余依赖保持。
+- 独立预修复调查确认工具库输出边界问题；当前 One Hub 构建使用默认入口及名称，未证实业务输入控制构建参数的来源。旧版 12 个拒绝断言失败、8 个正常对照通过；新版 20 项通过，涵盖真实 generate/write、最终 bundle key 与 entry.fileName、合法动态分块/资源/map。
+- 本地 frozen 安装、30 个 Vite / 20 个 Axios / 16 个 PostCSS / 20 个 Rollup 叶子检查及 60 个 Vitest、lint 零错误/9 条既存警告、build 通过。新审计有 214 条路径记录、103 个 Yarn ID、77 个 GHSA，Rollup 的 3 条路径/1 个公告不再匹配，其他公告保留；独立候选审阅因平台内容检查中断，未返回结论，不记为通过；准确提交 CI、合并核对未完成。Windows 原生、完整页面、生产部署及其他发布条件仍开放，不把库级合成验证当作业务可利用性或整体整改完成。
+
+接续候选保留原提交不变，在 `codex/rollup-output-delivery` 承接至 PR #66 的 main 与 Babel PR #67 上；PostCSS 前置已合并，实际交付须等待 Babel 合并、更新基线及准确候选 CI。全新只读独立审阅再次被平台内容检查中断，无结论，门槛仍未通过；不得合并。接续冻结安装、114 个依赖叶子（含 Babel 28 个、Rollup 20 个）、60 个 Vitest、lint 零错误/9 条既存警告及 build 通过。新鲜公共审计的依赖树外发被自动审批拒绝，等待专项授权；历史快照不作为本次新审计。
