@@ -53,6 +53,7 @@ RC 是预发布候选，编号不代表质量验收。后续候选从 rc.8 起�
 | D4a | 真实Redis停止/错误类型/旧余额与恢复 | 拒绝请求零上游/零账务，恢复后正常单次结算 | PR #47 已合并，全9项CI、32项业务检查与四种Compose通过 |
 | D4b | PostgreSQL候选镜像业务与Redis故障 | 登录/中英文JSON与SSE/工具/持久化/撤销及账务故障 | PR #48 已合并，全9项CI、48项业务检查与四种Compose通过 |
 | D5 | 容器Go编译器身份与已验证补丁版本一致 | 读取最终候选binary，错误版本/主包/平台/CGO拒绝 | [PR #52](https://github.com/dreamvm/one-hub/pull/52) 已合并，全9项CI、实际Go1.25.14 binary及隔离业务验收通过 |
+| D6 | 邮件依赖的SMTP信封地址编码 | 引号/转义完整，普通地址、显示名称、TLS与失败回执保持 | 已实现并通过本地回归和独立审阅；准确提交CI及合并以该批PR验收记录为准 |
 | 后续 D | 依赖/端到端/负载验收 | 固定 Fork 镜像；健康失败正确退出；三数据库及相关故障路径通过 | 待实施，阻断正式版 |
 | E1 | 主题按钮键盘操作和可访问名称 | 桌面/移动端深浅主题、Enter/空格/点击正常 | PR #49 已合并，全9项CI/48项业务/四种Compose与浏览器通过 |
 | E2 | 深色填充标签对比度 | 深浅主题文字可读，选择/删除交互正常 | PR #50 已合并，全9项CI/48项业务/四种Compose与浏览器通过 |
@@ -676,3 +677,12 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - 准确候选CI [36683089028](https://github.com/dreamvm/one-hub/actions/runs/36683089028) / [36683089760](https://github.com/dreamvm/one-hub/actions/runs/36683089760) 全9项成功；核对日志确认48项业务PASS、四种Compose启动，以及SQLite/MySQL/PostgreSQL各245个事务叶子用例。
 - 从runner候选 `sha256:72b66f2e1cfb4a5b9c4619e519b9f490d8d414a6ea7e978160d1eac57199d902` 提取的实际程序确认为 `Go=go1.25.14 main=one-api GOOS=linux GOARCH=amd64 CGO_ENABLED=1`，binary SHA256为 `952f4f8cbebcc37cf6b360f04c2098cc7dc718ff3ca18d9ea644683d27894dd9`。
 - SQLite/MySQL/PostgreSQL业务、真实Redis故障、升级和两条回滚路径通过。该证据仅对应上述源码和隔离amd64镜像，不能替代生产或未来发布产物验收；镜像未推送，RC8未创建，未部署。
+
+### D6 邮件依赖修复与验证边界
+
+- [GO-2025-3988](https://pkg.go.dev/vuln/GO-2025-3988)涉及go-mail把解析后的原始地址写入SMTP信封命令。应用验证邮件、密码重置、额度提醒和通知共用`StmpConfig.Send`；公开入口使用的邮箱校验允许合法quoted local part，不能据此排除该问题。
+- 本地STARTTLS模拟服务直接记录`StmpConfig.Send`产生的MAIL FROM/RCPT TO和DATA。旧0.6.2在发件人/收件人边界、空格、转义引号和反斜杠五项失败，普通地址、plus tag、显示名以及AUTH/RCPT/DATA失败控制通过。没有连接真实邮件服务器或证明某个真实MTA发生了重路由。
+- 升级到0.7.2：0.7.1虽修复信封编码，却会丢失显示名；0.7.2的官方修复使用地址副本，正常显示名得到保留。必要模块闭包同时将x/text提升至0.29.0、x/sync提升至0.17.0，没有改变应用SMTP配置、TLS策略或其他模块版本。
+- 升级后11项叶子用例race通过；8项地址/显示名控制和3项失败回执控制均检查真实协议结果。测试CA只在子进程中启用，生产信任链不变。专项使用`go test -race -count=1 ./common/stmp -run '^TestSMTPEnvelope'`；禁止无过滤执行会读取外部配置的旧`TestSend`。
+- 相关model/types/providers/requester离线race、SMTP/通知/cache vet、策略检查和providers/relay构建通过；目标包govulncheck不再报告GO-2025-3988，其他依赖公告仍分别核实。全仓库准确提交CI和隔离镜像结果记录在本修复PR中，本段本地记录不替代远端验收。
+- 新鲜只读调查与另一名新鲜只读审阅完成，未确认存活绕过或回归。回退此依赖会恢复旧地址编码问题；RC8仍仅预留，未发布或部署。
