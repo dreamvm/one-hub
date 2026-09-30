@@ -24,10 +24,10 @@ services:
       - db
     healthcheck:
       test:
-        [
-          "CMD-SHELL",
-          "wget -q -O - http://localhost:3000/api/status | grep -o '\"success\":\\s*true' | awk -F: '{print $$2}'",
-        ]
+        - CMD-SHELL
+        - >-
+          response=$$(wget -q -O - http://127.0.0.1:3000/api/status) &&
+          printf '%s' "$$response" | grep -Eq '"success"[[:space:]]*:[[:space:]]*true([,}]|[[:space:]])'
       interval: 30s
       timeout: 10s
       retries: 3

@@ -47,6 +47,7 @@ RC 是预发布候选，编号不代表质量验收。后续候选从 rc.8 起�
 | rc.8 / C3f | Stripe webhook注册/复用、密钥保留与异步成功订阅 | 不改global key，正常兼容版本可用，失败不误报保存 | [PR #42](https://github.com/dreamvm/one-hub/pull/42) 已合并，三数据库/CI/隔离验收通过，见 [STRIPE_WEBHOOK_REGISTRATION.md](STRIPE_WEBHOOK_REGISTRATION.md) |
 | rc.8 / OIDC1 | 声明类型、同名拒绝关联与subject精确匹配 | 已绑定/新注册正常，异常声明和非精确身份拒绝 | 本地通过，精确候选CI待执行，见 [OIDC_CLAIMS.md](OIDC_CLAIMS.md) |
 | 后续 C1 / C2 / C3 | 未报告用量核对、数据库支付幂等与绑定 | 缓存与批量计费不放行耗尽额度；并发不超支；多实例重复回调只入账一次；故障可重试 | 待实施，阻断正式版 |
+| D1 | Compose健康探针退出状态 | 正常状态成功，网络/HTTP/业务失败返回非零 | 本地7项执行回归通过，精确候选CI待执行 |
 | 后续 D | Fork 部署模板、健康检查、构建入口、PostgreSQL/依赖/端到端验收 | 固定 Fork 镜像；健康失败正确退出；三数据库及相关故障路径通过 | 待实施，阻断正式版 |
 | 后续 E | 前端既存警告与加载体积 | 行为回归通过、深浅主题可用、性能变化有依据 | 待实施，按影响安排 |
 
@@ -538,3 +539,9 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - 共33项真实本地签名OIDC子用例，包括登录cookie经认证中间件回读、注册开关、禁用状态、缺失/null资料、错误issuer/audience/签名/有效期。
 - 相关包race、vet、主程序build、工作流/actionlint和格式检查通过；未改变数据库查询/schema，专项目前SQLite模拟比较规则，未宣称MySQL/PostgreSQL真实OIDC验收。精确候选CI待执行。
 - 未绑定/解绑账号不再自动同名关联；安全绑定流程、issuer迁移与subject唯一性另行处理。RC8仍未创建，未发布部署。
+
+### D1 健康探针候选
+
+- 分支 `codex/compose-healthcheck` 依赖 PR #43。旧管道以awk退出状态为准，网络/HTTP/业务失败和空响应均可误报健康；正常与带空白JSON控制通过。
+- 先检查wget退出状态，再检查success为true；使用POSIX字符类并保留Compose变量转义。7项测试从实际YAML提取并执行探针，修复前5项错误路径失败、修复后全通过。
+- workflow策略测试、actionlint、diff格式通过；没有改应用代码或部署运行服务。精确候选CI与镜像另验收。
