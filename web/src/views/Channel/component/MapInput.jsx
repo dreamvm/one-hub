@@ -7,7 +7,7 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import { Box, List, Button, ListItem, TextField, IconButton, ListItemSecondaryAction } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import Editor from '@monaco-editor/react';
+import Editor from 'ui-component/JsonEditor';
 
 import { Icon } from '@iconify/react';
 import { showError } from 'utils/common';

@@ -47,7 +47,7 @@ import ListInput from './ListInput';
 import ModelSelectorModal from './ModelSelectorModal';
 import pluginList from '../type/Plugin.json';
 import { Icon } from '@iconify/react';
-import Editor from '@monaco-editor/react';
+import Editor from 'ui-component/JsonEditor';
 
 const icon = <CheckBoxOutlineBlankIcon fontSize="small" />;
 const checkedIcon = <CheckBoxIcon fontSize="small" />;

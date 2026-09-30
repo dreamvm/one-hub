@@ -836,3 +836,11 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - Rollup 隔离 smoke 同样为 48 个业务/升级回滚 PASS 和 4 种 Compose 启动。最终 runner 镜像 `sha256:7794de952f88a15143ae2dd5ba27b8f16918dd522e89608efda59d3d684913b9` 的实际程序为 Go1.25.14 / one-api / linux/amd64 / CGO_ENABLED=1，binary SHA256 `2eed35d976d83bc2350298333ed8176b9bf4d68fc3bf47850bb06b82a219426d`；未发布。CI 通过不消除独立审阅门槛。
 - 新鲜 Yarn 审计最初因依赖树外发被自动审批拒绝；用户随后明确授权当前任务及修复后的必要复查，仅向官方 npm/Yarn 服务发送公开依赖元数据。核实 Yarn 1.22.22 固定接收端 `registry.yarnpkg.com/-/npm/v1/security/audits`，字段为包名/版本/完整性哈希、依赖关系和 dev 标志，无源码、凭据或运行配置。公开候选 `79316d4c` 上新结果为 219 条路径、114 个 Yarn ID、88 个唯一 GHSA，Babel/Rollup 匹配为零，Axios 匹配增至 12 个；仍需逐项判断实际浏览器/Node 调用路径，不把匹配数量当作应用漏洞数。
 - 恢复并核验了基线 `34d36a13` 的 Monaco 局部浏览器证据及 15 个资源哈希，见 [FRONTEND_BROWSER_BOUNDARIES.md](FRONTEND_BROWSER_BOUNDARIES.md)。加载、model 夹具后的格式化及模拟保存有证据；完整键盘输入和诊断 hover 可见性未通过，不能用 DOM 文本或 model API 代替。没有升级 Monaco/DOMPurify，真实 CDN、移动端与生产验收继续开放。
+
+### 接续：台账合并与 Monaco 运行版本候选
+
+- 上述台账 [PR #69](https://github.com/dreamvm/one-hub/pull/69) head `075d26b7fb1953e631f1c919a4c605f9bb25915f` 的 [36762293812](https://github.com/dreamvm/one-hub/actions/runs/36762293812) / [36762294422](https://github.com/dreamvm/one-hub/actions/runs/36762294422) 全 9 项成功；实际合并 `3a74e083f806c5440afe1cb6e1663496862c80a3`。候选、合成、计算与实际合并树均为 `fa55a4742f137ebd882f3583bb932a436a64352b`；合并后 [36764012954](https://github.com/dreamvm/one-hub/actions/runs/36764012954) 成功。
+- 在该 main 上建立独立 `codex/monaco-runtime-boundary`，不依赖未合并的 Rollup。Monaco 精确锁定 0.57.0（内嵌 DOMPurify 3.4.15），共享本地 ESM/worker 配置统一三个 JSON 编辑器，避免 loader 独立加载旧 CDN；细节及可利用性限制见 [MONACO_RUNTIME_BOUNDARY.md](MONACO_RUNTIME_BOUNDARY.md)。
+- 旧版实际请求 0.55.1 CDN；候选真实页面的旧 CDN 请求为零，JSON/core worker 为同源文件。三个入口正常键入、格式化、映射/列表错误拒绝、一次合成渠道保存以及深色模式的输入/撤销有新证据。零间隔自动化输入、真实剪贴板、hover 裁剪、移动端及生产流程不因此关闭。
+- 本地 frozen 安装、94 个依赖叶子与 62 项 Vitest、lint 零错误/9 条既存警告及 build 通过。新鲜审计 205 条路径、72 个唯一 GHSA；DOMPurify 剩一条依赖 IN_PLACE/hook 的公告，受检调用没有该前提但保留跟踪。
+- 全新独立只读审阅确认直接加载候选存在渠道列表提前加载 Monaco 的资源回归；父任务改为既有 Loadable/lazy 模式并重验加载时机及编辑器流程。按单次审阅周期，随后添加的懒加载边界未被独立复审，保留流程限制。准确候选 CI 与合并仍待完成；未创建标签、发布镜像、部署或付费调用。
