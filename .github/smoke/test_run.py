@@ -5,7 +5,7 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from run import SIGNATURES, NAMES, MySQLRedis, PostgreSQLRedis, check_tools, parse_chat, start_container, validate_backend
+from run import SIGNATURES, NAMES, MySQLRedis, PostgreSQLRedis, assert_paid_accounting, check_tools, parse_chat, start_container, validate_backend
 
 
 class StreamValidationTests(unittest.TestCase):
@@ -42,6 +42,23 @@ class StreamValidationTests(unittest.TestCase):
             self.assertIn("--host=127.0.0.1", command.call_args.args)
             self.assertIn("--set=ON_ERROR_STOP=1", command.call_args.args)
             self.assertEqual(command.call_args.kwargs["input_text"], "SELECT 1;")
+
+    def test_paid_control_preserves_limited_and_unlimited_accounting(self):
+        before = (100, 10, 1, 10, 1)
+        assert_paid_accounting(before, (95, 15, 2, 15, 2), False)
+        assert_paid_accounting(before, (95, 15, 2, 10, 2), True)
+
+    def test_paid_control_rejects_wrong_balances_counts_tokens_or_ledger(self):
+        before = (100, 10, 1, 10, 1)
+        for after, unlimited in (
+            ((100, 15, 2, 15, 2), False),
+            ((95, 15, 3, 15, 2), False),
+            ((95, 15, 2, 10, 2), False),
+            ((95, 15, 2, 15, 2), True),
+            ((95, 15, 2, 10, 1), True),
+        ):
+            with self.assertRaises(AssertionError):
+                assert_paid_accounting(before, after, unlimited)
 
     def test_mysql_redis_rejects_mutable_or_missing_images(self):
         pinned = "sha256:" + "a" * 64
