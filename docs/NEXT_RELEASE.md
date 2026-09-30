@@ -42,9 +42,10 @@ RC 是预发布候选，编号不代表质量验收。后续候选从 rc.8 起�
 | rc.8 / C3a | 兑换码原子领取、充值和已使用终态 | 并发单次领取；错误回滚；过期编辑不重开；正常 NULL 兼容 | [PR #37](https://github.com/dreamvm/one-hub/pull/37) 已合并，三数据库/CI/隔离验收通过，见 [REDEMPTION_TRANSACTIONS.md](REDEMPTION_TRANSACTIONS.md) |
 | rc.8 / C3b | 同一订单原子入账、幂等和提交后回执 | 失败可重试、已入账重复回调不重复充值、三数据库正常/故障对照 | [PR #38](https://github.com/dreamvm/one-hub/pull/38) 已合并，三数据库/CI/隔离验收通过，见 [PAYMENT_SETTLEMENT.md](PAYMENT_SETTLEMENT.md) |
 | rc.8 / C3c | 支付事实/原渠道绑定、网关流水唯一归属、配置签名生命周期 | 正常优惠支付可用；错额/身份/缺失字段拒绝；历史归属和凭据轮换通过 | [PR #39](https://github.com/dreamvm/one-hub/pull/39) 已合并，三数据库/CI/隔离验收通过，见 [PAYMENT_NOTIFICATION_FACTS.md](PAYMENT_NOTIFICATION_FACTS.md) |
-| rc.8 / C3d | 创建前金额/额度准入、先持久订单、微信整数分 | 非法输入零外部调用，提前/超时回调正常，原定价兼容 | 本地通过，精确候选 CI 待执行，见 [PAYMENT_ORDER_ADMISSION.md](PAYMENT_ORDER_ADMISSION.md) |
-| rc.8 / C3e | 已关闭订单与停用/软删除渠道的合法延迟支付 | 严格绑定事实、单次入账，旧渠道不能创建新支付 | 本地候选，见 [PAYMENT_LATE_SETTLEMENT.md](PAYMENT_LATE_SETTLEMENT.md) |
-| rc.8 / C3f | Stripe webhook注册/复用、密钥保留与异步成功订阅 | 不改global key，正常兼容版本可用，失败不误报保存 | 本地候选，见 [STRIPE_WEBHOOK_REGISTRATION.md](STRIPE_WEBHOOK_REGISTRATION.md) |
+| rc.8 / C3d | 创建前金额/额度准入、先持久订单、微信整数分 | 非法输入零外部调用，提前/超时回调正常，原定价兼容 | [PR #40](https://github.com/dreamvm/one-hub/pull/40) 已合并，三数据库/CI/隔离验收通过，见 [PAYMENT_ORDER_ADMISSION.md](PAYMENT_ORDER_ADMISSION.md) |
+| rc.8 / C3e | 已关闭订单与停用/软删除渠道的合法延迟支付 | 严格绑定事实、单次入账，旧渠道不能创建新支付 | [PR #41](https://github.com/dreamvm/one-hub/pull/41) 已合并，三数据库/CI/隔离验收通过，见 [PAYMENT_LATE_SETTLEMENT.md](PAYMENT_LATE_SETTLEMENT.md) |
+| rc.8 / C3f | Stripe webhook注册/复用、密钥保留与异步成功订阅 | 不改global key，正常兼容版本可用，失败不误报保存 | [PR #42](https://github.com/dreamvm/one-hub/pull/42) 已合并，三数据库/CI/隔离验收通过，见 [STRIPE_WEBHOOK_REGISTRATION.md](STRIPE_WEBHOOK_REGISTRATION.md) |
+| rc.8 / OIDC1 | 声明类型、同名拒绝关联与subject精确匹配 | 已绑定/新注册正常，异常声明和非精确身份拒绝 | 本地通过，精确候选CI待执行，见 [OIDC_CLAIMS.md](OIDC_CLAIMS.md) |
 | 后续 C1 / C2 / C3 | 未报告用量核对、数据库支付幂等与绑定 | 缓存与批量计费不放行耗尽额度；并发不超支；多实例重复回调只入账一次；故障可重试 | 待实施，阻断正式版 |
 | 后续 D | Fork 部署模板、健康检查、构建入口、PostgreSQL/依赖/端到端验收 | 固定 Fork 镜像；健康失败正确退出；三数据库及相关故障路径通过 | 待实施，阻断正式版 |
 | 后续 E | 前端既存警告与加载体积 | 行为回归通过、深浅主题可用、性能变化有依据 | 待实施，按影响安排 |
@@ -307,9 +308,9 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 2. 已完成本批边界（PR #31–#32）：Search 上游前预留；Realtime 入口与运行中预算约束。
 3. 已完成（PR #33–#34）：负数、零预扣、极小价格取整，以及实际用量超过预估的明确处理。
 4. 已完成确定意图恢复（PR #35）：持久预留、结算幂等及重启、数据库错误、多实例恢复。
-5. 实施中：Suno / Kling / MJ 后台退款成对记账和重复通知幂等。
-6. 充值、支付、兑换码幂等及金额、币种、渠道绑定核实。
-7. OIDC 声明、兑换码锁、延迟支付、历史凭据暴露等剩余安全核实。
+5. 已完成本批（PR #36）：Suno / Kling / MJ 后台退款成对记账和重复通知幂等。
+6. 已合并 PR #37–#41：兑换码、支付幂等/事实绑定、下单与延迟支付；Stripe注册 PR #42 亦已合并验收。
+7. 实施中：OIDC 声明/同名关联；身份迁移、历史凭据暴露等剩余安全核实。
 8. Fork 部署模板、健康检查、可重复构建入口。
 9. 三数据库业务覆盖、真实 Redis 故障、浏览器 E2E、依赖扫描及负载验收。
 10. 前端既存警告、加载体积和深浅主题；按影响安排。
@@ -516,3 +517,24 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - 先修正测试夹具为SDK实际Bearer鉴权，再取得旧实现失败与正常新建控制证明；修复保留既有secret和其他订阅、补齐异步成功事件，使用实例key。
 - 一次独立审阅提出同API系列兼容日期被拒绝，新增回归复现后按固定SDK规则修正。新增保存数据库失败对照；共15个新增事务叶子用例。
 - SQLite/PostgreSQL、相关race/vet/build和工作流检查通过后提交；精确候选CI/MySQL/镜像另验收。已有线上webhook不自动修改，发布前需独立核对与授权。
+
+### C3d / C3e 合并验收
+
+- PR #40 head `10e8bfcdf4a3ae04531015ae7b4718ce12796945`，合并 `3d41a9c667a8f213d99edfb20cb5d806713f2c40`；CI [36634321850](https://github.com/dreamvm/one-hub/actions/runs/36634321850) / [36634322267](https://github.com/dreamvm/one-hub/actions/runs/36634322267) 全9项成功，三数据库各219事务叶子用例，smoke28 PASS。
+- PR #41 head `fb0e45d879ff9647e4ebffe5f4c7c90d7ef4434f`，合并 `507255ef3159c7626c2e43f5998d1b9beb2f3b2a`；CI [36634842781](https://github.com/dreamvm/one-hub/actions/runs/36634842781) / [36634843205](https://github.com/dreamvm/one-hub/actions/runs/36634843205) 全9项成功，三数据库各230事务叶子用例，smoke28 PASS。
+- 候选、合成和实际合并树一致。镜像分别为 `sha256:4b0688e7aac49fd85cfe48d5625152d97a5085924974278096d3ecd30e3e436b`、`sha256:fecd0199243a2de3f3ff04eac811868859e358bd2b566ba1e3c257ad9b553fa7`；仅runner本地加载，未发布。
+
+### C3f 合并验收
+
+- PR #42 head `0f9c247377cd3a8934346e2f371189aba01ac065`，合并 `b04145b00976128a763e303fefa3d059557b32da`；候选、合成与实际合并树一致。
+- CI [36635726603](https://github.com/dreamvm/one-hub/actions/runs/36635726603) / [36635726938](https://github.com/dreamvm/one-hub/actions/runs/36635726938) 全9项通过，三数据库各245事务叶子用例、smoke28 PASS。
+- runner镜像 `sha256:f992214fff3c8ca243abac59e6782c51049bd62880476727877cb7a5355edd1f` 未发布。
+
+### OIDC1 候选
+
+- 分支 `codex/oidc-claims-identity` 依赖已合并 PR #42；未知subject不再根据同名声明登录/改绑已有账号，必需与可选声明按类型检查。
+- 旧实现正常绑定/注册通过，同名关联和错误类型失败；初始夹具先补齐生产初始化所需logger，再取得有效回归证明。
+- 一次独立审阅指出SQL排序规则可能等同不同subject。改用正常临时表的NOCASE/RTRIM夹具后，精确匹配控制通过、大小写/尾空格变体错误登录已复现；添加原始subject精确比较后全部通过。
+- 共33项真实本地签名OIDC子用例，包括登录cookie经认证中间件回读、注册开关、禁用状态、缺失/null资料、错误issuer/audience/签名/有效期。
+- 相关包race、vet、主程序build、工作流/actionlint和格式检查通过；未改变数据库查询/schema，专项目前SQLite模拟比较规则，未宣称MySQL/PostgreSQL真实OIDC验收。精确候选CI待执行。
+- 未绑定/解绑账号不再自动同名关联；安全绑定流程、issuer迁移与subject唯一性另行处理。RC8仍未创建，未发布部署。
