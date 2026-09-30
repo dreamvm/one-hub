@@ -71,6 +71,7 @@ const Label = forwardRef(({ children, color = 'default', variant = 'soft', start
 });
 
 Label.propTypes = {
+  copyText: PropTypes.string,
   children: PropTypes.node,
   endIcon: PropTypes.object,
   startIcon: PropTypes.object,

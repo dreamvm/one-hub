@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 // material-ui
 import logoLight from 'assets/images/logo.svg';
 import logoDark from 'assets/images/logo-white.svg';
@@ -37,6 +38,10 @@ const Logo = ({ isMini = false }) => {
       }}
     />
   );
+};
+
+Logo.propTypes = {
+  isMini: PropTypes.bool
 };
 
 export default Logo;

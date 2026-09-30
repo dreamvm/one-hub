@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -85,6 +86,12 @@ function a11yProps(index) {
     'aria-controls': `simple-tabpanel-${index}`
   };
 }
+
+CustomTabPanel.propTypes = {
+  children: PropTypes.node,
+  value: PropTypes.number,
+  index: PropTypes.number
+};
 
 export default function Profile() {
   const { t } = useTranslation();

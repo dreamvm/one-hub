@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 // material-ui
 import { Typography } from '@mui/material';
 
@@ -42,6 +43,10 @@ const MenuList = ({ isMini = false }) => {
       })}
     </>
   );
+};
+
+MenuList.propTypes = {
+  isMini: PropTypes.bool
 };
 
 export default MenuList;
