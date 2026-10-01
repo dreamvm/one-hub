@@ -52,7 +52,7 @@ CLI分支、Ink及dotenv语义和范围表述。未重新核实全部公告版�
   双架构 smoke 检出候选；候选、合成、最新 main 计算及实际合并树均为
   `6fba6f37f50169b851d80907f9913125093d2126`。
 - 实际合并 `da936380c20e89e82006d69e4d69e10279d5c4f3`，父节点为 `e7dc28f7` 与 `d4f48aac`。
-  [合并后 main CI](https://github.com/dreamvm/one-hub/actions/runs/36902867961) 尚待核对。
+  [合并后 main CI](https://github.com/dreamvm/one-hub/actions/runs/36902867961) 已通过。
 - 每个架构各 89 项业务/升级 PASS、九轮并发及四种 Compose 通过。
   最终 `/one-api` 均确认 Go 1.25.14、main=one-api、Linux、对应架构及 CGO=1。
 

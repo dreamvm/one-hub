@@ -40,3 +40,23 @@ Go 1.25.14，离线依赖，合成账户和数据；PostgreSQL 为本机 18.4，
 应用回退会重新引入 PostgreSQL 的错误类型声明；已有表也不能据此保证旧版迁移成功。
 真实升级/回滚须先核对数据库结构和备份恢复点，不自动删除账单或恢复生产数据。
 不改变 RC8、标签、镜像发布、部署和真实付费调用的审批边界。
+## 2026-10-01 合并验收
+
+- [PR #111](https://github.com/dreamvm/one-hub/pull/111) head `1e08ea38db09e0a7e3fc347247b85c6113caa05f` 的
+  [Compatibility](https://github.com/dreamvm/one-hub/actions/runs/36903168568) 和
+  [Isolated](https://github.com/dreamvm/one-hub/actions/runs/36903169887) 十项检查通过。
+  三数据库专项实际检出该 head：SQLite/MySQL/PostgreSQL 的迁移、生成和重复生成均通过；
+  SQLite/MySQL 的旧 datetime 非零时间数据保留通过。
+- Compatibility 前端实际检出 `79713bba3fd56e0c627be78d553a006bcbb5de5b`，父节点 `da936380`/`1e08ea38`；
+  双架构检出候选。候选、合成、最新 main 计算及实际合并树均为 `e1898e43255737a4580d59b222d17e883e1e1b5e`。
+  实际合并 `0ec84ed60d93e8cbf8ecd74413eae74f1c1cc0a9`，父节点与合成一致；
+  [合并后 main CI](https://github.com/dreamvm/one-hub/actions/runs/36905699246) 待核对。
+- 两架构各89项业务/升级PASS、九轮并发、四种Compose通过；最终程序均为Go1.25.14、one-api、Linux、对应架构、CGO=1。
+
+| 架构 | CI 本地 image ID (sha256) | 最终程序 SHA-256 |
+|---|---|---|
+| amd64 | a85038296ef754326746a4d53483b168ea33de47eb22f673065f7218f0a372e6 | 0bc50f3988eefa4457bad7dddeaf96cdabd9a3b15473b2d15c674a8590feab8f |
+| arm64 | df15369a6f6684273a4a8859b1dbd287d311fa30829d7d828327423830beb872 | a04f77457fc0097343106f1a3f73b97e5180c2f1c7f3963f5a78656c3f6c7a19 |
+
+[真实浏览器补充](FRONTEND_REAL_BACKEND_ACCEPTANCE.md#2026-10-01-消费日志到生成账单的真实页面补充)
+已验证合成存储日志生成日统计与月账单、普通用户列表详情和刷新；不替代全部时区、真实资金来源或生产验收。

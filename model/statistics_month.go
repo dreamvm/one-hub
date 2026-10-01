@@ -193,7 +193,9 @@ func InsertStatisticsMonthForDate(date time.Time) error {
 		tx.Rollback()
 		return err
 	}
-	tx.Commit()
+	if err := tx.Commit().Error; err != nil {
+		return err
+	}
 	logger.SysLog(fmt.Sprintf("Insert statistics month for date %s success", date.Format("2006-01-02")))
 	return nil
 }
