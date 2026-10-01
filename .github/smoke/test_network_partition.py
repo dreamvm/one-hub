@@ -4,12 +4,35 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
-from run import OwnedNetworkPartition
+from run import create_internal_network, OwnedNetworkPartition
 
 
 class NetworkPartitionTests(unittest.TestCase):
     network = "onehub-smoke-123456abcdef-net"
     target = "onehub-smoke-123456abcdef-postgres"
+
+    def test_network_uses_docker_selected_explicit_subnet_before_attachment(self):
+        created = []
+        detail = {"Internal": True, "Containers": {}, "IPAM": {"Config": [{"Subnet": "172.20.0.0/16"}]}}
+        with patch("run.command", return_value=SimpleNamespace(stdout=json.dumps([detail]))) as command:
+            create_internal_network(self.network, created)
+        self.assertEqual(created, [("network", self.network)])
+        self.assertEqual([call.args for call in command.call_args_list], [
+            ("docker", "network", "create", "--internal", self.network),
+            ("docker", "network", "inspect", self.network),
+            ("docker", "network", "rm", self.network),
+            ("docker", "network", "create", "--internal", "--subnet", "172.20.0.0/16", self.network),
+            ("docker", "network", "inspect", self.network),
+        ])
+
+    def test_network_with_attachment_is_not_recreated(self):
+        created = []
+        detail = {"Internal": True, "Containers": {"fixture": {}}}
+        with patch("run.command", return_value=SimpleNamespace(stdout=json.dumps([detail]))) as command:
+            with self.assertRaisesRegex(AssertionError, "empty"):
+                create_internal_network(self.network, created)
+        self.assertEqual(len(command.call_args_list), 2)
+        self.assertEqual(created, [("network", self.network)])
 
     def fixture(self, fail_disconnect=False):
         state = {"attached": True, "process": "true 42", "connections": [], "address": "172.20.0.4"}

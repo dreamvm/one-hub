@@ -42,6 +42,25 @@ def start_container(name, options, created):
     command("docker", "start", name)
 
 
+def create_internal_network(network, created):
+    require(re.fullmatch(r"onehub-smoke-[a-f0-9]{12}-net", network), "not a smoke network")
+    command("docker", "network", "create", "--internal", network)
+    created.append(("network", network))
+    initial = json.loads(command("docker", "network", "inspect", network).stdout)[0]
+    require(initial["Internal"] and not initial["Containers"], "expected an empty internal network")
+    config = initial["IPAM"]["Config"]
+    require(len(config) == 1, "expected one fixture subnet")
+    subnet = ipaddress.ip_network(config[0]["Subnet"])
+    require(subnet.version == 4 and subnet.is_private, "unexpected fixture subnet")
+    # Let Docker choose a free subnet, then explicitly configure it before any
+    # container attaches: --ip restoration requires a user-configured subnet.
+    command("docker", "network", "rm", network)
+    command("docker", "network", "create", "--internal", "--subnet", str(subnet), network)
+    restored = json.loads(command("docker", "network", "inspect", network).stdout)[0]
+    require(restored["Internal"] and not restored["Containers"] and
+            restored["IPAM"]["Config"][0]["Subnet"] == str(subnet), "fixture subnet was not retained")
+
+
 class OwnedNetworkPartition:
     """Temporary attachment loss for this runner's newly created dependency only."""
 
@@ -581,9 +600,7 @@ def run(args):
                 "-keyout", str(tmp / "server.key"), "-out", str(tmp / "server.crt"))
         (tmp / "server.crt").chmod(0o644)
         try:
-            command("docker", "network", "create", "--internal", network)
-            created.append(("network", network))
-            require(json.loads(command("docker", "network", "inspect", network).stdout)[0]["Internal"], "network is not internal")
+            create_internal_network(network, created)
             command("docker", "volume", "create", volume)
             created.append(("volume", volume))
             common = ["--network", network, "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--pids-limit", "256", "--read-only", "--tmpfs", "/tmp:rw,noexec,nosuid,size=64m"]

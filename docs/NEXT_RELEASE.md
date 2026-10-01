@@ -957,3 +957,8 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - [PR #84](https://github.com/dreamvm/one-hub/pull/84) head `29bc8064455d21455670e74edf9a1e1eb8e108ec` 已合并为 `9f0db48c6eb325f14417ae6645e007c0dfc42c92`，候选/合成/计算/实际树均为 `93debe9709620ad6bad54852c63ad990ec912efb`。[36833222590](https://github.com/dreamvm/one-hub/actions/runs/36833222590) / [36833223347](https://github.com/dreamvm/one-hub/actions/runs/36833223347) 全 9 项通过；两个数据库各四个实际终局写入失败与恢复场景通过，共 64 个业务/升级回滚 PASS、四种 Compose 启动通过，程序身份见 [DATABASE_INFLIGHT_ACCEPTANCE.md](DATABASE_INFLIGHT_ACCEPTANCE.md#合并验收)。合并后 main [36834793394](https://github.com/dreamvm/one-hub/actions/runs/36834793394) 待核对。
 - 下一独立 [网络分区候选](NETWORK_PARTITION_ACCEPTANCE.md) 在测试依赖保持存活时断开本次内部网络，验证连接失败、进程连续、账务等待与恢复。目标限定本次随机前缀，恢复原 IP/别名；有限/无限令牌 × JSON/SSE × Redis/数据库矩阵待准确候选 CI。本地 25 项 Python、Go smoke/策略 race 和 vet 通过，不代表真实网络验收完成。
 - 崩溃前未持久化用量、并发负载和资源释放、剩余页面与依赖、arm64 及生产事实仍需各自验收。受限审阅草稿继续未合并；没有 RC8 标签、镜像发布、生产变更或真实付费调用。
+
+### 2026-10-01 PR #84 主分支与 PR #85 首轮失败补记
+
+- PR #84 合并提交 `9f0db48c6eb325f14417ae6645e007c0dfc42c92` 的 [main CI 36834793394](https://github.com/dreamvm/one-hub/actions/runs/36834793394) 成功。
+- PR #85 首轮候选 `647f7ffb` 8 项基础检查成功，真实镜像 smoke 在恢复网络原 IP 时因自动子网不支持显式 IP 失败。已修正为 Docker 选取后显式配置的本次内部子网；准确新候选 CI、实际网络矩阵与合并仍待完成。详见 [网络分区记录](NETWORK_PARTITION_ACCEPTANCE.md)。
