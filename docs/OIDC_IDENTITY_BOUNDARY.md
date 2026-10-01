@@ -72,4 +72,9 @@
 没有标签、镜像发布、生产部署或真实付费调用。
 
 最终九文件 Go 源码/测试补丁 SHA256：
-`3c21016b1e6b4f390796aaa27fac766930274588ffb39b49d4fb3bb2e5ceb18c`。
+`1768609fb93033fc5694bc506a31c60c4b331137577e47b727dd5d08ec1e3330`。
+
+首次 PR #82 候选 `b6fcca23` 在 SQLite/MySQL 通过，PostgreSQL 的新增注册夹具失败：
+共享额度夹具显式插入用户 ID 1，没有推进 PostgreSQL sequence，后续自动 ID 碰撞主键。
+仅在本项临时 PostgreSQL 表上设置 sequence 与该已知夹具一致；未修改应用数据库或注册逻辑。
+修正后的本地专项通过，新的准确候选 CI 仍待验收；初次失败不记作整体通过。

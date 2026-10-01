@@ -7,16 +7,30 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
 
 	"one-api/common/config"
 	"one-api/model"
 )
 
+func oidcIdentityFixture(t *testing.T) *gorm.DB {
+	t.Helper()
+	db, _ := quotaTransactionFixture(t, false, false)
+	if db.Dialector.Name() == "postgres" {
+		// The shared quota fixture inserts user ID 1 explicitly. PostgreSQL does
+		// not advance its sequence for that insert; these tests create new users.
+		statement := &gorm.Statement{DB: db}
+		require.NoError(t, statement.Parse(&model.User{}))
+		require.NoError(t, db.Exec("SELECT setval(pg_get_serial_sequence(?, 'id'), 1, true)", statement.Table).Error)
+	}
+	return db
+}
+
 // The existing three-database CI entry point includes these identity writes.
 func TestQuotaTransactionOIDCIdentity(t *testing.T) {
 	for _, stage := range []string{"concurrent registration", "exact identity", "legacy migration", "stale profile", "missing schema", "missing index", "migration failure", "duplicate key", "generic insertion"} {
 		t.Run(stage, func(t *testing.T) {
-			db, _ := quotaTransactionFixture(t, false, false)
+			db := oidcIdentityFixture(t)
 			oldQuota, oldRedis := config.QuotaForNewUser, config.RedisEnabled
 			config.QuotaForNewUser, config.RedisEnabled = 0, false
 			t.Cleanup(func() { config.QuotaForNewUser, config.RedisEnabled = oldQuota, oldRedis })

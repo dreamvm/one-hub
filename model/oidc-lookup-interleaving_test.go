@@ -11,7 +11,7 @@ import (
 )
 
 func TestQuotaTransactionOIDCWinnerBetweenLookupStages(t *testing.T) {
-	db, _ := quotaTransactionFixture(t, false, false)
+	db := oidcIdentityFixture(t)
 	old := config.QuotaForNewUser
 	config.QuotaForNewUser = 0
 	t.Cleanup(func() { config.QuotaForNewUser = old })
