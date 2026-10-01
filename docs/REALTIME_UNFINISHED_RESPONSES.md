@@ -49,3 +49,18 @@
 本项不声称涵盖所有异常结束或持久恢复，不推断真实供应商成本。
 没有新增数据库列或真实资金处置接口；回退代码会恢复该错误收尾路径，
 必须保留已持久化的待核对记录。标签、发布、生产部署和付费调用均未执行。
+
+## 合并验收
+
+前文候选待执行状态已由本节更新。PR #77 head
+`236d2b5b2d5f8ee820c7c4a3236019e321c2fed9` 已合并为
+`f5c1ad53ef3e2d4b078d55404fc6e4ac4098cca5`；候选、GitHub 合成、本地计算和实际
+合并树均为 `52072836cc8de7d0bd054196c2b41f5f951fa110`。
+[36821487199](https://github.com/dreamvm/one-hub/actions/runs/36821487199) 与
+[36821487446](https://github.com/dreamvm/one-hub/actions/runs/36821487446) 全 9 项成功。
+48 个隔离业务/升级回滚 PASS 与 4 种 Compose 启动通过。
+最终 runner 镜像 `sha256:9353c70e04a14495d76183195d38341a2998bacde5c8ecbdc709b4b3f9c6bb0b`
+内实际程序为 Go1.25.14 / one-api / linux/amd64 / CGO1，binary SHA256
+`6a519c91e57d3a2fce9081dca181a32c6b95eeee18c95d78ade3879088831d09`，未发布。
+合并后 main [36822827773](https://github.com/dreamvm/one-hub/actions/runs/36822827773) 已成功。
+开始事件缺失但已有进度的下一独立候选见 [REALTIME_PROGRESS_BOUNDARY.md](REALTIME_PROGRESS_BOUNDARY.md)。

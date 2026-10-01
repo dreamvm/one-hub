@@ -53,6 +53,22 @@ func (p *OpenAIProvider) HandleMessage(source requester.MessageSource, messageTy
 	}
 
 	// 解析事件
+	var progress struct {
+		Type       string          `json:"type"`
+		ResponseID json.RawMessage `json:"response_id"`
+	}
+	if err := json.Unmarshal(message, &progress); err != nil {
+		return true, nil, nil, types.NewErrorEvent("", "json_unmarshal_failed", "invalid_event", err.Error())
+	}
+	if isRealtimeResponseProgress(progress.Type) {
+		var responseID string
+		if err := json.Unmarshal(progress.ResponseID, &responseID); err != nil {
+			// Work is observable even when its ID cannot be correlated. Do not
+			// discard it as a parsing failure or guess an ID from another field.
+			responseID = ""
+		}
+		return true, &types.UsageEvent{ResponseStarted: true, ResponseID: responseID}, nil, nil
+	}
 	var event types.Event
 	if err := json.Unmarshal(message, &event); err != nil {
 		return true, nil, nil, types.NewErrorEvent("", "json_unmarshal_failed", "invalid_event", err.Error())
@@ -87,4 +103,22 @@ func (p *OpenAIProvider) HandleMessage(source requester.MessageSource, messageTy
 
 	// 处理其他事件类型
 	return true, nil, nil, nil
+}
+
+func isRealtimeResponseProgress(eventType string) bool {
+	switch eventType {
+	case "response.text.delta", "response.text.done",
+		"response.audio.delta", "response.audio.done",
+		"response.audio_transcript.delta", "response.audio_transcript.done",
+		"response.output_text.delta", "response.output_text.done",
+		"response.output_audio.delta", "response.output_audio.done",
+		"response.output_audio_transcript.delta", "response.output_audio_transcript.done",
+		"response.content_part.added", "response.content_part.done",
+		"response.output_item.added", "response.output_item.done",
+		"response.function_call_arguments.delta", "response.function_call_arguments.done",
+		"response.mcp_call_arguments.delta", "response.mcp_call_arguments.done":
+		return true
+	default:
+		return false
+	}
 }

@@ -913,3 +913,9 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - 合并后 main [36784595991](https://github.com/dreamvm/one-hub/actions/runs/36784595991) 已成功。首轮 PostgreSQL 夹具失败及单次审阅后的修改范围限制继续保留，不能把最后成功反写成首轮成功。
 - 下一独立分支 `codex/realtime-unfinished-response` 处理供应商已观察开始但未取得对应完整用量的收尾，见 [REALTIME_UNFINISHED_RESPONSES.md](REALTIME_UNFINISHED_RESPONSES.md)。旧版 5 个失败/4 个正常对照；候选 123 个专项叶子、规定回归、vet、编译通过；全新预调查和全新候选独立审阅完成，未发现受检范围内阻断项。快进已合并 main 后十文件源码补丁摘要保持不变。
 - 此候选尚无准确 CI/PR/合并。开始事件缺失的非完整流、客户端已发送但供应商尚未可见的窗口、崩溃前证据和历史核销规则仍开放；不声称 Realtime 异常结束已全部关闭。RC8、正式发布、生产步骤仍未执行。
+
+### Realtime 未完成响应合并与输出进度候选
+
+- [PR #77](https://github.com/dreamvm/one-hub/pull/77) head `236d2b5b2d5f8ee820c7c4a3236019e321c2fed9` 已合并为 `f5c1ad53ef3e2d4b078d55404fc6e4ac4098cca5`；候选、合成、计算、实际合并树均为 `52072836cc8de7d0bd054196c2b41f5f951fa110`。准确候选 [36821487199](https://github.com/dreamvm/one-hub/actions/runs/36821487199) / [36821487446](https://github.com/dreamvm/one-hub/actions/runs/36821487446) 全 9 项成功，48 个隔离业务/升级回滚 PASS 与 4 种 Compose 通过。实际镜像程序身份见 [REALTIME_UNFINISHED_RESPONSES.md](REALTIME_UNFINISHED_RESPONSES.md#合并验收)，未发布。合并后 main [36822827773](https://github.com/dreamvm/one-hub/actions/runs/36822827773) 已成功。
+- 下一独立分支 `codex/realtime-progress-boundary` 处理缺少开始事件但出现输出进度的收尾，见 [REALTIME_PROGRESS_BOUNDARY.md](REALTIME_PROGRESS_BOUNDARY.md)。20 类事件旧版 40 个失败、20 个正常控制；候选专项 147 个叶子/150 个节点通过。全新只读候选审阅无具体发现，规定回归、vet、编译通过；源码/测试补丁摘要见专项文档。准确候选 CI/PR/合并待完成。
+- 非法完成报告、没有响应 ID 的 item 状态、客户端工作可见性、崩溃前持久化和历史核销继续开放。RC8 仍未建标签，正式发布阻断项未全部关闭。
