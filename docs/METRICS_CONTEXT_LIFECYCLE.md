@@ -17,3 +17,11 @@ Go1.25.14 下专项测试与正常对照通过；相关 metrics、middleware、m
 ## 交付与剩余范围
 
 独立分支 codex/metrics-context-lifecycle，基于 PR #85 已合并 main a95142550659965969b1306c91c4e7cb6aa1f488。准确候选 CI、PR、合并和主分支验证未完成。该修复不等于并发负载、账务一致性及资源释放验收完成，也不建立生产容量结论。回滚源码会重新引入异步上下文竞争；无数据迁移、标签、发布、生产部署或付费调用。
+
+### 2026-10-01 准确候选通过并合并
+
+[PR #86](https://github.com/dreamvm/one-hub/pull/86) 最终候选 91b0e0bbdb54c7d3f196fd62dae5aaea725f1857 的 [兼容 CI 36838759281](https://github.com/dreamvm/one-hub/actions/runs/36838759281) 与 [smoke 36838759836](https://github.com/dreamvm/one-hub/actions/runs/36838759836) 九项检查全部成功。实际 80 项业务/升级检查与四种 Compose 通过；未替代后续三数据库并发负载验收。
+
+本地构建 image ID sha256:e2ae03a825818170e7c3a67400648b892a5a4104d41074a75a760ead42e240d7；从该镜像提取的 /one-api 为 Go1.25.14、main=one-api、linux/amd64、CGO=1，SHA256 11cef578e641e47e1c9c5f7aa473132b95453298e5b233208ab54243e015d782。没有发布镜像。
+
+候选/合成/计算/实际合并树均为 aabd258be35788be7a32a6bbc9bafb99ec683d45；合并提交 5712dbb205b1544a130ee02b7ea1063058019296。合并后 main CI 待核对。前述审阅上下文与测试修正的限制继续保留。
