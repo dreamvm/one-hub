@@ -22,3 +22,23 @@
 一次复用上下文、非fresh的独立只读审阅，审阅者未参与实现，无具体发现；独立三文件ESLint零警告和Prettier通过。未独立执行完整测试/build/浏览器。审阅建议的滚动、拖拽和浮层命中由主执行者补验；不标成独立浏览器验收。
 
 本项准确候选CI、PR、合并仍待完成。回滚三个选项恢复旧布局，不涉及数据或依赖版本。Safari/Firefox、原生系统与真实移动输入、全面无障碍、生产环境及其他发布门槛仍开放。
+
+## 2026-10-01 合并验收
+
+[PR #108](https://github.com/dreamvm/one-hub/pull/108) head b2c64f6b8f976cb19ea97b55bb5c7386bc9a9b17，
+[Compatibility36895415420](https://github.com/dreamvm/one-hub/actions/runs/36895415420)与
+[Isolated36895415943](https://github.com/dreamvm/one-hub/actions/runs/36895415943)十项检查成功。
+Compatibility实际checkout合成410f0966，父节点8908a9c1/b2c64f6b；Isolated原生架构checkout候选b2c64f6b。
+候选、最新main计算、合成及实际合并树均为77840dda50192cc0ecc4c555b9d30bdb5d07acc9。
+
+两架构各89项业务/升级PASS（SQLite12、MySQL35、PostgreSQL35、升级7）、九波并发和四种Compose通过。
+最终程序均为Go1.25.14、main=one-api、Linux对应架构、CGO=1：
+
+| 架构 | image ID sha256 | 程序 SHA256 |
+|---|---|---|
+| amd64 | cd6e19eb46bb1575722bf529f36efaf73afd5021a7511b50a7d9877a464bbb66 | 13bcd8601543b407a6390b3a38cd7c705d469c1124716a0de8bc2ea37d841add |
+| arm64 | 781736870b5839b45a686beb7545a235138a4f43a7834ff45f6e32e8261435e4 | 3b91700088ff5219fd8cda9816ac9daa8d786df2a7fca0586a4cb4050d412311 |
+
+合并e60ed46c0c718ee15f16e69196abaa95e0507097，实际父节点8908a9c1/b2c64f6b；
+[main CI36898087509](https://github.com/dreamvm/one-hub/actions/runs/36898087509)成功。
+前述本项待交付状态由此更新，页面范围与生产限制继续有效。
