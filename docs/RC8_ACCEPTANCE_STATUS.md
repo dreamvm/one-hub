@@ -6,7 +6,7 @@
 | 顺序 | 当前证据 | 仍需完成或保留的边界 |
 | --- | --- | --- |
 | 1 Babel / Rollup | Babel #67 已交付；Rollup #68 为草稿，已有本地及候选CI记录 | #68 独立审阅被平台中断、无结论；保持未合并，不重试或改道绕过 |
-| 2 依赖 | Vite #60、Axios #62、PostCSS #64、Babel #67、Monaco #70 已交付；i18n #110 固定未来JSON维护范围；Axios新公告逐项分流 | Vite独立map加载器 #71 审阅缺失；受影响库、范围排除与已修补分开记录，剩余Go/JS公告及最终候选审计不能统称清零 |
+| 2 依赖 | Vite #60、Axios #62、PostCSS #64、Babel #67、Monaco #70 已交付；i18n #110 固定未来JSON维护范围；Axios新公告逐项分流 | Vite独立map加载器 #71 审阅缺失；受影响库、范围排除与已修补分开记录，[剩余Go记录](GO_RESIDUAL_DEPENDENCIES.md)已有受检构建分流，前端逐项结论及最终候选审计继续核对，不能统称清零 |
 | 3 Realtime | #73–#77 已交付；缺用量、重复回执、首帧及未完成响应的局部边界有回归 | #78/#79 仍为受限审阅草稿；输出进展和异常用量修正未完成交付，未知/跨连接恢复不得推断结算 |
 | 4 历史账务 | [归属和处理规则](HISTORICAL_ACCOUNTING_RECONCILIATION.md)及合成事务回归已有记录 | 真实盘点、逐笔归属与证据、拟处理表、必要的处理设计/批准及处理后账务核对尚缺；不自动退款、补扣或归零 |
 | 5 OIDC | #81/#82 的issuer/subject、并发绑定、过期更新和三数据库回归已交付 | 用户批准未知历史issuer保留待核实、不自动关联；真实身份恢复仍依赖历史证据 |
@@ -28,3 +28,23 @@
 缺失审阅不因其他提交的绿色CI或本表整理而变为通过。所有测试仅用合成账户/数据、临时数据库、localhost及模拟上游。
 
 本表是可继续执行的验收索引，不能替代各专项日志、准确提交CI、独立审阅或生产证据。
+
+## #115 台账候选交付
+
+[PR #115](https://github.com/dreamvm/one-hub/pull/115)候选4ad956fc的
+[Compatibility](https://github.com/dreamvm/one-hub/actions/runs/36913704131)与
+[Isolated smoke](https://github.com/dreamvm/one-hub/actions/runs/36913704454)十项全部通过；
+Compatibility前端实际checkout合成9e728c76，22文件209项UI、lint/build成功。
+候选、该合成提交、最新main计算及实际合并树均为56bc895f107206425a5598e775d51d030a935ed9。
+实际合并08bc01e2a7751aaa7756abd2f2ed723b6005ccfd；
+[合并后main CI](https://github.com/dreamvm/one-hub/actions/runs/36916512156)仍运行，尚不记为通过。
+
+每个原生架构89项业务/升级PASS、9轮并发和4种Compose通过；最终程序均Go1.25.14、
+one-api、Linux/对应架构、CGO=1。
+
+| 架构 | CI本地image SHA256 | 最终程序SHA256 |
+| --- | --- | --- |
+| amd64 | a35d54b049ce7cbba6a9dee14ee24b160b4513857ebf97da60b4469b6442c366 | 95166a374471d0e2cacb0fc769dfda408b12d6f980a1e5700e2c1f63fd9b9503 |
+| arm64 | c37175e2bb8ce99bf19e93d7e7875644e40d4755bf8dc5dc47564ab958c1c8fb | fec169dee1ac2a50d105d57b6dae83672fba656ea07a1d33c391979f16b01063 |
+
+一次独立只读证据复核无具体发现；该文档整理和CI仍不补足四个受限审阅或生产事实。
