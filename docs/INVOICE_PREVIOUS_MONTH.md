@@ -35,3 +35,26 @@
 依据实际消费日志及月份政策处理。本项不确定新的跨数据库日统计时区规则，不覆盖所有DST/时区转换，
 也不改变并发生成、启动错误观察和提交结果不确定的既有边界。
 回滚代码会恢复月末月份选择错误；无数据库结构变化。未发布、部署或调用真实付费服务。
+
+## 2026-10-01 合并验收
+
+[PR #113](https://github.com/dreamvm/one-hub/pull/113) 准确候选
+`8d13e14ba4aab253bd55f686fafc2c72e86fa109` 的手动
+[Compatibility](https://github.com/dreamvm/one-hub/actions/runs/36907113511) /
+[Isolated smoke](https://github.com/dreamvm/one-hub/actions/runs/36907120283) 共10项成功。
+两个运行API及实际checkout均核对该head。三数据库job110520341210按SQLite、MySQL、
+PostgreSQL18.0分别运行12日期回归，共36日期子例，并通过既有生成、重复控制和详情测试。
+
+| 原生架构 | 本地候选镜像 SHA256 | 镜像内程序 SHA256 |
+| --- | --- | --- |
+| amd64 | ff74eb0e2d7c7792adec88bbbe941b6275bad05a3af54cbcba1a99dd60525edd | 08079efe9aa4bb45927f5e2ccfff585b74d14bf666802c9ec34b7699ba2b456b |
+| arm64 | aa50d294324d439f5b3fd47cc58c04f4cecc4c57da7091aa285eb4773c6e076f | f6d5cff6fa53beb88e19674e628684506c1ef5ec16e6dd6883af1e562e901beb |
+
+各架构89项PASS、9轮并发、4种部署模板；镜像内Go1.25.14/one-api/Linux/相应架构/CGO=1。
+先合并#112，再改基main；head不变，最新main预计合并树、候选及实际合并树均为
+`ee3e0cb891d0d4fca1b863db622fef3098e7130d`。
+GitHub合并引用fc0d2a3c仍保留旧叠加父提交34a83500，但内容树相同；本次验收为准确head
+手动CI，不宣称运行过更新父提交后的合成CI。
+实际合并 `8d7d68339310b6d7f09849844771ac197c9c3b9e`；
+[合并后main CI](https://github.com/dreamvm/one-hub/actions/runs/36909775467)仍待核对。
+没有自动重算真实历史账单、创建标签、发布镜像或部署。
