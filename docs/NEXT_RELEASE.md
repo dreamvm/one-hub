@@ -943,3 +943,10 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - 初次 PostgreSQL 夹具失败及修正、独立审阅后的并发查找修正未再次复审，均如实保留；不将初次候选或最终全部补丁写成独立复审通过。保守历史迁移规则已实现，真实身份核实与恢复仍未执行。
 - 下一独立 [请求中途 Redis 验收](REDIS_INFLIGHT_ACCEPTANCE.md) 仅扩展隔离 smoke：在 JSON 返回前或上游首个 SSE 内容块后，停止测试自己的 Redis，检查有限/无限令牌的一次结算与恢复。本地夹具和准确候选 CI 待最终验收；数据库故障、网络分区、并发负载仍开放。
 - Rollup/Vite 及 Realtime 草稿的受限审阅步骤继续暂停，未重试或绕过。RC8 未创建标签，未发布镜像、部署或执行真实付费调用。
+
+### Redis 中途故障交付与数据库恢复候选
+
+- PR #82 合并后 main `4ba29b48` 的 [36831183355](https://github.com/dreamvm/one-hub/actions/runs/36831183355) 已成功，更新前节待核对状态。
+- [PR #83](https://github.com/dreamvm/one-hub/pull/83) head `6ab65ba2ea7f56d5842112fa5714898012137ea9` 已合并为 `53be6eb04942814f812d756dfbd809bd553e1b66`，候选/合成/计算/实际树均为 `74f9bcb63e7731298121daabeb8e78d0f5809ed7`。[36831550015](https://github.com/dreamvm/one-hub/actions/runs/36831550015) / [36831550324](https://github.com/dreamvm/one-hub/actions/runs/36831550324) 全 9 项通过；两个数据库分别验证有限/无限令牌 × JSON/SSE 的 Redis 中途故障及单次结算恢复，共 56 个隔离业务/升级回滚 PASS、四种 Compose 启动通过。实际镜像/程序身份见 [REDIS_INFLIGHT_ACCEPTANCE.md](REDIS_INFLIGHT_ACCEPTANCE.md#合并验收)。合并后 main [36832999472](https://github.com/dreamvm/one-hub/actions/runs/36832999472) 待核对。
+- 下一独立 [数据库中途故障候选](DATABASE_INFLIGHT_ACCEPTANCE.md) 保持网关进程存活，观察确定终局写入失败后恢复本次创建的数据库，核对现有恢复任务的一次结算。只增加验收，不修改应用逻辑；本地 Python/语法/策略通过，准确候选 CI 与真实数据库故障结果尚未完成。
+- 意图尚未落库时同时崩溃、网络分区、并发负载和资源释放、真实历史数据及生产验收仍开放。RC8 未创建标签，没有发布、部署或真实付费调用。

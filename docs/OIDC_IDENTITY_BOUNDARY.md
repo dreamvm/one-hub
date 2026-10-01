@@ -94,5 +94,5 @@
 实际程序 Go1.25.14 / one-api / linux/amd64 / CGO1，binary SHA256
 `975029a6b61190f096457d4c302cb3a5e36ac6f4daca2c74de82f1dae7664394`。
 未发布镜像。合并后准确 main 的
-[36831183355](https://github.com/dreamvm/one-hub/actions/runs/36831183355) 尚待核对。
+[36831183355](https://github.com/dreamvm/one-hub/actions/runs/36831183355) 已成功。
 首次 PostgreSQL 夹具失败、单次审阅后修改未复审及真实历史身份恢复的限制继续保留。
