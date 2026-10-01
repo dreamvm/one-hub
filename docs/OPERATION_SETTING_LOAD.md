@@ -21,3 +21,11 @@
 Browser plugin不可用，缓存PlaywrightCLI0.1.22/Chromium154.0.8037.58；随机localhost生产构建，合成用户/API，写入仅夹具内存，外部请求拦截、装饰图标本地替身。1440×1000浅色与390×844深色各5组：正常勾选保存、延迟部分响应保留编辑并精确保存一次、迟到工具错误、迟到options错误、重新访问恢复。旧请求在切换系统设置并确认其正常读取完成后释放，等待response结束和两帧渲染，确认无旧组件错误或后续options请求。
 
 十组均通过，零未处理页面异常、控制台错误/警告。截图已目视检查，桌面窄输入框和移动纵向滚动为既有布局；移动保存提示可见，不声称整个表单或长URL同屏。浏览器和临时服务已关闭。未访问真实配置、清理历史、生成账单或调用付费模型；不替代后端/生产验收。回滚本项源码/测试恢复旧初始化行为，无依赖、schema或数据迁移。加载体积、其他页面、RC8与其余发布门槛仍开放。
+
+## 2026-10-01 合并验收
+
+[PR #97](https://github.com/dreamvm/one-hub/pull/97) head `2651bd0cd8c19eb296d94cde8fc73a590b913316` 的两套手动准确候选检查 [36866226110](https://github.com/dreamvm/one-hub/actions/runs/36866226110)/[36866231207](https://github.com/dreamvm/one-hub/actions/runs/36866231207) 全九项成功。初始叠加基线不触发main限定的PR工作流，实际事件为workflow_dispatch；不声称自动PR事件已运行。
+
+实际smoke为SQLite12、MySQL35、PostgreSQL35、升级/两条回滚7项共89个PASS，含九轮并发，四种Compose启动通过。runner镜像 `sha256:44c2b6a124ed1947a0f6550823ab565260db88c98dfa33fce23f55c5cff3c1cd` 中的实际程序为Go1.25.14 / one-api / linux/amd64 / CGO1，binary SHA256 `337d7cb20fbf6e3db5877dc7b06202928d5e9bce7f8b86271482d821fd804ed6`；未发布。
+
+前置#96合并后，PR改向main且head不变；最新main计算合并树和候选树均为 `e87b879e127e12f234b9e005ca6a66b3b613bf77`。GitHub仍暴露先前叠加合成 `726e266aa45dc3220d3a7f15e5821e7daf0d819d`（父节点e7f30627），其树相同，但未把其父节点记作已刷新。实际合并 `bbca75aacaea59c5e03d7dd156a5b0355a03ccb3` 的父节点为e391ba68和2651bd0c，最终树同样为e87b879e。合并后main [36868758519](https://github.com/dreamvm/one-hub/actions/runs/36868758519) 待核对。
