@@ -16,3 +16,12 @@
 ## 最终叠加候选复核
 
 提取到标题PR #101之后，全部前端文件复制到新隔离副本，复跑完整187项Vitest/依赖边界、零警告lint及生产构建通过。源码增量与独立审阅补丁相同。最终入口1,019,702原始字节、同口径gzip329,853字节；前置修复引起chunk引用变化，不能将此gzip数与旧基线直接归因比较，上述同基线差值仍为主要体积证据。最终构建又复跑四语言×桌面浅色/移动深色8组正常控制，国旗SVG与原始基线完全一致，页面/控制台错误警告0；统计页请求17个唯一脚本合计1,715,655未压缩字节。浏览器和服务均已关闭。
+
+
+## 2026-10-01 合并验收
+
+PR #102 headf33f9706ef2aeb656b2c01bb0585f6ee75032f97的手动准确[Compatibility36872486412](https://github.com/dreamvm/one-hub/actions/runs/36872486412)/[Isolated36872494696](https://github.com/dreamvm/one-hub/actions/runs/36872494696)九项成功。初始叠加基线不在main事件范围，使用workflow_dispatch，不声称自动PR检查通过。smoke110405471212实际89PASS（12SQLite/35MySQL/35PostgreSQL/7升级回滚）、九波并发、四种Compose通过。
+
+镜像sha256:612d372e8b62e1c914b0ea1c1160dfd94e9a07f3eed4d04e4bbbbb1b7adbe8d5；程序SHA256 a8d266eff4c77647beee2546c249e1080c01126e6a9086c99fe68287ca5d92df，Go1.25.14/one-api/linux amd64/CGO1。仅隔离本地镜像，不是发布。
+
+最新mainc65c53f39e789447b1e7fce08f359a33875cda14计算合并树、候选均为8cab756c340e185ed8a4305abf105ebc023d5390。合成84fe2a5500c2a41529e6e27fa6c13ee45efb24c9仍保留旧23292f41/f33f9706父节点，树相同，不声称祖先刷新。锁定head合并7860d0d3db79f7bfdb8b04587df56efe50ff4847，API核实实际父节点最新main/候选，实际树一致。[main CI36875419258](https://github.com/dreamvm/one-hub/actions/runs/36875419258)已成功。

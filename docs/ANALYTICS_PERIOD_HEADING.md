@@ -15,3 +15,12 @@
 初版浏览器脚本误用英文空状态文案，按实际DOM的中文“暂无数据”修正等待条件后全组通过。最终截图在1500ms有限动画等待后拍摄并目视核对：草稿27日、标题26日和已查询图表同时显示，体现搜索提交边界。浏览器及临时服务已关闭。
 
 限制：未扩展其他日期输入、范围上限或未来日期政策，不证明所有浏览器/页面端到端。回滚本项源码/测试恢复旧标题行为；没有真实数据、付费调用、依赖升级、生产写入或发布。
+
+
+## 2026-10-01 合并验收
+
+PR #101 head23292f41851765e29669f9f80ee759be5f73be35的手动准确[Compatibility36872001960](https://github.com/dreamvm/one-hub/actions/runs/36872001960)/[Isolated36872009378](https://github.com/dreamvm/one-hub/actions/runs/36872009378)九项成功。初始叠加基线不在main事件范围，使用workflow_dispatch，不声称自动PR检查通过。smoke110403678607实际89PASS（12SQLite/35MySQL/35PostgreSQL/7升级回滚）、九波并发、四种Compose通过。
+
+镜像sha256:1f6d7205c66b36231d5c52a03a8f04f0605ec656b02dbf94a517bc501acf0449；程序SHA256 f8f74f024548725f61996ca3d4d2bf0f3486a301d9338471d80ca504ec2425b4，Go1.25.14/one-api/linux amd64/CGO1。仅隔离本地镜像，不是发布。
+
+最新main86fea947506186ce9cf800cc3f19152bce3d508f计算合并树、候选均为c19d838b97ca01c923229f40284ec0b89806232d。合成97514f04f76def255b3c8c0917e1a431a6939dc5仍保留旧018b7b17/23292f41父节点，树相同，不声称祖先刷新。锁定head合并c65c53f39e789447b1e7fce08f359a33875cda14，API核实实际父节点最新main/候选，实际树一致。[main CI36874831130](https://github.com/dreamvm/one-hub/actions/runs/36874831130)已成功。

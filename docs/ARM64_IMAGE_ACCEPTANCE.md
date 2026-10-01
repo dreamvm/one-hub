@@ -11,3 +11,18 @@
 新增架构一致性门槛在旧 workflow 失败，原禁止发布及完整数据库/回滚控制通过；候选 19 项 workflow 父测试（含子用例）、38 项 Python 离线 smoke 测试及 actionlint 通过。actionlint 初次在无 .git 的归档副本未定位项目，改为显式工作流路径后成功；不是产品故障。平台策略测试不代替真实 arm64 执行。本地无 Docker，实际运行必须由准确候选 CI 完成。一次复用上下文、非 fresh 的独立只读审阅，审阅者未参与实现，未发现功能性阻断；发现新增 Go 测试导入分组规范问题，父任务修正分组后重跑19项工作流测试与actionlint通过。该格式修正在审阅之后，无第二轮复审。独立审阅重跑Go/38项Python及shell语法通过，但其Go环境未提供Task/Compose路径，相关检查跳过，actionlint尝试受离线模块解析限制；父任务使用固定本地工具及显式路径完成这些检查。审阅补丁d71f0ebcaa347f0fb20ab2726e28928e46072b7df95d8604d0df62c1e4f41b34；最终仅导入分组修正后补丁f2ae1b9af37110a5469c3d2751a16e2bf3f297872d2dd75a0758942ba59c5a37。
 
 工作流仍仅 contents:read、无 registry 登录、push=false、load=true，无发布凭据、标签或生产部署。新增一个原生 smoke job 会增加 CI 资源用量；前置通用回归仍执行一次。回滚本项恢复仅 amd64 验收。OIDC 旧程序回退安全、真实生产配置/备份与历史归属仍需独立处理，隔离基础升级控制不关闭这些门槛。
+
+## 2026-10-01 合并验收
+
+[PR #103](https://github.com/dreamvm/one-hub/pull/103) head `23b5c2639e122fe03c7bd39c2f4c4e51bd4e8307` 的手动准确 [Compatibility36874432973](https://github.com/dreamvm/one-hub/actions/runs/36874432973) 四项及 [Isolated36874440707](https://github.com/dreamvm/one-hub/actions/runs/36874440707) 六项全部成功，共十项。最初叠加基线不触发 main PR 事件，使用 workflow_dispatch；不声称自动 PR 检查已运行。
+
+| 实际原生 runner / job | 镜像 ID（sha256） | `/one-api` SHA256 | 实际耗时 |
+|---|---|---|---|
+| ubuntu-24.04-arm / 110411933207 | 1b7e65cb751d5819eb74ce66384866c9ddcd9fbfc0e1e0e7d2d5794a22b5fe62 | e44368a756504843a61eca41bf6275634c2be649c1214836449bd4cde82df7a1 | 13分37秒 |
+| ubuntu-24.04 / 110411933082 | 811af1b552581565d887ab5bbde54d4ef7b4a5b92ed8d1d13918044c57e93742 | d6bcb67dbe09129bad34db23e179f89f6aac0896e6f43499c8395c8029a85560 | 15分24秒 |
+
+两架构分别读取最终镜像程序，确认 Go1.25.14、主包 one-api、Linux、对应 arm64/amd64、CGO1，并校验候选及 fixture 镜像架构。各自实际 89 个业务/升级 PASS（SQLite12、MySQL35、PostgreSQL35、升级及两种回滚7）、九波有界并发、四种 Compose 启动通过；所有 step 成功，均在35分钟 job预算内。仅在隔离 runner 构建和加载，未发布镜像；上述 image ID 不是发布仓库 digest。
+
+前置 #102 合并后，最新 main `7860d0d3db79f7bfdb8b04587df56efe50ff4847` 的计算合并树与候选同为 `46e2b51636d1b3d40a83166ea7f12f8ad233d573`。旧合成 `0eb3669a2b1671d6212f5aa6c161f24a2b560ccc` 仍保留 f33f9706/23b5c263 父节点，树相同，不声称其祖先刷新。锁定 head 合并 `0229f0aaf4a6f00720b402467ae317f47248735e`，API核实实际父节点为最新 main/候选，实际树相同。[合并后 main CI36877499093](https://github.com/dreamvm/one-hub/actions/runs/36877499093) 四项已成功。
+
+这关闭本项真实 arm64 隔离镜像及现有合成升级/回滚验收缺口。未创建 RC8 标签，不替代 OIDC 历史身份回退、真实生产配置、备份恢复点、历史账目及最终发布验收。
