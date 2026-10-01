@@ -1198,3 +1198,9 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - [#117最终验收](FRONTEND_AUDIT_FOLLOWUP.md#2026-10-01-117合并验收)十项准确候选检查及双架构89/9/4成功，候选/合成/最新main计算/实际树一致，合并2cb47018；[main CI36924792593](https://github.com/dreamvm/one-hub/actions/runs/36924792593)已成功，准确head为实际合并提交2cb47018。
 - [Immutable与可选工具路径](FRONTEND_OPTIONAL_TOOL_PATHS.md)新增21条逐输入静态范围结论：实际SCSS/Sass编译路径、ESLint缓存与配置优先级、glob CLI、Flowtype的lodash API及旧Browserslist调用方已核对。库仍受影响，只限受检入口；独立审阅、准确候选CI与合并尚待完成。
 - 未处理队列由96变75；全部205条审计匹配保留，103条已有索引不等于关闭。四个受限审阅、真实历史归属、生产事实和最终RC8继续开放，没有新发布或部署。
+
+### #118交付与最后75条静态核对
+
+- [#118验收](FRONTEND_OPTIONAL_TOOL_PATHS.md#2026-10-01-118合并验收)十项准确候选检查及双架构89/9/4成功，候选/合成/最新main计算/实际树一致；实际合并e84d12c1。准确head的[main CI36929440139](https://github.com/dreamvm/one-hub/actions/runs/36929440139)已成功，四项真实checkout均为该合并提交。
+- [最后75条匹配器/YAML路径](FRONTEND_MATCHER_YAML_BOUNDARIES.md)已结束静态初筛：53条受检入口不适用、22条待核实、零条确认项目漏洞。js-yaml实际完整配置解析10条和Vite matcher来源12条继续核实；未初筛队列归零不等于依赖或发布阻断项关闭，库版本仍受影响。
+- 本次只新增文档，自己的独立证据审阅、准确候选CI与合并待完成。四个受限审阅没有重试或改道；真实历史归属、生产事实及最终RC8继续开放，未发布或部署。

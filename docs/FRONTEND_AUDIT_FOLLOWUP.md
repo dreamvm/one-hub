@@ -107,3 +107,10 @@ b46dcf4e92a52c33f617a8f041a4a981a4fe762d0b1be8444456a14db6dfd69f。
 
 后续[21条可选工具路径](FRONTEND_OPTIONAL_TOOL_PATHS.md)完成静态核对，剩余队列由96变75；
 这是后续独立批次，不改写#117初次六条的范围，也不称库已修补。
+
+## 2026-10-01 最后75条静态核对
+
+[匹配器及YAML路径](FRONTEND_MATCHER_YAML_BOUNDARIES.md)保留全部75条原输入，
+完成内联静态核对：53条受检入口not_actionable，22条needs_review，零条确认项目漏洞。
+剩余未初筛队列归零不等于问题关闭；实际js-yaml配置解析10条和Vite matcher12条继续核实，
+此前103条索引也保留各自的未修补、受限审阅或范围缺口。受影响库版本未变。
