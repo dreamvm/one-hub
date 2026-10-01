@@ -75,3 +75,31 @@ Vite没有自定义env/polyfill preset；旧core-js-compat及preset图的调用�
 审阅核对21/75计数、逐输入证据、Sass桥接、配置优先级、安装副本哈希及#117验收，
 没有新triage、测试、构建或受限审阅；不把文档一致性当作库修补或动态验证。
 本批自己的准确候选CI及合并尚待完成。
+
+## 2026-10-01 #118合并验收
+
+候选7bfc69679a5f839d2e9bc0c3d73915ccc196fbc0的
+[Compatibility36926688328](https://github.com/dreamvm/one-hub/actions/runs/36926688328)与
+[Isolated36926688479](https://github.com/dreamvm/one-hub/actions/runs/36926688479)原运行均成功，
+attempt=1，十项全部通过。Compatibility四项实际checkout合成8d7786f1，Isolated六项检出候选。
+候选、合成8d7786f1c548772fd046cc935138a326f2a8e09d、最新main 2cb47018计算及
+实际合并e84d12c110474db9ffadafd5267eef312c308177的树均为
+b2b0c9395852e505f9a1db3861198b434a404d67。合并时间2026-10-01T21:33:09Z。
+
+两个前端均22文件209UI通过，ESLint无诊断；build成功，>500kB chunk和安装peer警告保留。
+两个原生架构各89PASS、九轮并发、四种Compose；最终程序均Go1.25.14、one-api、
+Linux对应架构、CGO1，来自CI本地加载镜像，未发布。
+
+| 架构 / job | image SHA256 | 最终程序SHA256 |
+| --- | --- | --- |
+| arm64 / 110587327968 | e359652ad828991ca8b7680f3f3e06b4a64ae70f30ee87e21cee965c84666609 | adbf81bc41fe4a1814cfb3d9862c414e28fdffb347e8d1522eed95aa7246f958 |
+| amd64 / 110587328066 | c543028adde47dc0eab11c5b3b33d4237a68621b8948fc6a65c8311756983100 | 0180e84fb5d126525d66aa57c99978cd2894cdd8bfa9183f2e2f9be8d4755cb8 |
+
+十份日志与元数据保留为私有证据：verification.json SHA256为
+28ef854c8a3dba9b8491e2a452bf79c7f66a1d1f3d13ce5a83e4920e39b4c151，SHA256SUMS为
+7a9143c070801c14a062f3f0f35508233fc5f3ae3ee836f1641ae62e6656471d。
+[合并后main CI36929440139](https://github.com/dreamvm/one-hub/actions/runs/36929440139)
+已成功，准确push head为e84d12c1，attempt=1；四项真实checkout均为该实际合并提交。
+
+后续[75条匹配器/YAML输入](FRONTEND_MATCHER_YAML_BOUNDARIES.md)已完成静态初筛，
+其53条范围排除与22条待核实另记；不扩大本批21条结论或关闭其他审阅。
