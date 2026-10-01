@@ -31,3 +31,11 @@ Docker 官方 [disconnect](https://docs.docker.com/reference/cli/docker/network/
 PR #85 首个候选 `647f7ffb559be3726ae573bec02d2c6746b33aa5` 的 8 项基础检查成功；[镜像 smoke 36835071194](https://github.com/dreamvm/one-hub/actions/runs/36835071194) 在 MySQL/Redis 网络恢复时失败：Docker 自动分配子网不支持 `network connect --ip`。没有把该次失败记为网络矩阵通过，PostgreSQL 分区步骤尚未执行。
 
 夹具改为先让 Docker 为本次随机命名的内部空网络选择无冲突子网，确认没有容器附件后重建该网络并显式传入同一子网；此后才启动容器。若子网被同时占用则失败，不换用未知网络。恢复仍严格保留原 IP、别名和进程 PID。新增正常命令顺序和已有附件拒绝重建的控制；等待修正候选的完整 CI。
+
+### 2026-10-01 修正候选通过并合并
+
+[PR #85](https://github.com/dreamvm/one-hub/pull/85) 最终候选 df2355573d21071f7430a239907d8948de9f514e 的 [兼容 CI 36836580306](https://github.com/dreamvm/one-hub/actions/runs/36836580306) 与 [smoke 36836580677](https://github.com/dreamvm/one-hub/actions/runs/36836580677) 全九项检查成功。实际日志确认 MySQL/Redis 和 PostgreSQL/Redis 的有限/无限 × JSON/SSE × Redis/数据库共 16 项网络分区通过；SQLite 9、MySQL 32、PostgreSQL 32、升级回滚 7，共 80 项 PASS，四种 Compose 均通过。
+
+候选 image ID 为 sha256:7eb2f8c6bf0f32a01c636b01920aefb331c6304566b0fbc511bf96bc4a46c0e7；实际 /one-api 为 Go1.25.14、main=one-api、linux/amd64、CGO=1，binary SHA256 f69c25dd2830203dc3ef86dff7d49073ab45a897def7fdb52b3b7444db842e2a。该镜像只在 CI 本地构建，没有发布。
+
+候选树、GitHub 合成合并树、本地计算合并树和实际 main 合并树均为 c884c757122981303a298f346ce17599cc43510c。合并提交 a95142550659965969b1306c91c4e7cb6aa1f488；合并后 main CI 待核对。首轮失败记录保留。验收范围仍为单宿主隔离网络，不能推断多宿主分区、生产恢复或其他尚未关闭的项目。
