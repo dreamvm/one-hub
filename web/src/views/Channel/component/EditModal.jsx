@@ -974,6 +974,7 @@ const EditModal = ({ open, channelId, onCancel, onOk, groupOptions, isTag, model
                           minimap: { enabled: false },
                           scrollBeyondLastLine: false,
                           automaticLayout: true,
+                          fixedOverflowWidgets: true,
                           fontSize: 14,
                           lineNumbers: 'on',
                           folding: true,
