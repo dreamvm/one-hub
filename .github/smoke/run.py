@@ -5,6 +5,7 @@ import argparse
 import copy
 from concurrent.futures import ThreadPoolExecutor
 import http.cookies
+import ipaddress
 import json
 import os
 from pathlib import Path
@@ -39,6 +40,77 @@ def start_container(name, options, created):
     command("docker", "create", "--pull=never", "--name", name, *options)
     created.append(("container", name))
     command("docker", "start", name)
+
+
+def create_internal_network(network, created):
+    require(re.fullmatch(r"onehub-smoke-[a-f0-9]{12}-net", network), "not a smoke network")
+    command("docker", "network", "create", "--internal", network)
+    created.append(("network", network))
+    initial = json.loads(command("docker", "network", "inspect", network).stdout)[0]
+    require(initial["Internal"] and not initial["Containers"], "expected an empty internal network")
+    config = initial["IPAM"]["Config"]
+    require(len(config) == 1, "expected one fixture subnet")
+    subnet = ipaddress.ip_network(config[0]["Subnet"])
+    require(subnet.version == 4 and subnet.is_private, "unexpected fixture subnet")
+    # Let Docker choose a free subnet, then explicitly configure it before any
+    # container attaches: --ip restoration requires a user-configured subnet.
+    command("docker", "network", "rm", network)
+    command("docker", "network", "create", "--internal", "--subnet", str(subnet), network)
+    restored = json.loads(command("docker", "network", "inspect", network).stdout)[0]
+    require(restored["Internal"] and not restored["Containers"] and
+            restored["IPAM"]["Config"][0]["Subnet"] == str(subnet), "fixture subnet was not retained")
+
+
+class OwnedNetworkPartition:
+    """Temporary attachment loss for this runner's newly created dependency only."""
+
+    def __init__(self, network, target):
+        require(re.fullmatch(r"onehub-smoke-[a-f0-9]{12}-net", network), "not a smoke network")
+        prefix = network[:-4]
+        require(target in {prefix + suffix for suffix in ("-mysql", "-postgres", "-redis")},
+                "network fault target is not owned by this run")
+        self.network, self.target, self.restore_needed = network, target, False
+        require(command("docker", "network", "inspect", "--format", "{{.Internal}}", network).stdout.strip() == "true",
+                "network fault requires an internal network")
+        attachments = self.attachments()
+        require(set(attachments) == {network}, "expected only the owned network attachment")
+        original = attachments[network]
+        self.address, self.aliases = original["IPAddress"], original["Aliases"]
+        require(ipaddress.IPv4Address(self.address).is_private, "unexpected fixture network address")
+        require(isinstance(self.aliases, list) and self.aliases and all(
+            isinstance(alias, str) and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,127}", alias)
+            for alias in self.aliases), "invalid fixture aliases")
+        self.process = self.process_state()
+        require(re.fullmatch(r"true [1-9][0-9]*", self.process), "fault target is not running")
+
+    def attachments(self):
+        return json.loads(command("docker", "inspect", "--format", "{{json .NetworkSettings.Networks}}",
+                                  self.target).stdout)
+
+    def process_state(self):
+        return command("docker", "inspect", "--format", "{{.State.Running}} {{.State.Pid}}", self.target).stdout.strip()
+
+    def assert_disconnected(self):
+        require(self.network not in self.attachments(), "fixture network is still attached")
+        require(self.process_state() == self.process, "partition unexpectedly changed the dependency process")
+
+    def disconnect(self):
+        # Also recover an ambiguous command failure which removed the attachment.
+        self.restore_needed = True
+        command("docker", "network", "disconnect", self.network, self.target)
+        self.assert_disconnected()
+
+    def restore(self):
+        if not self.restore_needed:
+            return
+        if self.network not in self.attachments():
+            aliases = [value for alias in self.aliases for value in ("--alias", alias)]
+            command("docker", "network", "connect", "--ip", self.address, *aliases, self.network, self.target)
+        restored = self.attachments().get(self.network, {})
+        require(restored.get("IPAddress") == self.address and
+                set(self.aliases).issubset(restored.get("Aliases") or []), "fixture network identity was not restored")
+        require(self.process_state() == self.process, "dependency restarted during network partition")
+        self.restore_needed = False
 
 
 class Client:
@@ -283,7 +355,7 @@ def assert_consumed_details(receipt, before, after, cost):
             "consume log or channel accounting mismatch")
 
 
-def dependency_failure_checks(backend, user, token, user_id, mock, gateway, passed):
+def dependency_failure_checks(backend, user, token, user_id, mock, gateway, network, passed):
     """Fault only this run's synthetic dependencies; verify accounting and upstream effects."""
     user_id = int(user_id)
     upstream = Client("http://mock-provider:8000", mock)
@@ -344,9 +416,19 @@ def dependency_failure_checks(backend, user, token, user_id, mock, gateway, pass
         result = command("docker", "logs", "--tail", "500", gateway)
         return (result.stdout + result.stderr).count("failed to persist quota terminal intent")
 
-    def admitted_outage(request_token, request_unlimited, stream, finite_id=None, database_fault=False):
+    def admitted_outage(request_token, request_unlimited, stream, finite_id=None, database_fault=False, partition=False):
         target = backend.database if database_fault else backend.redis
-        failure_count = terminal_failures() if database_fault else 0
+        cut = OwnedNetworkPartition(network, target) if partition else None
+        endpoint = ("database:5432" if isinstance(backend, PostgreSQLRedis) else "database:3306") if database_fault else "cache:6379"
+
+        def reachable():
+            reply = json.loads(command("docker", "exec", mock, "/fixture/mock", "check-dependency", endpoint).stdout)
+            require(type(reply.get("reachable")) is bool, "invalid fixture connectivity result")
+            return reply["reachable"]
+
+        if cut:
+            require(reachable(), "dependency was unreachable before the partition")
+        failure_count = terminal_failures() if database_fault and not partition else 0
         before, before_details, calls = snapshot(), details(), counter(stream)
         def remaining():
             return int(backend.sql(f"SELECT remain_quota FROM tokens WHERE id={finite_id};").stdout.strip())
@@ -379,13 +461,31 @@ def dependency_failure_checks(backend, user, token, user_id, mock, gateway, pass
                 if finite_id is not None:
                     require(token_before - remaining() == reserved, "reservation did not hold finite token quota")
                 require(counter(stream) == calls + 1, "upstream admission was not exactly once")
-                command("docker", "stop", "--time", "1", target)
-                require(command("docker", "inspect", "--format", "{{.State.Running}}", target).stdout.strip() == "false",
-                        "owned fault target still running")
+                if cut:
+                    cut.disconnect()
+                    require(not reachable(), "partitioned dependency remained reachable from the mock network")
+                    # Services stay alive and answer via their own loopback while unreachable on the fixture network.
+                    if database_fault:
+                        require(backend.sql("SELECT 1;").stdout.strip() == "1", "partitioned database stopped serving locally")
+                    else:
+                        require(backend.cache("PING").stdout.strip() == "PONG", "partitioned Redis stopped serving locally")
+                else:
+                    command("docker", "stop", "--time", "1", target)
+                    require(command("docker", "inspect", "--format", "{{.State.Running}}", target).stdout.strip() == "false",
+                            "owned fault target still running")
                 gate("release")
+                if cut:
+                    time.sleep(3)
+                    cut.assert_disconnected()
+                    if database_fault:
+                        require(snapshot() == held and details() == before_details,
+                                "database partition did not withhold terminal accounting")
+                    cut.restore()
+                    require(reachable(), "dependency did not become reachable after network restore")
+                    backend.wait_ready()
                 require(future.result(timeout=25)["content"] == "中文对话成功",
                         "admitted chat failed during dependency outage")
-                if database_fault:
+                if database_fault and not partition:
                     # Require an actual failed terminal write, not just a stopped container.
                     deadline = time.monotonic() + 5
                     while terminal_failures() == failure_count and time.monotonic() < deadline:
@@ -413,15 +513,19 @@ def dependency_failure_checks(backend, user, token, user_id, mock, gateway, pass
                 try:
                     gate("release")
                 finally:
-                    command("docker", "start", target)
+                    if cut:
+                        cut.restore()
+                    else:
+                        command("docker", "start", target)
                     backend.wait_ready()
         paid_control(request_token, request_unlimited)
-        passed(f"{'Database' if database_fault else 'Redis'} lost after upstream admission: {'unlimited' if request_unlimited else 'finite'} "
-               f"{'SSE' if stream else 'JSON'} settles once; restart recovers")
+        passed(f"{'Database' if database_fault else 'Redis'} {'partitioned' if partition else 'lost'} after upstream admission: {'unlimited' if request_unlimited else 'finite'} "
+               f"{'SSE' if stream else 'JSON'} settles once; {'network restore' if partition else 'restart'} recovers")
 
     for database_fault in (False, True):
-        for stream in (False, True):
-            admitted_outage(token, unlimited, stream, database_fault=database_fault)
+        for partition in (False, True):
+            for stream in (False, True):
+                admitted_outage(token, unlimited, stream, database_fault=database_fault, partition=partition)
     user.api("/api/token/", data={"name": "smoke_inflight_finite", "expired_time": -1,
                                   "remain_quota": 1000000, "unlimited_quota": False})
     finite_id = int(backend.sql(f"SELECT id FROM tokens WHERE user_id={user_id} "
@@ -432,8 +536,9 @@ def dependency_failure_checks(backend, user, token, user_id, mock, gateway, pass
         finite_token = finite["key"]
         require(paid_control(finite_token, False) == control_cost, "finite token normal price changed")
         for database_fault in (False, True):
-            for stream in (False, True):
-                admitted_outage(finite_token, False, stream, finite_id, database_fault)
+            for partition in (False, True):
+                for stream in (False, True):
+                    admitted_outage(finite_token, False, stream, finite_id, database_fault, partition)
     finally:
         user.api(f"/api/token/{finite_id}", method="DELETE")
 
@@ -495,9 +600,7 @@ def run(args):
                 "-keyout", str(tmp / "server.key"), "-out", str(tmp / "server.crt"))
         (tmp / "server.crt").chmod(0o644)
         try:
-            command("docker", "network", "create", "--internal", network)
-            created.append(("network", network))
-            require(json.loads(command("docker", "network", "inspect", network).stdout)[0]["Internal"], "network is not internal")
+            create_internal_network(network, created)
             command("docker", "volume", "create", volume)
             created.append(("volume", volume))
             common = ["--network", network, "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--pids-limit", "256", "--read-only", "--tmpfs", "/tmp:rw,noexec,nosuid,size=64m"]
@@ -601,7 +704,7 @@ def run(args):
             if backend:
                 backend.assert_used(channel_count=4)
                 passed(f"{args.backend} user/channel persistence and verified Redis cache hits")
-                dependency_failure_checks(backend, user, user_token, user_info["id"], mock, gateway, passed)
+                dependency_failure_checks(backend, user, user_token, user_info["id"], mock, gateway, network, passed)
                 command("docker", "stop", "--time", "10", gateway)
                 backend.restart()
                 command("docker", "start", gateway)
