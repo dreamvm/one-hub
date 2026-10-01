@@ -27,3 +27,20 @@ JSON 在返回业务响应前暂停；SSE 在模拟上游刷出首个内容块�
 真实两数据库镜像验收等待准确候选 CI。
 尚未取得这些新场景的端到端通过记录；不能用 PR #82 的 CI 替代本候选。
 本项没有应用安全修复，也未另行执行安全修复的独立审阅；父任务检查测试边界与账务路径，候选 CI 仍为必需门槛。
+
+## 合并验收
+
+[PR #83](https://github.com/dreamvm/one-hub/pull/83) head
+`6ab65ba2ea7f56d5842112fa5714898012137ea9` 已合并为
+`53be6eb04942814f812d756dfbd809bd553e1b66`。候选、GitHub 合成、本地计算和实际合并树
+均为 `74f9bcb63e7731298121daabeb8e78d0f5809ed7`。
+[36831550015](https://github.com/dreamvm/one-hub/actions/runs/36831550015) /
+[36831550324](https://github.com/dreamvm/one-hub/actions/runs/36831550324) 全 9 项成功。
+MySQL 与 PostgreSQL 分别完成有限/无限令牌 × JSON/SSE 的四个新增中途 Redis 故障检查；
+原有控制和升级/回滚共计 56 个 PASS，四种 Compose 启动通过。
+
+最终 runner 镜像 `sha256:8041f82fec3b8e91b27278017a8b8d7bafe0c3ee68dd2d695270ea64e4e1b80d`，
+实际程序 Go1.25.14 / one-api / linux/amd64 / CGO1，binary SHA256
+`77ca69d23f454e8e100159809fe4268f883867a44e523584e089017cf6a5a9fc`。未发布。
+合并后 main [36832999472](https://github.com/dreamvm/one-hub/actions/runs/36832999472) 待核对。
+数据库中途故障另见 [独立候选](DATABASE_INFLIGHT_ACCEPTANCE.md)，不能将本项 Redis 成功扩展为数据库或网络分区成功。

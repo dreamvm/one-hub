@@ -283,8 +283,8 @@ def assert_consumed_details(receipt, before, after, cost):
             "consume log or channel accounting mismatch")
 
 
-def redis_failure_checks(backend, user, token, user_id, mock, passed):
-    """Fault only this run's synthetic Redis; verify database and upstream effects."""
+def dependency_failure_checks(backend, user, token, user_id, mock, gateway, passed):
+    """Fault only this run's synthetic dependencies; verify accounting and upstream effects."""
     user_id = int(user_id)
     upstream = Client("http://mock-provider:8000", mock)
     mode = backend.sql(f"SELECT CASE WHEN unlimited_quota THEN 1 ELSE 0 END FROM tokens "
@@ -339,7 +339,14 @@ def redis_failure_checks(backend, user, token, user_id, mock, passed):
                  f"FROM logs WHERE user_id={user_id} AND type=2;")
         return tuple(int(value) for value in backend.sql(query).stdout.strip().split("\t"))
 
-    def admitted_outage(request_token, request_unlimited, stream, finite_id=None):
+    def terminal_failures():
+        # Count only a fixed diagnostic from this run's gateway; never print its log.
+        result = command("docker", "logs", "--tail", "500", gateway)
+        return (result.stdout + result.stderr).count("failed to persist quota terminal intent")
+
+    def admitted_outage(request_token, request_unlimited, stream, finite_id=None, database_fault=False):
+        target = backend.database if database_fault else backend.redis
+        failure_count = terminal_failures() if database_fault else 0
         before, before_details, calls = snapshot(), details(), counter(stream)
         def remaining():
             return int(backend.sql(f"SELECT remain_quota FROM tokens WHERE id={finite_id};").stdout.strip())
@@ -372,11 +379,23 @@ def redis_failure_checks(backend, user, token, user_id, mock, passed):
                 if finite_id is not None:
                     require(token_before - remaining() == reserved, "reservation did not hold finite token quota")
                 require(counter(stream) == calls + 1, "upstream admission was not exactly once")
-                command("docker", "stop", "--time", "1", backend.redis)
+                command("docker", "stop", "--time", "1", target)
+                require(command("docker", "inspect", "--format", "{{.State.Running}}", target).stdout.strip() == "false",
+                        "owned fault target still running")
                 gate("release")
                 require(future.result(timeout=25)["content"] == "中文对话成功",
-                        "admitted chat failed during Redis outage")
-                deadline = time.monotonic() + 10
+                        "admitted chat failed during dependency outage")
+                if database_fault:
+                    # Require an actual failed terminal write, not just a stopped container.
+                    deadline = time.monotonic() + 5
+                    while terminal_failures() == failure_count and time.monotonic() < deadline:
+                        time.sleep(0.1)
+                    require(terminal_failures() == failure_count + 1,
+                            "expected exactly one failed terminal write before database restart")
+                    # Keep the gateway process alive for its existing known-intent retry.
+                    command("docker", "start", target)
+                    backend.wait_ready()
+                deadline = time.monotonic() + (45 if database_fault else 10)
                 while time.monotonic() < deadline:
                     after = snapshot()
                     if after[2] == before[2] + 1:
@@ -394,14 +413,15 @@ def redis_failure_checks(backend, user, token, user_id, mock, passed):
                 try:
                     gate("release")
                 finally:
-                    command("docker", "start", backend.redis)
+                    command("docker", "start", target)
                     backend.wait_ready()
         paid_control(request_token, request_unlimited)
-        passed(f"Redis lost after upstream admission: {'unlimited' if request_unlimited else 'finite'} "
+        passed(f"{'Database' if database_fault else 'Redis'} lost after upstream admission: {'unlimited' if request_unlimited else 'finite'} "
                f"{'SSE' if stream else 'JSON'} settles once; restart recovers")
 
-    for stream in (False, True):
-        admitted_outage(token, unlimited, stream)
+    for database_fault in (False, True):
+        for stream in (False, True):
+            admitted_outage(token, unlimited, stream, database_fault=database_fault)
     user.api("/api/token/", data={"name": "smoke_inflight_finite", "expired_time": -1,
                                   "remain_quota": 1000000, "unlimited_quota": False})
     finite_id = int(backend.sql(f"SELECT id FROM tokens WHERE user_id={user_id} "
@@ -411,8 +431,9 @@ def redis_failure_checks(backend, user, token, user_id, mock, passed):
         require(finite["unlimited_quota"] is False, "finite token fixture is unlimited")
         finite_token = finite["key"]
         require(paid_control(finite_token, False) == control_cost, "finite token normal price changed")
-        for stream in (False, True):
-            admitted_outage(finite_token, False, stream, finite_id)
+        for database_fault in (False, True):
+            for stream in (False, True):
+                admitted_outage(finite_token, False, stream, finite_id, database_fault)
     finally:
         user.api(f"/api/token/{finite_id}", method="DELETE")
 
@@ -580,7 +601,7 @@ def run(args):
             if backend:
                 backend.assert_used(channel_count=4)
                 passed(f"{args.backend} user/channel persistence and verified Redis cache hits")
-                redis_failure_checks(backend, user, user_token, user_info["id"], mock, passed)
+                dependency_failure_checks(backend, user, user_token, user_info["id"], mock, gateway, passed)
                 command("docker", "stop", "--time", "10", gateway)
                 backend.restart()
                 command("docker", "start", gateway)
