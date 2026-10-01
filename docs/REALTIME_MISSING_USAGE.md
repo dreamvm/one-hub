@@ -57,3 +57,19 @@ providers/relay 编译通过。首候选 CI 的 SQLite/MySQL 通过，PostgreSQL
 快照未持久化前进程崩溃仍只留下 `reserved`；数据库长期不可用的容量/网络分区、
 没有完成事件的断连、报告中非法计数、跨连接报告归属、历史金额核对及人工处置仍需后续专项。
 没有为未知金额猜测账单，没有关闭 RC8 阻断项，也没有标签、镜像发布或生产部署。
+
+## 合并验收
+
+[PR #76](https://github.com/dreamvm/one-hub/pull/76) 最终 head `bee84d6c4b5b784c75d7e50fc862337464d89c53`
+已合并为 `51590891071dd8626ae13a9913285022a8ba79e3`。候选、GitHub 合成、
+最新 main 本地计算及实际合并树均为 `2d38ede3040d8ec68d6be214a3a968af134088f5`。
+[36783144118](https://github.com/dreamvm/one-hub/actions/runs/36783144118) /
+[36783144323](https://github.com/dreamvm/one-hub/actions/runs/36783144323) 全 9 项成功，
+三数据库各 289 个节点、249 个事务叶子及旧账本迁移控制通过。
+48 个隔离业务/升级回滚 PASS 和四种 Compose 启动通过。
+
+最终 runner 镜像 `sha256:e7b969a6a331ed557a777cda1502388177873cb8428664a5fd435ac10ee43997`
+中程序为 Go1.25.14 / one-api / linux/amd64 / CGO1，binary SHA256
+`e52500b58bf2ec8e491a4286be017c3cd9e7a23e1212bc8462dfa24fc0498f64`；镜像未发布。
+合并后 main [36784595991](https://github.com/dreamvm/one-hub/actions/runs/36784595991)
+已成功。上述独立审阅范围限制和首轮失败记录保留；新候选的通过不改写旧结果。

@@ -139,10 +139,11 @@ func ReserveQuota(id string, identity QuotaReservationIdentity, target int) erro
 }
 
 type quotaTerminalSnapshot struct {
-	Outcome   string
-	Quota     int
-	Payload   string
-	RecordLog bool
+	FailureCode string
+	Outcome     string
+	Quota       int
+	Payload     string
+	RecordLog   bool
 }
 
 // This retry set retains known outcomes while this process survives a database
@@ -168,7 +169,7 @@ func snapshotQuotaTerminal(terminal QuotaTerminal) (quotaTerminalSnapshot, error
 	if err != nil {
 		return quotaTerminalSnapshot{}, errors.New("invalid quota log snapshot")
 	}
-	return quotaTerminalSnapshot{terminal.Outcome, terminal.Quota, string(payload), terminal.RecordLog}, nil
+	return quotaTerminalSnapshot{Outcome: terminal.Outcome, Quota: terminal.Quota, Payload: string(payload), RecordLog: terminal.RecordLog}, nil
 }
 
 // PrepareQuotaTerminal returns success only after the chosen terminal intent is
@@ -213,7 +214,7 @@ func prepareQuotaTerminal(ctx context.Context, id string, terminal quotaTerminal
 			return ErrQuotaReservationConflict
 		}
 		if terminal.Outcome == QuotaOutcomeReconcile {
-			return tx.Model(receipt).Updates(map[string]any{"state": QuotaReservationReconcile, "reconciliation_data": terminal.Payload, "failure_code": "realtime_missing_usage", "updated_at": time.Now().Unix()}).Error
+			return tx.Model(receipt).Updates(map[string]any{"state": QuotaReservationReconcile, "reconciliation_data": terminal.Payload, "failure_code": terminal.FailureCode, "updated_at": time.Now().Unix()}).Error
 		}
 		return tx.Model(receipt).Updates(map[string]any{"state": QuotaReservationPending, "outcome": terminal.Outcome, "final_quota": terminal.Quota, "terminal_log": terminal.Payload, "record_log": terminal.RecordLog, "failure_code": "", "updated_at": time.Now().Unix()}).Error
 	})
