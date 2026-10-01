@@ -78,3 +78,21 @@
 共享额度夹具显式插入用户 ID 1，没有推进 PostgreSQL sequence，后续自动 ID 碰撞主键。
 仅在本项临时 PostgreSQL 表上设置 sequence 与该已知夹具一致；未修改应用数据库或注册逻辑。
 修正后的本地专项通过，新的准确候选 CI 仍待验收；初次失败不记作整体通过。
+
+## 合并验收
+
+[PR #82](https://github.com/dreamvm/one-hub/pull/82) 最终 head
+`eb625210c639186450c709ac313ed571e67ad940` 已合并为
+`4ba29b48f9629512ce7170a509a3383739387b07`。候选、GitHub 合成、本地计算及实际合并树均为
+`7c02f9b827c6e308bd5d1eae10339697a687755a`。
+[36829774827](https://github.com/dreamvm/one-hub/actions/runs/36829774827) /
+[36829775344](https://github.com/dreamvm/one-hub/actions/runs/36829775344) 全 9 项成功，
+包括真实 SQLite/MySQL/PostgreSQL 的身份唯一性、迁移和并发注册用例。
+48 个隔离业务/升级回滚 PASS 和四种 Compose 启动通过；这些通用回滚控制不证明旧版 OIDC 登录安全。
+
+最终 runner 镜像 `sha256:999855862e9b46295934a2ebc9b39d614610776e80ec9423d138b4e72aa4d723`，
+实际程序 Go1.25.14 / one-api / linux/amd64 / CGO1，binary SHA256
+`975029a6b61190f096457d4c302cb3a5e36ac6f4daca2c74de82f1dae7664394`。
+未发布镜像。合并后准确 main 的
+[36831183355](https://github.com/dreamvm/one-hub/actions/runs/36831183355) 尚待核对。
+首次 PostgreSQL 夹具失败、单次审阅后修改未复审及真实历史身份恢复的限制继续保留。
