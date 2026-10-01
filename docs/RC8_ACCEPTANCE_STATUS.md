@@ -48,3 +48,14 @@ one-api、Linux/对应架构、CGO=1。
 | arm64 | c37175e2bb8ce99bf19e93d7e7875644e40d4755bf8dc5dc47564ab958c1c8fb | fec169dee1ac2a50d105d57b6dae83672fba656ea07a1d33c391979f16b01063 |
 
 一次独立只读证据复核无具体发现；该文档整理和CI仍不补足四个受限审阅或生产事实。
+
+## #116 Go台账与后续依赖快照
+
+#115合并后main CI36916512156已成功，准确head08bc01e2。后续#116的
+[最终记录](GO_RESIDUAL_DEPENDENCIES.md#2026-10-01-合并验收)保留十项准确候选检查、
+双架构程序身份和实际合并f2476a68；其[main CI36920018105](https://github.com/dreamvm/one-hub/actions/runs/36920018105)
+已成功，准确head为f2476a68；不由其他成功运行替代。
+
+[当前前端快照](FRONTEND_AUDIT_FOLLOWUP.md)为205条路径、98个Yarn ID和72个GHSA。
+本批六条工具链输入为受检入口not_actionable；另外96条缺少直接范围索引的输入继续核对。
+已有范围记录、受影响库和已修补依赖各自保留；没有宣布审计清零或整体RC8通过。

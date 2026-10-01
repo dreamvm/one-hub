@@ -79,3 +79,24 @@
 
 一次非作者、复用上下文且非fresh-context的独立只读文档审阅无具体发现，核对29条输入、
 双架构元数据、上述四项源码语义及37/61计数；未运行测试、程序、PoC或新triage。
+
+## 2026-10-01 合并验收
+
+[PR #116](https://github.com/dreamvm/one-hub/pull/116)候选c193edc1的
+[Compatibility](https://github.com/dreamvm/one-hub/actions/runs/36916838430)和
+[Isolated smoke](https://github.com/dreamvm/one-hub/actions/runs/36916838376)十项成功。
+Compatibility四项实际checkout合成38d3f9a，Isolated六项实际checkout候选；
+候选、合成、最新main计算与实际合并树一致0b9b8347a21b6c44e594525daf736a233b4595af。
+实际合并f2476a683ab00b79f87eb2c9655a4199d55396f2；
+[main CI36920018105](https://github.com/dreamvm/one-hub/actions/runs/36920018105)已成功，准确head为上述合并提交。
+
+两个原生架构各89项业务/升级PASS、九轮并发、四种Compose通过；最终程序均
+Go1.25.14、one-api、Linux/对应架构、CGO1。22文件209项UI通过，ESLint零警告；
+build成功，仍保留超过500kB的chunk体积警告。
+
+| 架构 | CI本地image SHA256 | 最终程序SHA256 |
+| --- | --- | --- |
+| amd64 | 7063a18177e09885224edfd2711ea8799f1082d7dd9b1749cd439a7ad226f255 | 1644905be863aa4fd029e4532b9fe0d16f63b86865de8f31bd7848c775103053 |
+| arm64 | 3a5e05ff7217a2d08d22e5e07f89f83d7b1c690605a752945909969528e49c6b | cdfe32a0920290874e278c3741f3e9b55400a6c9873d5d35d54f6a12942796a6 |
+
+这些是隔离CI本地加载的镜像身份；没有发布、部署或关闭其他RC8门槛。
