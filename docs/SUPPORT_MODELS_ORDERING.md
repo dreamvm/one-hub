@@ -29,3 +29,5 @@ Browser plugin 不可用，使用现有Playwright CLI0.1.22 / Chromium154.0.8037
 隔离镜像ID `sha256:d9d3deb68b236a3739f06a35553422360e3916f3e53e6c714185f9338f6c180e`；提取程序SHA256 `36262c655d7beb0821adcc74e70ccac148abb313d9530ad62de27352ec8e1a24`，Go1.25.14 / one-api / linux-amd64 / CGO1。镜像未发布。
 
 实际合并 `c8d1ace99278cabc61b4f76ec9e2e2bb3c92a3db`；候选、GitHub合成 `815bad3530500eaf434b3054c61657b3c4bdfece`、本地计算及实际合并树均 `976780068cc44017f185ba42e40c5f9c3db5fa63`。合并后 main [36853275946](https://github.com/dreamvm/one-hub/actions/runs/36853275946) 待核对。父任务数字厂商修正未二次复审的限制仍保留，其他发布阻断项不变。
+
+PR #91 合并后的 main CI36853275946 已成功，更新上节待核对状态。

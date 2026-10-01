@@ -90,51 +90,6 @@ export default function Token() {
     setSearchKeyword(formData.get('keyword'));
   };
 
-  const fetchData = async (page, rowsPerPage, keyword, order, orderBy) => {
-    setSearching(true);
-    keyword = trims(keyword);
-    try {
-      if (orderBy) {
-        orderBy = order === 'desc' ? '-' + orderBy : orderBy;
-      }
-
-      let res;
-      // 如果启用了管理员搜索模式且有搜索条件
-      if (adminSearchEnabled && (adminSearchUserId || adminSearchTokenId)) {
-        res = await API.get(`/api/token/admin/search`, {
-          params: {
-            page: page + 1,
-            size: rowsPerPage,
-            keyword: keyword,
-            order: orderBy,
-            user_id: adminSearchUserId ? parseInt(adminSearchUserId, 10) : undefined,
-            token_id: adminSearchTokenId ? parseInt(adminSearchTokenId, 10) : undefined
-          }
-        });
-      } else {
-        res = await API.get(`/api/token/`, {
-          params: {
-            page: page + 1,
-            size: rowsPerPage,
-            keyword: keyword,
-            order: orderBy
-          }
-        });
-      }
-
-      const { success, message, data } = res.data;
-      if (success) {
-        setListCount(data.total_count);
-        setTokens(data.data);
-      } else {
-        showError(message);
-      }
-    } catch (error) {
-      console.error(error);
-    }
-    setSearching(false);
-  };
-
   // 处理刷新
   const handleRefresh = async () => {
     setOrderBy('id');
@@ -143,7 +98,57 @@ export default function Token() {
   };
 
   useEffect(() => {
+    let active = true;
+    const fetchData = async (page, rowsPerPage, keyword, order, orderBy) => {
+      setSearching(true);
+      keyword = trims(keyword);
+      try {
+        if (orderBy) {
+          orderBy = order === 'desc' ? '-' + orderBy : orderBy;
+        }
+
+        let res;
+        // 如果启用了管理员搜索模式且有搜索条件
+        if (adminSearchEnabled && (adminSearchUserId || adminSearchTokenId)) {
+          res = await API.get(`/api/token/admin/search`, {
+            params: {
+              page: page + 1,
+              size: rowsPerPage,
+              keyword: keyword,
+              order: orderBy,
+              user_id: adminSearchUserId ? parseInt(adminSearchUserId, 10) : undefined,
+              token_id: adminSearchTokenId ? parseInt(adminSearchTokenId, 10) : undefined
+            }
+          });
+        } else {
+          res = await API.get(`/api/token/`, {
+            params: {
+              page: page + 1,
+              size: rowsPerPage,
+              keyword: keyword,
+              order: orderBy
+            }
+          });
+        }
+
+        if (!active) return;
+        const { success, message, data } = res.data;
+        if (success) {
+          setListCount(data.total_count);
+          setTokens(data.data);
+        } else {
+          showError(message);
+        }
+      } catch (error) {
+        if (active) console.error(error);
+      }
+      if (active) setSearching(false);
+    };
+
     fetchData(page, rowsPerPage, searchKeyword, order, orderBy);
+    return () => {
+      active = false;
+    };
   }, [page, rowsPerPage, searchKeyword, order, orderBy, refreshFlag, adminSearchEnabled, adminSearchUserId, adminSearchTokenId]);
 
   useEffect(() => {

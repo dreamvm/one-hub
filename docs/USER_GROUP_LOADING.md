@@ -23,3 +23,11 @@ Browser plugin不可用，使用现有Playwright CLI0.1.22 / Chromium154.0.8037.
 首轮截图捕获了对话框过渡帧，未作为稳定视觉证据；重取菜单完全展开和对话框关闭后的截图，已目视检查。稳定移动截图在提示自动消失后取得，提示可见性由功能检查记录证明。既有移动管理员搜索换行及横向表格不属本项布局调整。浏览器和临时服务已关闭。
 
 不证明生产登录、真实用户组/权限或后端端到端；没有自动恢复重试，恢复检查是重新访问页面。回滚两个源码/测试文件会恢复原异步未处理异常，无数据、配置或依赖迁移。其余页面、依赖、RC8与生产验收继续开放。
+
+## 2026-10-01 合并验收
+
+[PR #92](https://github.com/dreamvm/one-hub/pull/92) head `ea05074482eaba058ed486972f72440a0c2a190b` 的 [36853489888](https://github.com/dreamvm/one-hub/actions/runs/36853489888) / [36853490513](https://github.com/dreamvm/one-hub/actions/runs/36853490513) 全九项成功。实际日志89个PASS（SQLite12、MySQL35、PostgreSQL35、升级/回滚7），三数据库九轮并发及四种Compose启动通过。
+
+隔离镜像ID `sha256:a6788cf8f9ddd46a925fbfbf1427b286d92db2d77362c4cd21df49397822e809`；提取程序SHA256 `459a86b4e80072308e218d9d44f0e10d95eac0e5883c4af62b3708c046692e7b`，Go1.25.14 / one-api / linux-amd64 / CGO1。仅隔离构建与运行，未发布。
+
+实际合并 `3835f1c67b47126e9de8ecc7b3750939b22b7a5e`；候选、GitHub合成 `fd38a25bade130279bb4ad288508d04abe0bc19d`、本地计算与实际合并树均 `3215997560457c83d97ff6d714137c0dcee1f5e1`。合并后 main [36855902502](https://github.com/dreamvm/one-hub/actions/runs/36855902502) 待核对；RC8与其他发布阻断项继续开放。
