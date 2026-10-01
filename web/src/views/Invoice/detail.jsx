@@ -109,7 +109,7 @@ export default function InvoiceDetail() {
               px: 2
             }}
           >
-            {t('back')}
+            {t('common.back')}
           </Button>
           {/*<Button*/}
           {/*  variant="contained"*/}
