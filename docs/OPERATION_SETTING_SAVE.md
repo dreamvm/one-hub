@@ -29,3 +29,11 @@ Browser plugin不可用，缓存PlaywrightCLI0.1.22/Chromium154.0.8037.58；随�
 ## 首轮候选 CI 与测试时限
 
 PR #94 首轮9c397a6e的兼容性frontend成功；隔离工作流frontend有161项通过，多阶段保存控件测试超出默认5秒，未报告业务断言失败，smoke被前置失败跳过。该容器其他普通设置用例约2至3.6秒，本地该多阶段用例869ms。仅缓存同一已挂载控件、核实完成后仍在文档中，并将此用例上限设为15秒，保留两次独立响应与全部业务断言；不调整全局超时、不跳过测试、不修改应用源码。测试修改在独立审阅之后，未二次复审；修正后完整162项Vitest、依赖边界、Prettier及lint通过（仍4条警告）；应用源码未变，原构建/浏览器证据适用。准确新提交CI尚待完成，旧CI不替代。
+
+## 2026-10-01 合并验收
+
+[PR #94](https://github.com/dreamvm/one-hub/pull/94) 最终head `8e72a05fe50c3e0d71589314b3eba5ced3f8d4b9` 的 [36859293193](https://github.com/dreamvm/one-hub/actions/runs/36859293193) / [36859293426](https://github.com/dreamvm/one-hub/actions/runs/36859293426) 全九项成功。实际smoke日志89个PASS（SQLite12、MySQL35、PostgreSQL35、升级/回滚7），三数据库九轮并发及四种Compose启动通过。首轮超时和未执行smoke不能替代这些最终结果；审阅后修正未经再次独立复审的限制继续保留。
+
+隔离镜像ID `sha256:42380f00e20fa82e27df03e4ffcf0bd34b1cb85cacf2e64a4d51c2bbb2508b6c`；提取程序SHA256 `bee0674662102d3e24403265487e08154cb2671f5bcb7938e29294576e2fa73f`，Go1.25.14 / one-api / linux-amd64 / CGO1。仅隔离构建与运行，未发布。
+
+实际合并 `37f35b4d684bb088cd1c076acb07f2291a326682`；候选、GitHub合成 `bacafb2fccd9ad1038c3af23efe40af7ebd2f3ba`、本地计算与实际合并树均 `150358106c956d985cd1d02524795e6c6bf1f38d`。合并后main [36861546856](https://github.com/dreamvm/one-hub/actions/runs/36861546856) 待核对；RC8与其他发布阻断项继续开放。

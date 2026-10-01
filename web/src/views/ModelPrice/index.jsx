@@ -267,8 +267,7 @@ export default function ModelPrice() {
     selectedTag,
     userGroupMap,
     ownedby,
-    t,
-    unit
+    t
   ]);
 
   // 分页处理
