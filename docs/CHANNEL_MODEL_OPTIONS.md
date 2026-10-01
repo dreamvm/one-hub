@@ -13,3 +13,21 @@
 - 0 pageerror，保留匿名初始401两条控制台错误；移动深色截图已核对，仅空定价业务提示仍在。随机localhost、合成管理员与临时数据库、后端拒绝外部HTTP、浏览器外部请求拦截和本地图标替身。夹具95.13秒主动结束PASS，五分钟上限；浏览器关闭。
 
 未改变其余初始化请求生命周期；畸形响应和既有拦截器返回undefined时的额外错误提示、跨浏览器、真实移动输入及完整页面验收不在本项结论中。回滚恢复原模型列表处理，无数据迁移。本项准确候选CI、PR、合并尚待完成，不能复用前置CI。未创建标签、发布镜像、部署或执行真实付费调用。
+
+## 2026-10-01 合并核对
+
+[PR #109](https://github.com/dreamvm/one-hub/pull/109) head abd750d47dcabddf8c0083b2a16a84cb7e5aea6b，
+[Compatibility36896955878](https://github.com/dreamvm/one-hub/actions/runs/36896955878)及
+[Isolated36896972595](https://github.com/dreamvm/one-hub/actions/runs/36896972595)十项准确手动候选检查成功。
+两架构实际checkout该head，各89项业务/升级PASS（SQLite12、MySQL35、PostgreSQL35、升级7）、
+九波并发及四种Compose通过。最终程序均Go1.25.14、main=one-api、Linux对应架构、CGO=1：
+
+| 架构 | image ID sha256 | 程序 SHA256 |
+|---|---|---|
+| amd64 | fb740cd789cd2a0678737f3861c502cd5fcef326f4252485948e9d5be4a250c6 | 06b5638a368407f435fdecaabeda028fc386c93c2084e92c3e662c757723e669 |
+| arm64 | b6370ee092be15bc0740131508bf2d62de04c7f564572afcb602e9f4bd0e57dd | 5acdf1f9e80fbfeea0d0df56db23624f3cc15dd9ccd142d4198161ade4acb357 |
+
+候选与最新main e60ed46c计算的合并树均60e5eb622c1923476c5357aab00b8106fbe9ed43。
+GitHub合成12f1bda7仍保留旧父节点b2c64f6b/abd750d4，树相同；没有把旧合成父节点写成已刷新。
+实际合并e7dc28f7d28d6b14283b3355822cc719a7385e74的父节点为e60ed46c/abd750d4，实际树一致。
+[main CI36899618190](https://github.com/dreamvm/one-hub/actions/runs/36899618190)成功；前述本项待交付状态由此更新，其他范围限制继续有效。
