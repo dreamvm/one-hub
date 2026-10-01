@@ -98,6 +98,10 @@ const OtherRoutes = {
           <ModelPrice />
         </WithMargins>
       )
+    },
+    {
+      path: '*',
+      element: <NotFoundView />
     }
   ]
 };

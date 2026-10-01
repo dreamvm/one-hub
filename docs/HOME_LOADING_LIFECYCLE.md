@@ -27,3 +27,5 @@ Browser plugin not available；使用已有 Playwright CLI 0.1.22 和独立临�
 [PR #88](https://github.com/dreamvm/one-hub/pull/88) head fce0129d192c45af08e2550c75ab6dc0684528c8 的[兼容 CI36843813203](https://github.com/dreamvm/one-hub/actions/runs/36843813203)和[镜像 CI36843813637](https://github.com/dreamvm/one-hub/actions/runs/36843813637)共九项成功。实际镜像89个PASS（SQLite12、MySQL35、PostgreSQL35、升级回滚7），包括九轮并发及四种Compose启动。实际镜像ID sha256:601df6d4c0f22e0900906875a8c4554f2ef444b4b2bee6f20f71e2c0ba8b5b32；程序SHA256 93ad83aa643b5246ec7ca8b8c4a0f05fa621e6797adeb8699fdc92fec88ea141，身份Go1.25.14 / one-api / linux-amd64 / CGO=1。
 
 合并提交c784264f6b880aa2e05acceeed67a1368ec42b3a，候选、GitHub合成、本地计算及实际树均a065d82937011515c141732b4ca922933ed21597。合并后[main CI36845885783](https://github.com/dreamvm/one-hub/actions/runs/36845885783)待核对。没有标签、镜像发布或生产部署，其他页面和前端体积验收仍开放。
+
+后续核对：上述 main CI36845885783 已成功，更新“待核对”状态。

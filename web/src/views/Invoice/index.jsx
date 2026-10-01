@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { showError } from 'utils/common';
+import { getInvoiceMonth } from 'utils/invoiceDate';
 
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
@@ -50,9 +51,9 @@ export default function Invoice() {
   };
 
   const handlerViewInvoice = (date) => {
-    //时间只取年月日
-    date = date.substring(0, 7);
-    navigate(`/panel/invoice/detail/${date}`);
+    const month = getInvoiceMonth(date);
+    if (!month) return;
+    navigate(`/panel/invoice/detail/${month}`);
   };
 
   const fetchData = async (page, rowsPerPage, order, orderBy) => {

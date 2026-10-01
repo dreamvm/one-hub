@@ -21,3 +21,11 @@ Browser plugin 不可用，使用已有 Playwright CLI 0.1.22。实际生产构�
 统计API返回HTTP503时显示Alert，仅有预期HTTP503控制台错误；恢复后重新访问正常。原始配额模式显示500.0k、8、5、1.5M；成功空序列显示四个0，均无错误提示或骨架。正常和空序列无控制台错误/警告，既有图表普通LOG未改。截图已目视核对，浏览器与临时服务已关闭。
 
 此记录不证明生产后端、鉴权、账务或完整端到端。独立 Overview 图表请求失败路径尚未整改，其移动日期输入有截断布局，保留后续页面验收。始终未结束的请求及共享默认超时不属于本次已完成失败请求的修复。回滚可撤销本项两个代码/测试文件，会恢复旧加载行为；无数据库或生产配置变更。
+
+## 2026-10-01 合并验收
+
+[PR #89](https://github.com/dreamvm/one-hub/pull/89) head `1fc58da7e4862971b3df979fbab7c10e23f033f8` 的 [36846091230](https://github.com/dreamvm/one-hub/actions/runs/36846091230) 与 [36846092101](https://github.com/dreamvm/one-hub/actions/runs/36846092101) 全九项成功。实际隔离日志含89个业务/升级PASS（SQLite12、MySQL35、PostgreSQL35、升级/回滚7）、三数据库九轮并发及四种Compose启动。
+
+最终测试镜像ID `sha256:0b653a0679c67fb17ebc9b5d119500c39d135be97a57a96c2ffce2f6b9cdde9b`；提取的程序SHA256 `543f9bb22768db588ce575deffe70b2d48e9a25627f51683af001bf0cdc21424`，Go1.25.14、one-api、linux/amd64、CGO=1。镜像仅在隔离runner构建/运行，未发布。
+
+合并提交 `e71b1051fce5dd460e3854a6038c871dcee6cc25`；候选、合成 `d054e5621bff063ef35191efd8152967f2819c76`、本地计算与实际合并树均为 `81af9e17f38ef491e012afab2c1ba750858c4c6f`。合并后 main [36848136097](https://github.com/dreamvm/one-hub/actions/runs/36848136097) 待核对。此前历史“未交付”由本节更新；整体RC8与未覆盖页面仍未完成。
