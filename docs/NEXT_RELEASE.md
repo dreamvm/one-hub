@@ -928,3 +928,11 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - PR #79 head `26465acd` 的上述两次手动准确候选 CI 均已成功，48 个业务/升级回滚 PASS；镜像 `sha256:63e2b37c183307a628be11fbc768491049b54b4c55df0920ee8956bd5d04bcea`，程序 Go1.25.14 / one-api / linux/amd64 / CGO1，binary SHA256 `16a09b4e86bee6e167fce50f60fc2498dc96abb7f345b950e7b401beb22f674f`。CI 不补足独立审阅结论；#78/#79 继续草稿未合并，未重试平台受限审阅或新增变体。
 - 独立候选 [OIDC_STALE_UPDATE_BOUNDARY.md](OIDC_STALE_UPDATE_BOUNDARY.md) 仅阻止普通 User.Update 旧快照恢复/覆盖已变更的 OIDC 绑定。旧版四个失败/两个正常控制，候选 44 个专项叶子、规定回归/vet/编译和新鲜独立审阅通过；资料/密码、明确解绑及新注册保留。管理员通用资料 JSON 中的 oidc_id 也被忽略；没有新增重新绑定接口。准确候选 CI/PR/合并待完成。
 - 用户已明确选择 OIDC 保守迁移：历史 issuer 未知的记录保留待核实，不自动关联；不以当前配置或首次登录回填，也不任意挑选重复账号。issuer 持久化、subject 唯一性及并发注册仍待独立实现与验证；当前没有修改生产身份数据。RC8 未创建，发布阻断项仍开放。
+
+### OIDC 前置修复交付与 issuer 候选
+
+- PR #80 合并后 main `5fb760c6` 的 [36826859753](https://github.com/dreamvm/one-hub/actions/runs/36826859753) 已成功，取代上节正在运行的历史状态。
+- [PR #81](https://github.com/dreamvm/one-hub/pull/81) head `86e6a6601a1e3076deba0e43c34a10f4c0c818a5` 已合并为 `416a52ea533131d1f64f29efb3764c9c775bb489`，候选/合成/计算/实际树 `b0383f636fb9efb8ec360a84beeac6f7f286628b`。准确候选 [36827130791](https://github.com/dreamvm/one-hub/actions/runs/36827130791) / [36827131193](https://github.com/dreamvm/one-hub/actions/runs/36827131193) 全 9 项及合并后 main [36828389683](https://github.com/dreamvm/one-hub/actions/runs/36828389683) 成功。48 个隔离业务/升级回滚 PASS，镜像与程序身份见 [OIDC_STALE_UPDATE_BOUNDARY.md](OIDC_STALE_UPDATE_BOUNDARY.md#合并验收)；未发布。
+- 后续独立 [OIDC_IDENTITY_BOUNDARY.md](OIDC_IDENTITY_BOUNDARY.md) 候选保存已验证 issuer/精确 subject 和 nullable 唯一身份键，防止跨 issuer 归属混用和重复注册；历史未知归属保持原值，不自动关联。旧版五个失败/四个正常控制；候选本地 59 个专项叶子及完整规定回归/vet/编译通过。真实 MySQL/PostgreSQL 验收仍等待准确候选 CI。
+- 全新只读独立审阅未报告具体问题；父任务之后的完整回归和确定性交错测试发现首轮查询与新注册之间的时序回归，已最小修正并重跑。按单次周期，后续修正未再独立复审，明确保留这一覆盖限制。尚未完成该候选 PR/CI/合并，不把 PR81 的绿色检查替代它。
+- 旧程序回退会恢复 subject-only 登录，并不理解新身份键；即使可读取 schema，也不能宣称 OIDC 回退安全。生产升级/回滚与历史身份恢复仍需独立核实，当前没有生产读写。原目录 Babel 暂存工作继续保留；RC8 未建标签，发布阻断项仍开放。

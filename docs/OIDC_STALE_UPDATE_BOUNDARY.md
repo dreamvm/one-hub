@@ -43,3 +43,18 @@ issuer 持久归属、subject 唯一性、并发新注册及历史身份恢复�
 用户已选择保守迁移：未知历史 issuer 或重复归属保留待核实，不根据当前配置或首次登录自动关联。
 相关旧 OIDC-only 账号可能需要独立恢复路径；当前未改变生产身份或启用该迁移。
 没有标签、镜像发布、生产部署或真实付费调用。
+
+## 合并验收
+
+[PR #81](https://github.com/dreamvm/one-hub/pull/81) head
+`86e6a6601a1e3076deba0e43c34a10f4c0c818a5` 已合并为
+`416a52ea533131d1f64f29efb3764c9c775bb489`；候选/合成/计算/实际树均为
+`b0383f636fb9efb8ec360a84beeac6f7f286628b`。
+[36827130791](https://github.com/dreamvm/one-hub/actions/runs/36827130791) /
+[36827131193](https://github.com/dreamvm/one-hub/actions/runs/36827131193) 全 9 项成功；
+合并后 [36828389683](https://github.com/dreamvm/one-hub/actions/runs/36828389683) 也已通过。
+隔离 smoke 48 个业务/升级回滚 PASS；最终 runner 镜像
+`sha256:f8e9c4e82868b178bd300b4b896a124a6680532ab2d1694118662c854995d456`
+包含 Go1.25.14 / one-api / linux/amd64 / CGO1，binary SHA256
+`062ad2c12b2d472371f9d4eb9852349895d535984afe357087d81b7b6397bdfb`；未发布。
+此交付仅覆盖旧快照保存；后续 issuer 迁移另见 [OIDC_IDENTITY_BOUNDARY.md](OIDC_IDENTITY_BOUNDARY.md)。
