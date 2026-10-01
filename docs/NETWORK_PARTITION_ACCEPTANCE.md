@@ -39,3 +39,5 @@ PR #85 首个候选 `647f7ffb559be3726ae573bec02d2c6746b33aa5` 的 8 项基础�
 候选 image ID 为 sha256:7eb2f8c6bf0f32a01c636b01920aefb331c6304566b0fbc511bf96bc4a46c0e7；实际 /one-api 为 Go1.25.14、main=one-api、linux/amd64、CGO=1，binary SHA256 f69c25dd2830203dc3ef86dff7d49073ab45a897def7fdb52b3b7444db842e2a。该镜像只在 CI 本地构建，没有发布。
 
 候选树、GitHub 合成合并树、本地计算合并树和实际 main 合并树均为 c884c757122981303a298f346ce17599cc43510c。合并提交 a95142550659965969b1306c91c4e7cb6aa1f488；合并后 main CI 待核对。首轮失败记录保留。验收范围仍为单宿主隔离网络，不能推断多宿主分区、生产恢复或其他尚未关闭的项目。
+
+合并后 [main CI 36838531843](https://github.com/dreamvm/one-hub/actions/runs/36838531843) 已在准确提交 a95142550659965969b1306c91c4e7cb6aa1f488 成功；此前“待核对”状态由本记录更新。

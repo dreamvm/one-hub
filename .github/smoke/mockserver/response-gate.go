@@ -23,7 +23,7 @@ func (s *Server) controlResponseGate(w http.ResponseWriter, r *http.Request, req
 	defer s.mu.Unlock()
 	switch request["action"] {
 	case "arm":
-		if s.gate != nil {
+		if s.gate != nil || s.load != nil {
 			w.WriteHeader(http.StatusConflict)
 			reply(w, object{"error": "fixture gate already armed"}, false)
 			return
