@@ -160,9 +160,12 @@ func IsStatisticsMonthGenerated(date time.Time) bool {
 
 // InsertStatisticsMonth 生成当前时间上个月的账单
 func InsertStatisticsMonth() error {
+	return insertStatisticsMonth(time.Now())
+}
+
+func insertStatisticsMonth(now time.Time) error {
 	// 获取上个月的日期
-	lastMonth := time.Now().AddDate(0, -1, 0)
-	date := time.Date(lastMonth.Year(), lastMonth.Month(), 1, 0, 0, 0, 0, time.Local)
+	date := time.Date(now.Year(), now.Month()-1, 1, 0, 0, 0, 0, time.Local)
 	if IsStatisticsMonthGenerated(date) {
 		logger.SysLog("Statistics month data already generated")
 		return nil
