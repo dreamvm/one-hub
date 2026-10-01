@@ -97,12 +97,14 @@ const OperationSetting = () => {
         // 确保不会覆盖 safeTools
         setInputs((prev) => ({ ...newInputs, safeTools: prev.safeTools }));
         setOriginInputs(newInputs);
+        return true;
       } else {
         showError(message);
       }
     } catch (error) {
-      return;
+      return false;
     }
+    return false;
   };
 
   const getSafeTools = async () => {
@@ -118,6 +120,7 @@ const OperationSetting = () => {
           };
           return newInputs;
         });
+        return true;
       } else {
         showError(message);
       }
@@ -127,6 +130,7 @@ const OperationSetting = () => {
     } finally {
       setSafeToolsLoading(false);
     }
+    return false;
   };
 
   useEffect(() => {
@@ -138,37 +142,32 @@ const OperationSetting = () => {
   }, []);
 
   const updateOption = async (key, value) => {
-    setLoading(true);
     if (key.endsWith('Enabled')) {
       value = inputs[key] === 'true' ? 'false' : 'true';
     }
-
-    try {
-      const res = await API.put('/api/option/', {
-        key,
-        value
-      });
-      const { success, message } = res.data;
-      if (success) {
-        setInputs((inputs) => ({ ...inputs, [key]: value }));
-        getOptions();
-        await loadStatus();
-      } else {
-        showError(message);
-      }
-    } catch (error) {
-      return;
-    }
-
-    setLoading(false);
+    const res = await API.put('/api/option/', { key, value });
+    const { success, message } = res.data;
+    if (!success) throw new Error(message || '设置保存失败');
+    setInputs((inputs) => ({ ...inputs, [key]: value }));
   };
 
   const handleInputChange = async (event) => {
-    let { name, value } = event.target;
-
+    const { name, value } = event.target;
     if (name.endsWith('Enabled')) {
-      await updateOption(name, value);
-      showSuccess('设置成功！');
+      setLoading(true);
+      let saved = false;
+      try {
+        await updateOption(name, value);
+        saved = true;
+        const optionsRefreshed = await getOptions();
+        const statusRefreshed = await loadStatus();
+        if (!optionsRefreshed || !statusRefreshed) throw new Error('请重新加载页面核对');
+        showSuccess('设置成功！');
+      } catch (error) {
+        showError((saved ? '设置已保存，但状态刷新失败：' : '保存失败：') + (error.message || '未知错误'));
+      } finally {
+        setLoading(false);
+      }
     } else {
       setInputs((inputs) => ({ ...inputs, [name]: value }));
     }
@@ -184,14 +183,21 @@ const OperationSetting = () => {
 
   const submitConfig = async (group) => {
     setLoading(true);
+    let saved = false;
+    let savedCount = 0;
+    const saveOption = async (key, value) => {
+      await updateOption(key, value);
+      savedCount += 1;
+    };
+    const failurePrefix = () => (savedCount > 0 ? '部分设置已保存，其余设置未全部保存：' : '保存失败：');
     try {
       switch (group) {
         case 'monitor':
           if (originInputs['ChannelDisableThreshold'] !== inputs.ChannelDisableThreshold) {
-            await updateOption('ChannelDisableThreshold', inputs.ChannelDisableThreshold);
+            await saveOption('ChannelDisableThreshold', inputs.ChannelDisableThreshold);
           }
           if (originInputs['QuotaRemindThreshold'] !== inputs.QuotaRemindThreshold) {
-            await updateOption('QuotaRemindThreshold', inputs.QuotaRemindThreshold);
+            await saveOption('QuotaRemindThreshold', inputs.QuotaRemindThreshold);
           }
           break;
         case 'chatlinks':
@@ -200,21 +206,21 @@ const OperationSetting = () => {
               showError('links不是合法的 JSON 字符串');
               return;
             }
-            await updateOption('ChatLinks', inputs.ChatLinks);
+            await saveOption('ChatLinks', inputs.ChatLinks);
           }
           break;
         case 'quota':
           if (originInputs['QuotaForNewUser'] !== inputs.QuotaForNewUser) {
-            await updateOption('QuotaForNewUser', inputs.QuotaForNewUser);
+            await saveOption('QuotaForNewUser', inputs.QuotaForNewUser);
           }
           if (originInputs['QuotaForInvitee'] !== inputs.QuotaForInvitee) {
-            await updateOption('QuotaForInvitee', inputs.QuotaForInvitee);
+            await saveOption('QuotaForInvitee', inputs.QuotaForInvitee);
           }
           if (originInputs['QuotaForInviter'] !== inputs.QuotaForInviter) {
-            await updateOption('QuotaForInviter', inputs.QuotaForInviter);
+            await saveOption('QuotaForInviter', inputs.QuotaForInviter);
           }
           if (originInputs['PreConsumedQuota'] !== inputs.PreConsumedQuota) {
-            await updateOption('PreConsumedQuota', inputs.PreConsumedQuota);
+            await saveOption('PreConsumedQuota', inputs.PreConsumedQuota);
           }
           break;
         case 'general':
@@ -224,92 +230,87 @@ const OperationSetting = () => {
           }
 
           if (originInputs['TopUpLink'] !== inputs.TopUpLink) {
-            await updateOption('TopUpLink', inputs.TopUpLink);
+            await saveOption('TopUpLink', inputs.TopUpLink);
           }
           if (originInputs['ChatLink'] !== inputs.ChatLink) {
-            await updateOption('ChatLink', inputs.ChatLink);
+            await saveOption('ChatLink', inputs.ChatLink);
           }
           if (originInputs['QuotaPerUnit'] !== inputs.QuotaPerUnit) {
-            await updateOption('QuotaPerUnit', inputs.QuotaPerUnit);
+            await saveOption('QuotaPerUnit', inputs.QuotaPerUnit);
           }
           if (originInputs['RetryTimes'] !== inputs.RetryTimes) {
-            await updateOption('RetryTimes', inputs.RetryTimes);
+            await saveOption('RetryTimes', inputs.RetryTimes);
           }
           if (originInputs['RetryCooldownSeconds'] !== inputs.RetryCooldownSeconds) {
-            await updateOption('RetryCooldownSeconds', inputs.RetryCooldownSeconds);
+            await saveOption('RetryCooldownSeconds', inputs.RetryCooldownSeconds);
           }
           if (originInputs['RetryTimeOut'] !== inputs.RetryTimeOut) {
-            await updateOption('RetryTimeOut', inputs.RetryTimeOut);
+            await saveOption('RetryTimeOut', inputs.RetryTimeOut);
           }
           break;
         case 'other':
           if (originInputs['ChatImageRequestProxy'] !== inputs.ChatImageRequestProxy) {
-            await updateOption('ChatImageRequestProxy', inputs.ChatImageRequestProxy);
+            await saveOption('ChatImageRequestProxy', inputs.ChatImageRequestProxy);
           }
 
           if (originInputs['CFWorkerImageUrl'] !== inputs.CFWorkerImageUrl) {
-            await updateOption('CFWorkerImageUrl', inputs.CFWorkerImageUrl);
+            await saveOption('CFWorkerImageUrl', inputs.CFWorkerImageUrl);
           }
 
           if (originInputs['CFWorkerImageKey'] !== inputs.CFWorkerImageKey) {
-            await updateOption('CFWorkerImageKey', inputs.CFWorkerImageKey);
+            await saveOption('CFWorkerImageKey', inputs.CFWorkerImageKey);
           }
 
           break;
         case 'payment':
+          if (originInputs['RechargeDiscount'] !== inputs.RechargeDiscount && !verifyJSON(inputs.RechargeDiscount)) {
+            showError('固定金额充值折扣不是合法的 JSON 字符串');
+            return;
+          }
           if (originInputs['PaymentUSDRate'] !== inputs.PaymentUSDRate) {
-            await updateOption('PaymentUSDRate', inputs.PaymentUSDRate);
+            await saveOption('PaymentUSDRate', inputs.PaymentUSDRate);
           }
           if (originInputs['PaymentMinAmount'] !== inputs.PaymentMinAmount) {
-            await updateOption('PaymentMinAmount', inputs.PaymentMinAmount);
+            await saveOption('PaymentMinAmount', inputs.PaymentMinAmount);
           }
           if (originInputs['RechargeDiscount'] !== inputs.RechargeDiscount) {
-            try {
-              if (!verifyJSON(inputs.RechargeDiscount)) {
-                showError('固定金额充值折扣不是合法的 JSON 字符串');
-                return;
-              }
-              await updateOption('RechargeDiscount', inputs.RechargeDiscount);
-            } catch (error) {
-              showError('固定金额充值折扣处理失败: ' + error.message);
-              return;
-            }
+            await saveOption('RechargeDiscount', inputs.RechargeDiscount);
           }
           break;
         case 'DisableChannelKeywords':
           if (originInputs.DisableChannelKeywords !== inputs.DisableChannelKeywords) {
             // DisableChannelKeywords 已经是字符串格式，无需解析
-            await updateOption('DisableChannelKeywords', inputs.DisableChannelKeywords);
+            await saveOption('DisableChannelKeywords', inputs.DisableChannelKeywords);
           }
           break;
         case 'safety':
           try {
             if (originInputs.EnableSafe !== inputs.EnableSafe) {
-              await updateOption('EnableSafe', inputs.EnableSafe);
+              await saveOption('EnableSafe', inputs.EnableSafe);
             }
             if (originInputs.SafeToolName !== inputs.SafeToolName) {
-              await updateOption('SafeToolName', inputs.SafeToolName);
+              await saveOption('SafeToolName', inputs.SafeToolName);
             }
             if (originInputs.SafeKeyWords !== inputs.SafeKeyWords) {
-              await updateOption('SafeKeyWords', inputs.SafeKeyWords);
+              await saveOption('SafeKeyWords', inputs.SafeKeyWords);
             }
           } catch (error) {
             console.error('安全设置提交错误:', error);
-            showError(`安全设置保存失败: ${error.message || '未知错误'}`);
+            showError(failurePrefix() + (error.message || '未知错误'));
             setLoading(false);
             return;
           }
           break;
         case 'claude':
+          if (originInputs.ClaudeDefaultMaxTokens !== inputs.ClaudeDefaultMaxTokens && !verifyJSON(inputs.ClaudeDefaultMaxTokens)) {
+            showError('默认MaxToken数量不是合法的 JSON 字符串');
+            return;
+          }
           if (originInputs.ClaudeBudgetTokensPercentage !== inputs.ClaudeBudgetTokensPercentage) {
-            await updateOption('ClaudeBudgetTokensPercentage', inputs.ClaudeBudgetTokensPercentage);
+            await saveOption('ClaudeBudgetTokensPercentage', inputs.ClaudeBudgetTokensPercentage);
           }
           if (originInputs.ClaudeDefaultMaxTokens !== inputs.ClaudeDefaultMaxTokens) {
-            if (!verifyJSON(inputs.ClaudeDefaultMaxTokens)) {
-              showError('默认MaxToken数量不是合法的 JSON 字符串');
-              return;
-            }
-            await updateOption('ClaudeDefaultMaxTokens', inputs.ClaudeDefaultMaxTokens);
+            await saveOption('ClaudeDefaultMaxTokens', inputs.ClaudeDefaultMaxTokens);
           }
           break;
 
@@ -319,16 +320,19 @@ const OperationSetting = () => {
               showError('GeminiOpenThink 不是合法的 JSON 字符串');
               return;
             }
-            await updateOption('GeminiOpenThink', inputs.GeminiOpenThink);
+            await saveOption('GeminiOpenThink', inputs.GeminiOpenThink);
           }
           break;
       }
 
-      await getOptions();
-      await getSafeTools();
+      saved = true;
+      const optionsRefreshed = await getOptions();
+      const toolsRefreshed = await getSafeTools();
+      const statusRefreshed = await loadStatus();
+      if (!optionsRefreshed || !toolsRefreshed || !statusRefreshed) throw new Error('请重新加载页面核对');
       showSuccess('保存成功！');
     } catch (error) {
-      showError('保存失败：' + (error.message || '未知错误'));
+      showError((saved ? '设置已保存，但状态刷新失败：' : failurePrefix()) + (error.message || '未知错误'));
     } finally {
       setLoading(false);
     }
@@ -468,6 +472,7 @@ const OperationSetting = () => {
               label={t('setting_index.operationSettings.generalSettings.displayInCurrency')}
               control={
                 <Checkbox
+                  disabled={loading}
                   checked={inputs.DisplayInCurrencyEnabled === 'true'}
                   onChange={handleInputChange}
                   name="DisplayInCurrencyEnabled"
@@ -478,12 +483,18 @@ const OperationSetting = () => {
             <FormControlLabel
               label={t('setting_index.operationSettings.generalSettings.approximateToken')}
               control={
-                <Checkbox checked={inputs.ApproximateTokenEnabled === 'true'} onChange={handleInputChange} name="ApproximateTokenEnabled" />
+                <Checkbox
+                  disabled={loading}
+                  checked={inputs.ApproximateTokenEnabled === 'true'}
+                  onChange={handleInputChange}
+                  name="ApproximateTokenEnabled"
+                />
               }
             />
           </Stack>
           <Button
             variant="contained"
+            disabled={loading}
             onClick={() => {
               submitConfig('general').then();
             }}
@@ -503,17 +514,38 @@ const OperationSetting = () => {
             <FormControlLabel
               sx={{ marginLeft: '0px' }}
               label={t('setting_index.operationSettings.otherSettings.mjNotify')}
-              control={<Checkbox checked={inputs.MjNotifyEnabled === 'true'} onChange={handleInputChange} name="MjNotifyEnabled" />}
+              control={
+                <Checkbox
+                  disabled={loading}
+                  checked={inputs.MjNotifyEnabled === 'true'}
+                  onChange={handleInputChange}
+                  name="MjNotifyEnabled"
+                />
+              }
             />
             <FormControlLabel
               sx={{ marginLeft: '0px' }}
               label={t('setting_index.operationSettings.otherSettings.claudeAPIEnabled')}
-              control={<Checkbox checked={inputs.ClaudeAPIEnabled === 'true'} onChange={handleInputChange} name="ClaudeAPIEnabled" />}
+              control={
+                <Checkbox
+                  disabled={loading}
+                  checked={inputs.ClaudeAPIEnabled === 'true'}
+                  onChange={handleInputChange}
+                  name="ClaudeAPIEnabled"
+                />
+              }
             />
             <FormControlLabel
               sx={{ marginLeft: '0px' }}
               label={t('setting_index.operationSettings.otherSettings.geminiAPIEnabled')}
-              control={<Checkbox checked={inputs.GeminiAPIEnabled === 'true'} onChange={handleInputChange} name="GeminiAPIEnabled" />}
+              control={
+                <Checkbox
+                  disabled={loading}
+                  checked={inputs.GeminiAPIEnabled === 'true'}
+                  onChange={handleInputChange}
+                  name="GeminiAPIEnabled"
+                />
+              }
             />
           </Stack>
           <Stack spacing={2}>
@@ -566,6 +598,7 @@ const OperationSetting = () => {
           </Stack>
           <Button
             variant="contained"
+            disabled={loading}
             onClick={() => {
               submitConfig('other').then();
             }}
@@ -578,7 +611,14 @@ const OperationSetting = () => {
         <Stack direction="column" justifyContent="flex-start" alignItems="flex-start" spacing={2}>
           <FormControlLabel
             label={t('setting_index.operationSettings.logSettings.logConsume')}
-            control={<Checkbox checked={inputs.LogConsumeEnabled === 'true'} onChange={handleInputChange} name="LogConsumeEnabled" />}
+            control={
+              <Checkbox
+                disabled={loading}
+                checked={inputs.LogConsumeEnabled === 'true'}
+                onChange={handleInputChange}
+                name="LogConsumeEnabled"
+              />
+            }
           />
           <FormControl>
             <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale={'zh-cn'}>
@@ -711,6 +751,7 @@ const OperationSetting = () => {
             label={t('setting_index.operationSettings.monitoringSettings.automaticDisableChannel')}
             control={
               <Checkbox
+                disabled={loading}
                 checked={inputs.AutomaticDisableChannelEnabled === 'true'}
                 onChange={handleInputChange}
                 name="AutomaticDisableChannelEnabled"
@@ -721,6 +762,7 @@ const OperationSetting = () => {
             label={t('setting_index.operationSettings.monitoringSettings.automaticEnableChannel')}
             control={
               <Checkbox
+                disabled={loading}
                 checked={inputs.AutomaticEnableChannelEnabled === 'true'}
                 onChange={handleInputChange}
                 name="AutomaticEnableChannelEnabled"
@@ -729,6 +771,7 @@ const OperationSetting = () => {
           />
           <Button
             variant="contained"
+            disabled={loading}
             onClick={() => {
               submitConfig('monitor').then();
             }}
@@ -798,6 +841,7 @@ const OperationSetting = () => {
           </Stack>
           <Button
             variant="contained"
+            disabled={loading}
             onClick={() => {
               submitConfig('quota').then();
             }}
@@ -865,6 +909,7 @@ const OperationSetting = () => {
           </Stack>
           <Button
             variant="contained"
+            disabled={loading}
             onClick={() => {
               submitConfig('payment').then();
             }}
@@ -884,6 +929,7 @@ const OperationSetting = () => {
 
             <Button
               variant="contained"
+              disabled={loading}
               onClick={() => {
                 submitConfig('chatlinks').then();
               }}
@@ -913,6 +959,7 @@ const OperationSetting = () => {
             </FormControl>
             <Button
               variant="contained"
+              disabled={loading}
               onClick={() => {
                 submitConfig('DisableChannelKeywords').then();
               }}
@@ -959,6 +1006,7 @@ const OperationSetting = () => {
 
             <Button
               variant="contained"
+              disabled={loading}
               onClick={() => {
                 submitConfig('claude').then();
               }}
@@ -989,6 +1037,7 @@ const OperationSetting = () => {
 
             <Button
               variant="contained"
+              disabled={loading}
               onClick={() => {
                 submitConfig('gemini').then();
               }}
@@ -1022,6 +1071,7 @@ const OperationSetting = () => {
               }
               control={
                 <Checkbox
+                  disabled={loading}
                   checked={inputs.EnableSafe === 'true'}
                   onChange={(e) => {
                     console.log('Checkbox changed:', e.target.checked);
@@ -1084,6 +1134,7 @@ const OperationSetting = () => {
 
             <Button
               variant="contained"
+              disabled={loading}
               onClick={() => {
                 submitConfig('safety').then();
               }}

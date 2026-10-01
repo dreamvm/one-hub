@@ -30,4 +30,4 @@ Browser plugin不可用，使用现有Playwright CLI0.1.22 / Chromium154.0.8037.
 
 隔离镜像ID `sha256:a6788cf8f9ddd46a925fbfbf1427b286d92db2d77362c4cd21df49397822e809`；提取程序SHA256 `459a86b4e80072308e218d9d44f0e10d95eac0e5883c4af62b3708c046692e7b`，Go1.25.14 / one-api / linux-amd64 / CGO1。仅隔离构建与运行，未发布。
 
-实际合并 `3835f1c67b47126e9de8ecc7b3750939b22b7a5e`；候选、GitHub合成 `fd38a25bade130279bb4ad288508d04abe0bc19d`、本地计算与实际合并树均 `3215997560457c83d97ff6d714137c0dcee1f5e1`。合并后 main [36855902502](https://github.com/dreamvm/one-hub/actions/runs/36855902502) 待核对；RC8与其他发布阻断项继续开放。
+实际合并 `3835f1c67b47126e9de8ecc7b3750939b22b7a5e`；候选、GitHub合成 `fd38a25bade130279bb4ad288508d04abe0bc19d`、本地计算与实际合并树均 `3215997560457c83d97ff6d714137c0dcee1f5e1`。合并后 main [36855902502](https://github.com/dreamvm/one-hub/actions/runs/36855902502) 已成功；RC8与其他发布阻断项继续开放。

@@ -19,3 +19,11 @@
 Browser plugin不可用，沿用缓存Playwright CLI0.1.22/Chromium154.0.8037.58。随机localhost实际生产构建，全部合成账号/令牌/API，外部请求拦截，装饰图标本地替身。1440×1000浅色及390×844深色：释放被挂起的旧成功/业务失败响应，并等待响应完成及渲染，当前列表仍保留且无过期组件错误；搜索、下一页、管理员用户ID筛选、清除与刷新正常，零pageerror及控制台错误/警告。没有创建、删除、状态切换、复制令牌或真实调用。截图已目视检查，保留既有移动标题换行及横向表格，页面可滚动；没有把全部列同屏可见写成验收。
 
 共享API拦截器在组件收到响应前仍可显示HTTP错误或清理401登录状态，active不会取消底层请求或阻止全局副作用；本项不保证过期HTTP错误完全无提示。浏览器使用真实组件与合成HTTP业务失败，未覆盖真实后端、生产权限或全局401路径。临时浏览器及服务已关闭。回滚两个源码/测试文件恢复旧生命周期，无配置、依赖或数据迁移；RC8及其他发布阻断项不变。
+
+## 2026-10-01 合并验收
+
+[PR #93](https://github.com/dreamvm/one-hub/pull/93) head `c05d317f18970fa9d90c7aee48b63443931f841e` 的 [36856133411](https://github.com/dreamvm/one-hub/actions/runs/36856133411) / [36856133787](https://github.com/dreamvm/one-hub/actions/runs/36856133787) 全九项成功。实际日志89个PASS（SQLite12、MySQL35、PostgreSQL35、升级/回滚7），三数据库九轮并发及四种Compose启动通过。
+
+隔离镜像ID `sha256:476c7a3238d54f4f012d7ce15f01485e2b34f9b1b3c77b44936caef964a5ceea`；提取程序SHA256 `ca364fa81c1e0017147577f500a61b0b0639f155d4d57d65b49c3d0bfa19a247`，Go1.25.14 / one-api / linux-amd64 / CGO1。仅隔离构建与运行，未发布。
+
+实际合并 `0f50ed877c91dd9b645c9005e00f388df1f052ff`；候选、GitHub合成 `b3c85fa42a651131bdd75aba08e28ccd59fa8d66`、本地计算与实际合并树均 `8bb335e5f7933559ac5408d502ee6b426ca6428e`。合并后 main [36858232247](https://github.com/dreamvm/one-hub/actions/runs/36858232247) 待核对。共享拦截器及本地审阅覆盖限制仍如上；RC8与其他发布阻断项继续开放。
