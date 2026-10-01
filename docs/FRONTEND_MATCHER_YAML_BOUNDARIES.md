@@ -132,3 +132,29 @@ yaml1.10.2的原记录204为react-app → Babel preset → macros → cosmiconfi
 核对75条身份、53/22分组、源码/安装哈希及#118准确候选、真实合并和main验收；
 未作新triage或执行测试。该审阅不构成后续js-yaml修补候选审阅，
 也不关闭22条待核实、此前缺口或四个受限审阅。
+
+## 2026-10-01 #119合并验收
+
+候选f9db638add373972bf28323ccd421cd5b44cd819自己的十项检查成功：
+[Compatibility36931754911](https://github.com/dreamvm/one-hub/actions/runs/36931754911)、
+[Isolated36931755330](https://github.com/dreamvm/one-hub/actions/runs/36931755330)，均attempt1。
+四项Compatibility真实checkout为合成efdd2674，六项Isolated为准确候选。
+候选/合成/基于最新main计算/实际合并内容树均为6d3f01d51b462b8c486267b645ab6a1356c6390d；
+实际合并dac105ff0e712793b86f4f5dc679277a561d62a6，父为e84d12c1/f9db638a。
+[本次main CI36934262113](https://github.com/dreamvm/one-hub/actions/runs/36934262113)已成功，准确push head为dac105ff、attempt1，四项真实checkout均为该合并提交。
+
+两项前端各22文件/209 UI通过、ESLint无诊断、build成功，chunk及安装peer提示保留。
+每个原生架构89PASS/9waves/4Compose，最终程序Go1.25.14、one-api、Linux/对应架构、CGO=1。
+
+| 架构 | CI本地image SHA256 | 最终程序SHA256 |
+| --- | --- | --- |
+| amd64 | 9a6a18db7de34b5ba9d6c6bcac675f088d0da7f3dba84b35537b5d62d73db3be | e8c15fd1de18e2d96b081de73173e08e6c8939e7708c5c9640fcb70cfa29b51a |
+| arm64 | b080c6dd6885e0df397ee8e6c2820a56eb93059ab6071b2d344c28863e793c65 | ba3036027d5e4793adab83d04a6c4e18cc86145481721889cf21dedc975eaf05 |
+
+只读CI证据采集及父代理核对完成；34份日志/元数据/清单保留于artifacts/pr119-ci，
+verification.json SHA256为faca7b55dda224d3304ecbd3b6983a38396196eae6e2c690fba4b58fa865dd84。
+后续merge-verification.json SHA256为ad1802db00836d72a94ab371b99cb4de4670a586d4ce9709ba555da78e61f5a2；原23份候选证据保持不变。
+该文档交付不修补库，不替代后续安全候选的独立审阅。
+
+后续[共享YAML v4候选](JS_YAML_CONFIG_BOUNDARY.md)已完成有界旧新对照、本地完整回归及
+一次fresh独立审阅；自身准确候选CI、合并和main仍待完成，独立v3和Vite十二条继续开放。
