@@ -22,3 +22,6 @@ Overview筛选区域的外层Grid使用lg/xs宽度却没有item，现有11项测
 镜像sha256:91bd4484e67785bcdae1cfea5ca5590f00f364a9ab5fce5ae114afae25b3f5d0；程序SHA256 36db5f5d9d74a1cb4dbad618e1c4c34cdce38c1f65fd4f2802b4709d31a4669d，Go1.25.14/one-api/linux amd64/CGO1。仅隔离本地镜像，未发布。
 
 改基最新main aed35474decd106090dc56c0a02719cb8cd58a82后计算合并树、候选均为c5ad44c113052146f4fa521f1085959ef7b75f0e。合成6692c152b64185a481c8655177f8b071786a7263仍保留旧d2a15495/018b7b17父节点，树相同，不声称祖先刷新。锁定head合并86fea947506186ce9cf800cc3f19152bce3d508f，API验证实际父节点为最新main/候选，实际树相同。[main CI36874138917](https://github.com/dreamvm/one-hub/actions/runs/36874138917)待核对。
+
+
+合并后 [main CI36874138917](https://github.com/dreamvm/one-hub/actions/runs/36874138917) 已成功，更新上述待核对状态。
