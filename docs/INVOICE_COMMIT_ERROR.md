@@ -35,3 +35,23 @@
 
 回滚此代码会恢复错误成功返回；函数签名和数据库结构无变化。
 独立审阅、准确候选 CI、合并和合并后验证在实际完成时追加，不能以本地测试代替交付。
+
+## 2026-10-01 合并验收
+
+[PR #112](https://github.com/dreamvm/one-hub/pull/112) 准确候选
+`34a835004d1c9bc54945d4317ace5d707b6b2188` 的
+[Compatibility](https://github.com/dreamvm/one-hub/actions/runs/36905919506) 与
+[Isolated smoke](https://github.com/dreamvm/one-hub/actions/runs/36905919762) 共10项通过。
+候选model包race实际包含新提交失败测试；两个原生架构各89项PASS、9轮并发及4种部署模板通过。
+
+| 原生架构 | 本地候选镜像 SHA256 | 镜像内程序 SHA256 |
+| --- | --- | --- |
+| amd64 | 00001b9f8cde122ae3ff54c8ef9ffb8f9cfdbf6c5a766469d500110199dc0078 | 899ef6eddbfec75bfb65b861323237b53f47413c804b7a611c8c139fbf7eb642 |
+| arm64 | 3fbc819f62e803aee7ab32f214fd2850d1c9768478d17f0a6a7b5b6e11140041 | 687665f3c17d05697b966916683590d120cde7dd5159fd8f79eef8b1857aa672 |
+
+均从最终镜像提取程序，确认Go1.25.14、one-api、Linux、相应架构、CGO=1。
+候选、CI合成提交8bcac2a5、最新main预计合并及实际合并的树均为
+`aa08ee5e1c8418d1102317117bb357d79b17d821`。
+实际合并 `0c31ae2a916f0c0b6a2aa839dc694d49c2479945`；
+[合并后main CI](https://github.com/dreamvm/one-hub/actions/runs/36908725607)成功。
+未发布、部署或关闭上述提交结果不确定、启动错误观察及真实历史边界。
