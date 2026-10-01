@@ -101,3 +101,30 @@ v3 的五个同名 GHSA 匹配仍存在，全部历史输入保留；既有范�
 本批准确候选 CI、实际合并和合并后 main 验收待完成。回滚本批提交会恢复受影响旧库，
 不能作为安全完成状态。四个受限审阅、Vite十二条、独立v3及最终发布门槛继续开放；
 没有标签、镜像发布、生产部署或真实付费调用。
+
+## 2026-10-01 #120合并验收
+
+[PR #120](https://github.com/dreamvm/one-hub/pull/120)准确候选为
+b7677242332f2dfc3d37a1b2b1638411a24c30c8，自己的十项检查全部成功：
+[Compatibility36935607473](https://github.com/dreamvm/one-hub/actions/runs/36935607473)、
+[Isolated36935608084](https://github.com/dreamvm/one-hub/actions/runs/36935608084)，均attempt1。
+四项Compatibility真实checkout为合成160a3798861bb291101ada30bd4897f68e7a7f6c，
+六项Isolated为准确候选；两项前端均新增20叶子/含父21项通过，实际js-yaml4.3.2。
+每个原生架构89PASS、9轮并发、4种Compose；最终程序Go1.25.14、one-api、Linux/对应架构、CGO=1。
+
+候选、合成、基于最新main计算及实际合并树均为049f64b6769a0d47a016f547675a72be0b4219fb。
+实际合并6b1b3283b4322cda7d0f3e3df0257a7ff57df10f，父为dac105ff/b7677242。
+[自身main CI36937929600](https://github.com/dreamvm/one-hub/actions/runs/36937929600)已成功，
+准确push head为实际合并、attempt1；四项真实checkout均已核对。
+前端仍为22文件/209 UI、ESLint无诊断、build通过，peer及chunk提示保留。
+
+| 架构 | CI本地image SHA256 | 最终程序SHA256 |
+| --- | --- | --- |
+| amd64 | 781deb56b4346a477e5a22fe898c5612f382bfe979005d438ff6da509bae640b | 7d329a8da69a9c5f57785ba12589f4c5928b96403943a5586933814e4bf47c11 |
+| arm64 | 495353263f18d5e56224dbf1c15c0661c8a9ec1eb028391a0ec1e7db72abfe40 | df8b84c07799992d13f23f7cfb0766bae13cff6f702e7f05b0d36f51c0509fb4 |
+
+私有artifacts/pr120-ci保留原23文件、独立main清单和根代理合并树复核；
+候选verification SHA为ff20038734eba073a02759f4ee8d1a71d333f81ecc97fbcf80ec281ba4b1bdec，
+实际合并/main verification为3525f17ea2815713cb43e283d9ebd0f4859a664db0d99cbdf1ad9603a143bb4f。
+本项共享v4修补已交付；独立v3、[Vite候选审阅缺口](VITE_MATCHER_CANDIDATE_REVIEW.md)、
+四个受限草稿及最终RC8门槛仍开放，不称所有YAML或审计记录已关闭。
