@@ -349,9 +349,14 @@ export default function ChannelList() {
   const fetchModels = async () => {
     try {
       let res = await API.get(`/api/channel/models`);
-      const { data } = res.data;
+      const { data, success, message } = res.data;
+      if (success === false) {
+        showError(message);
+        return;
+      }
+      const models = data ?? [];
       // 先对data排序
-      data.sort((a, b) => {
+      models.sort((a, b) => {
         const ownedByComparison = a.owned_by.localeCompare(b.owned_by);
         if (ownedByComparison === 0) {
           return a.id.localeCompare(b.id);
@@ -359,7 +364,7 @@ export default function ChannelList() {
         return ownedByComparison;
       });
       setModelOptions(
-        data.map((model) => {
+        models.map((model) => {
           return {
             id: model.id,
             group: model.owned_by
