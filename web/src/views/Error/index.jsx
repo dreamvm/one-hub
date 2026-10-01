@@ -11,7 +11,12 @@ export default function NotFoundView() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const goBack = () => {
-    navigate(-1);
+    const historyIndex = window.history.state?.idx;
+    if (Number.isInteger(historyIndex) && historyIndex > 0) {
+      navigate(-1);
+    } else {
+      navigate('/', { replace: true });
+    }
   };
   return (
     <>
