@@ -171,7 +171,9 @@ func (user *User) Insert(inviterId int) error {
 
 func (user *User) Update(updatePassword bool) error {
 	var err error
-	omitFields := []string{"quota", "used_quota", "request_count", "aff_count", "aff_quota", "aff_history"}
+	// Profile snapshots can predate an explicit OIDC unbind. Only dedicated
+	// identity operations may change the binding, never a generic user update.
+	omitFields := []string{"quota", "used_quota", "request_count", "aff_count", "aff_quota", "aff_history", "oidc_id"}
 
 	if updatePassword {
 		user.Password, err = common.Password2Hash(user.Password)

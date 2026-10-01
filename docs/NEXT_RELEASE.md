@@ -921,3 +921,10 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - 无效报告 [PR #79](https://github.com/dreamvm/one-hub/pull/79) head `26465acdbdeed55c5d98f2912442ef51fc5543e9` 依赖 #78。旧版 10 个失败/6 个控制，候选 281 个专项叶子及规定回归通过；全新独立审阅被平台内容检查中断，无完整结论。父任务基于源码修正中间报告指出的早退路径，既有回归重跑通过，但未重试受限审阅或新增变体，不能据此关闭审阅缺口。手动候选 CI [36824874581](https://github.com/dreamvm/one-hub/actions/runs/36824874581) / [36824879034](https://github.com/dreamvm/one-hub/actions/runs/36824879034) 已启动；草稿保持未合并。
 - 本分支从已合并 main 独立整理 [HISTORICAL_ACCOUNTING_RECONCILIATION.md](HISTORICAL_ACCOUNTING_RECONCILIATION.md)，明确历史预留、支付、补偿的证据、归属和可处理状态。未读取生产账本，未执行或批准任何历史资金调整；真实逐笔核对仍开放。
 - Rollup/Vite 原有平台审阅限制继续保留；不重复或绕过受限步骤。RC8 仍未建标签，未发布镜像、部署或执行真实付费调用。只暂停依赖缺失证据的交付，继续独立的规则和身份等整改工作。
+
+### 历史规则交付与 OIDC 共享保存候选
+
+- [PR #80](https://github.com/dreamvm/one-hub/pull/80) head `c91160a66a1d94a533843262b65bddafc825398f` 已合并为 `5fb760c608a86df0690534ba884279b79744068d`；候选、GitHub 合成、计算及实际树均为 `111dbde99bbc888e9eb43073fd347b81e419a396`。[36825235366](https://github.com/dreamvm/one-hub/actions/runs/36825235366) / [36825235601](https://github.com/dreamvm/one-hub/actions/runs/36825235601) 全 9 项通过；48 个业务/升级回滚 PASS，实际 runner 镜像 `sha256:736476d9c9b062da56cabc72722b356cc8a9a9e0b48666c098eb82d2a852cba7`，程序 Go1.25.14 / one-api / linux/amd64 / CGO1，binary SHA256 `938a6d084a358927daf9d7a5a1f0f5829963dcb0fde576487bccd83b8d66edd0`。合并后 main [36826859753](https://github.com/dreamvm/one-hub/actions/runs/36826859753) 正在运行；未读写生产账本。
+- PR #79 head `26465acd` 的上述两次手动准确候选 CI 均已成功，48 个业务/升级回滚 PASS；镜像 `sha256:63e2b37c183307a628be11fbc768491049b54b4c55df0920ee8956bd5d04bcea`，程序 Go1.25.14 / one-api / linux/amd64 / CGO1，binary SHA256 `16a09b4e86bee6e167fce50f60fc2498dc96abb7f345b950e7b401beb22f674f`。CI 不补足独立审阅结论；#78/#79 继续草稿未合并，未重试平台受限审阅或新增变体。
+- 独立候选 [OIDC_STALE_UPDATE_BOUNDARY.md](OIDC_STALE_UPDATE_BOUNDARY.md) 仅阻止普通 User.Update 旧快照恢复/覆盖已变更的 OIDC 绑定。旧版四个失败/两个正常控制，候选 44 个专项叶子、规定回归/vet/编译和新鲜独立审阅通过；资料/密码、明确解绑及新注册保留。管理员通用资料 JSON 中的 oidc_id 也被忽略；没有新增重新绑定接口。准确候选 CI/PR/合并待完成。
+- 用户已明确选择 OIDC 保守迁移：历史 issuer 未知的记录保留待核实，不自动关联；不以当前配置或首次登录回填，也不任意挑选重复账号。issuer 持久化、subject 唯一性及并发注册仍待独立实现与验证；当前没有修改生产身份数据。RC8 未创建，发布阻断项仍开放。
