@@ -91,7 +91,7 @@ export default function Overview() {
 
   return (
     <Grid container spacing={gridSpacing}>
-      <Grid lg={12} xs={12}>
+      <Grid item lg={12} xs={12}>
         <Box sx={{ display: 'flex', gap: 2, m: 3 }}>
           <Grid container spacing={2} sx={{ mb: 2 }}>
             <Grid item xs={12} sm={6}>
