@@ -42,5 +42,5 @@ MySQL 与 PostgreSQL 分别完成有限/无限令牌 × JSON/SSE 的四个新增
 最终 runner 镜像 `sha256:8041f82fec3b8e91b27278017a8b8d7bafe0c3ee68dd2d695270ea64e4e1b80d`，
 实际程序 Go1.25.14 / one-api / linux/amd64 / CGO1，binary SHA256
 `77ca69d23f454e8e100159809fe4268f883867a44e523584e089017cf6a5a9fc`。未发布。
-合并后 main [36832999472](https://github.com/dreamvm/one-hub/actions/runs/36832999472) 待核对。
+合并后 main [36832999472](https://github.com/dreamvm/one-hub/actions/runs/36832999472) 已成功。
 数据库中途故障另见 [独立候选](DATABASE_INFLIGHT_ACCEPTANCE.md)，不能将本项 Redis 成功扩展为数据库或网络分区成功。

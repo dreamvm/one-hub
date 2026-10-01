@@ -950,3 +950,10 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - [PR #83](https://github.com/dreamvm/one-hub/pull/83) head `6ab65ba2ea7f56d5842112fa5714898012137ea9` 已合并为 `53be6eb04942814f812d756dfbd809bd553e1b66`，候选/合成/计算/实际树均为 `74f9bcb63e7731298121daabeb8e78d0f5809ed7`。[36831550015](https://github.com/dreamvm/one-hub/actions/runs/36831550015) / [36831550324](https://github.com/dreamvm/one-hub/actions/runs/36831550324) 全 9 项通过；两个数据库分别验证有限/无限令牌 × JSON/SSE 的 Redis 中途故障及单次结算恢复，共 56 个隔离业务/升级回滚 PASS、四种 Compose 启动通过。实际镜像/程序身份见 [REDIS_INFLIGHT_ACCEPTANCE.md](REDIS_INFLIGHT_ACCEPTANCE.md#合并验收)。合并后 main [36832999472](https://github.com/dreamvm/one-hub/actions/runs/36832999472) 待核对。
 - 下一独立 [数据库中途故障候选](DATABASE_INFLIGHT_ACCEPTANCE.md) 保持网关进程存活，观察确定终局写入失败后恢复本次创建的数据库，核对现有恢复任务的一次结算。只增加验收，不修改应用逻辑；本地 Python/语法/策略通过，准确候选 CI 与真实数据库故障结果尚未完成。
 - 意图尚未落库时同时崩溃、网络分区、并发负载和资源释放、真实历史数据及生产验收仍开放。RC8 未创建标签，没有发布、部署或真实付费调用。
+
+### 数据库中途故障交付与网络分区候选
+
+- PR #83 合并后 main `53be6eb0` 的 [36832999472](https://github.com/dreamvm/one-hub/actions/runs/36832999472) 已成功。
+- [PR #84](https://github.com/dreamvm/one-hub/pull/84) head `29bc8064455d21455670e74edf9a1e1eb8e108ec` 已合并为 `9f0db48c6eb325f14417ae6645e007c0dfc42c92`，候选/合成/计算/实际树均为 `93debe9709620ad6bad54852c63ad990ec912efb`。[36833222590](https://github.com/dreamvm/one-hub/actions/runs/36833222590) / [36833223347](https://github.com/dreamvm/one-hub/actions/runs/36833223347) 全 9 项通过；两个数据库各四个实际终局写入失败与恢复场景通过，共 64 个业务/升级回滚 PASS、四种 Compose 启动通过，程序身份见 [DATABASE_INFLIGHT_ACCEPTANCE.md](DATABASE_INFLIGHT_ACCEPTANCE.md#合并验收)。合并后 main [36834793394](https://github.com/dreamvm/one-hub/actions/runs/36834793394) 待核对。
+- 下一独立 [网络分区候选](NETWORK_PARTITION_ACCEPTANCE.md) 在测试依赖保持存活时断开本次内部网络，验证连接失败、进程连续、账务等待与恢复。目标限定本次随机前缀，恢复原 IP/别名；有限/无限令牌 × JSON/SSE × Redis/数据库矩阵待准确候选 CI。本地 25 项 Python、Go smoke/策略 race 和 vet 通过，不代表真实网络验收完成。
+- 崩溃前未持久化用量、并发负载和资源释放、剩余页面与依赖、arm64 及生产事实仍需各自验收。受限审阅草稿继续未合并；没有 RC8 标签、镜像发布、生产变更或真实付费调用。

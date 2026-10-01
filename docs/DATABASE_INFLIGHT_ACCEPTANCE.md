@@ -22,3 +22,20 @@
 
 已有 SubmitQuotaTerminal 会先保留不可变的进程内确定终局快照，持久化成功后由 pending 收据恢复。此测试只证明网关进程存活时的恢复；意图落库前同时崩溃仍会丢失内存证据并留下 reserved 待核实。网络分区、并发负载、历史真实账目、生产备份及恢复点仍需独立验收。
 不接触真实服务、生产数据或付费上游，没有标签、镜像发布或部署。
+
+## 合并验收
+
+[PR #84](https://github.com/dreamvm/one-hub/pull/84) head
+`29bc8064455d21455670e74edf9a1e1eb8e108ec` 已合并为
+`9f0db48c6eb325f14417ae6645e007c0dfc42c92`。候选、GitHub 合成、本地计算及实际合并树
+均为 `93debe9709620ad6bad54852c63ad990ec912efb`。
+[36833222590](https://github.com/dreamvm/one-hub/actions/runs/36833222590) /
+[36833223347](https://github.com/dreamvm/one-hub/actions/runs/36833223347) 全 9 项成功。
+MySQL/PostgreSQL 各四个有限/无限令牌 × JSON/SSE 的真实数据库停止、确定终局写入失败及恢复场景通过；
+含原有控制、升级/回滚共 64 个 PASS，四种 Compose 启动通过。
+
+最终 runner 镜像 `sha256:11333a9eef353d47f832257d35e6aa59b3bb90f12469fbc72675113302b8ba7d`，
+实际程序 Go1.25.14 / one-api / linux/amd64 / CGO1，binary SHA256
+`126cd2bf824584aa9790ad298b5e8beb9b599c5a675daa0b799e3e2066181e2c`；未发布。
+合并后 main [36834793394](https://github.com/dreamvm/one-hub/actions/runs/36834793394) 待核对。
+仅证明网关进程存活时的已知终局恢复；网络分区另见 [独立候选](NETWORK_PARTITION_ACCEPTANCE.md)，崩溃前未持久化证据不由本项解决。

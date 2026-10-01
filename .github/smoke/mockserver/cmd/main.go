@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -15,6 +16,16 @@ import (
 )
 
 func main() {
+	if len(os.Args) == 3 && os.Args[1] == "check-dependency" {
+		dialer := &net.Dialer{}
+		reachable, err := mockserver.DependencyReachable(os.Args[2], dialer.DialContext)
+		if err != nil {
+			json.NewEncoder(os.Stdout).Encode(map[string]string{"error": err.Error()})
+		} else {
+			json.NewEncoder(os.Stdout).Encode(map[string]bool{"reachable": reachable})
+		}
+		return
+	}
 	if len(os.Args) == 2 && os.Args[1] == "request" {
 		probe()
 		return
