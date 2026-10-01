@@ -23,4 +23,4 @@
 
 镜像 `sha256:d9f2e29f99441cff6e8972a25745b01df64513189ed4ef48659cfe1c536a1b5e`；程序SHA256 `1fc51f89631881ba880873653bb0014cfe6e09a9352ff3dd528f27aeeb3e730e`，Go1.25.14/main one-api/linux amd64/CGO1。仅隔离本地镜像，不是发布。
 
-改基main `9c4c3cd906e65f2b497904620a0d641b5cae0499` 后计算合并树、候选树均为 `f3eba3337e928f9dd05753c0dbd85290aede2d69`；合成提交 `e95f1ea3a3432fe4ff5c2547504a80092276f927` 仍保留旧叠加父节点60883302/d2a15495，树相同，不声称祖先已刷新。锁定head合并为 `aed35474decd106090dc56c0a02719cb8cd58a82`，API确认实际父节点为最新main/候选，实际树相同。[合并后main CI36871762848](https://github.com/dreamvm/one-hub/actions/runs/36871762848)待核对。审阅后断点600→1200且未经第二轮复审的限制不变。
+改基main `9c4c3cd906e65f2b497904620a0d641b5cae0499` 后计算合并树、候选树均为 `f3eba3337e928f9dd05753c0dbd85290aede2d69`；合成提交 `e95f1ea3a3432fe4ff5c2547504a80092276f927` 仍保留旧叠加父节点60883302/d2a15495，树相同，不声称祖先已刷新。锁定head合并为 `aed35474decd106090dc56c0a02719cb8cd58a82`，API确认实际父节点为最新main/候选，实际树相同。[合并后main CI36871762848](https://github.com/dreamvm/one-hub/actions/runs/36871762848)已成功。审阅后断点600→1200且未经第二轮复审的限制不变。
