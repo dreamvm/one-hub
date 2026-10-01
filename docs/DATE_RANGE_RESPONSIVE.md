@@ -15,3 +15,12 @@
 限制：只覆盖现有统计页布局、默认字体和上述 Chromium 尺寸，不宣称所有字体缩放、其他浏览器或未出现的调用方都已验收。原有日期标题与未提交草稿的关系、异常日期政策、Overview Grid 开发警告另行处理。回滚本文件样式会恢复原有截断；不涉及生产、付费调用或发布。
 
 交付前补验：最终1200px断点版本完整18文件182项Vitest及全部依赖边界通过；与已有最终格式、lint、构建及浏览器结果共同作为候选本地证据。源码仍为已记录的审阅后断点修正，未增加第二轮独立审阅。
+
+
+## 2026-10-01 合并验收
+
+[PR #99](https://github.com/dreamvm/one-hub/pull/99) head `d2a15495ceaf793bee777808df842bf2b1fae190` 的准确手动 [Compatibility 36869291859](https://github.com/dreamvm/one-hub/actions/runs/36869291859) / [Isolated 36869300132](https://github.com/dreamvm/one-hub/actions/runs/36869300132) 九项成功。初始叠加基线不是main，使用workflow_dispatch，不声称自动PR事件通过。smoke job110394105080实际89个PASS（12 SQLite/35 MySQL/35 PostgreSQL/7升级回滚）、九波并发、四种Compose成功。
+
+镜像 `sha256:d9f2e29f99441cff6e8972a25745b01df64513189ed4ef48659cfe1c536a1b5e`；程序SHA256 `1fc51f89631881ba880873653bb0014cfe6e09a9352ff3dd528f27aeeb3e730e`，Go1.25.14/main one-api/linux amd64/CGO1。仅隔离本地镜像，不是发布。
+
+改基main `9c4c3cd906e65f2b497904620a0d641b5cae0499` 后计算合并树、候选树均为 `f3eba3337e928f9dd05753c0dbd85290aede2d69`；合成提交 `e95f1ea3a3432fe4ff5c2547504a80092276f927` 仍保留旧叠加父节点60883302/d2a15495，树相同，不声称祖先已刷新。锁定head合并为 `aed35474decd106090dc56c0a02719cb8cd58a82`，API确认实际父节点为最新main/候选，实际树相同。[合并后main CI36871762848](https://github.com/dreamvm/one-hub/actions/runs/36871762848)待核对。审阅后断点600→1200且未经第二轮复审的限制不变。
