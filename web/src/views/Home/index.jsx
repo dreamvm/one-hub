@@ -11,38 +11,45 @@ const Home = () => {
   const [homePageContentLoaded, setHomePageContentLoaded] = useState(false);
   const [homePageContent, setHomePageContent] = useState('');
 
-  const displayHomePageContent = async () => {
-    setHomePageContent(localStorage.getItem('home_page_content') || '');
-    try {
-      const res = await API.get('/api/home_page_content');
-      const { success, message, data } = res.data;
-      if (success) {
-        setHomePageContent(data);
-        localStorage.setItem('home_page_content', data);
-      } else {
-        showError(message);
-        setHomePageContent(t('home.loadingErr'));
-      }
-      setHomePageContentLoaded(true);
-    } catch (error) {
-      return;
-    }
-  };
+  const [homePageContentError, setHomePageContentError] = useState(false);
 
   useEffect(() => {
-    displayHomePageContent().then();
+    let active = true;
+    const displayHomePageContent = async () => {
+      try {
+        const res = await API.get('/api/home_page_content');
+        if (!active) return;
+        const { success, message, data } = res.data;
+        if (success) {
+          setHomePageContent(data);
+          localStorage.setItem('home_page_content', data);
+        } else {
+          showError(message);
+          setHomePageContentError(true);
+        }
+      } catch (error) {
+        if (active) setHomePageContentError(true);
+      } finally {
+        if (active) setHomePageContentLoaded(true);
+      }
+    };
+
+    displayHomePageContent();
+    return () => {
+      active = false;
+    };
   }, []);
 
   return (
     <>
-      {homePageContentLoaded && homePageContent === '' ? (
+      {homePageContentLoaded && !homePageContentError && homePageContent === '' ? (
         <BaseIndex />
       ) : (
         <Box>
           <ContentViewer
             content={homePageContent}
             loading={!homePageContentLoaded}
-            errorMessage={homePageContent === t('home.loadingErr') ? t('home.loadingErr') : ''}
+            errorMessage={homePageContentError ? t('home.loadingErr') : ''}
             containerStyle={{ minHeight: 'calc(100vh - 136px)' }}
             contentStyle={{ fontSize: 'larger' }}
           />

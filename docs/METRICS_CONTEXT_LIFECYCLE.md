@@ -25,3 +25,5 @@ Go1.25.14 下专项测试与正常对照通过；相关 metrics、middleware、m
 本地构建 image ID sha256:e2ae03a825818170e7c3a67400648b892a5a4104d41074a75a760ead42e240d7；从该镜像提取的 /one-api 为 Go1.25.14、main=one-api、linux/amd64、CGO=1，SHA256 11cef578e641e47e1c9c5f7aa473132b95453298e5b233208ab54243e015d782。没有发布镜像。
 
 候选/合成/计算/实际合并树均为 aabd258be35788be7a32a6bbc9bafb99ec683d45；合并提交 5712dbb205b1544a130ee02b7ea1063058019296。合并后 main CI 待核对。前述审阅上下文与测试修正的限制继续保留。
+
+2026-10-01 补记：PR #86 合并后 main 5712dbb205b1544a130ee02b7ea1063058019296 的 [CI 36840850235](https://github.com/dreamvm/one-hub/actions/runs/36840850235) 已成功，更新上文待核对状态。
