@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext, useCallback } from 'react';
 import SubCard from 'ui-component/cards/SubCard';
 import {
   Stack,
@@ -68,19 +68,20 @@ const OperationSetting = () => {
     ClaudeDefaultMaxTokens: '',
     GeminiOpenThink: ''
   });
-  const [originInputs, setOriginInputs] = useState({});
+  const [originInputs, setOriginInputs] = useState(inputs);
   let [loading, setLoading] = useState(false);
   let [historyTimestamp, setHistoryTimestamp] = useState(now.getTime() / 1000 - 30 * 24 * 3600); // a month ago new Date().getTime() / 1000 + 3600
   let [invoiceMonth, setInvoiceMonth] = useState(now.getTime()); // a month ago new Date().getTime() / 1000 + 3600
   const loadStatus = useContext(LoadStatusContext);
   const [safeToolsLoading, setSafeToolsLoading] = useState(true);
 
-  const getOptions = async () => {
+  const getOptions = useCallback(async (isCurrent = () => true) => {
     try {
       const res = await API.get('/api/option/');
+      if (!isCurrent()) return false;
       const { success, message, data } = res.data;
       if (success) {
-        let newInputs = { ...inputs }; // 保留现有的 inputs 内容，包括 safeTools
+        const newInputs = {};
         data.forEach((item) => {
           if (item.key === 'RechargeDiscount') {
             item.value = JSON.stringify(JSON.parse(item.value), null, 2);
@@ -95,8 +96,8 @@ const OperationSetting = () => {
           newInputs[item.key] = item.value;
         });
         // 确保不会覆盖 safeTools
-        setInputs((prev) => ({ ...newInputs, safeTools: prev.safeTools }));
-        setOriginInputs(newInputs);
+        setInputs((prev) => ({ ...prev, ...newInputs, safeTools: prev.safeTools }));
+        setOriginInputs((prev) => ({ ...prev, ...newInputs }));
         return true;
       } else {
         showError(message);
@@ -105,12 +106,13 @@ const OperationSetting = () => {
       return false;
     }
     return false;
-  };
+  }, []);
 
-  const getSafeTools = async () => {
+  const getSafeTools = useCallback(async (isCurrent = () => true) => {
     setSafeToolsLoading(true);
     try {
       const res = await API.get('/api/option/safe_tools');
+      if (!isCurrent()) return false;
       const { success, message, data } = res.data;
       if (success) {
         setInputs((prev) => {
@@ -125,21 +127,27 @@ const OperationSetting = () => {
         showError(message);
       }
     } catch (error) {
+      if (!isCurrent()) return false;
       console.error('获取安全工具列表失败:', error);
       showError('获取安全工具列表失败');
     } finally {
-      setSafeToolsLoading(false);
+      if (isCurrent()) setSafeToolsLoading(false);
     }
     return false;
-  };
+  }, []);
 
   useEffect(() => {
+    let active = true;
+    const isCurrent = () => active;
     const initData = async () => {
-      await getSafeTools();
-      await getOptions();
+      await getSafeTools(isCurrent);
+      if (active) await getOptions(isCurrent);
     };
     initData();
-  }, []);
+    return () => {
+      active = false;
+    };
+  }, [getSafeTools, getOptions]);
 
   const updateOption = async (key, value) => {
     if (key.endsWith('Enabled')) {

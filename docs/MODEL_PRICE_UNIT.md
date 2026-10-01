@@ -19,3 +19,5 @@ Browser plugin不可用，缓存PlaywrightCLI0.1.22/Chromium154.0.8037.58；随�
 最终runner镜像 `sha256:9e326b19a03582130834136fdfed95bd5dc5d2d4ec726ec969db5d2af28680a6` 内的实际程序为Go1.25.14 / one-api / linux/amd64 / CGO1，binary SHA256 `649afad56316f377bb9c3d3655d587c5ba8df63198ba7cb7064c18850ae159b9`。镜像未发布。
 
 GitHub合成提交 `c8c0e6a8efb59b414915b0bb3760467ddfd78442`，实际合并 `ca1b429c64c8fff6a80dc1f9463b434bcc85d143`；候选、合成、计算及实际合并树均为 `d4408e24f5108d875f406414e4971ed9e82637e3`。合并后main [36864331311](https://github.com/dreamvm/one-hub/actions/runs/36864331311) 待核对，不替代其他待交付候选的CI。
+
+后续核实：上述 main CI36864331311已成功，PR #95交付验收完成。
