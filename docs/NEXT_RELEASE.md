@@ -913,3 +913,11 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - 合并后 main [36784595991](https://github.com/dreamvm/one-hub/actions/runs/36784595991) 已成功。首轮 PostgreSQL 夹具失败及单次审阅后的修改范围限制继续保留，不能把最后成功反写成首轮成功。
 - 下一独立分支 `codex/realtime-unfinished-response` 处理供应商已观察开始但未取得对应完整用量的收尾，见 [REALTIME_UNFINISHED_RESPONSES.md](REALTIME_UNFINISHED_RESPONSES.md)。旧版 5 个失败/4 个正常对照；候选 123 个专项叶子、规定回归、vet、编译通过；全新预调查和全新候选独立审阅完成，未发现受检范围内阻断项。快进已合并 main 后十文件源码补丁摘要保持不变。
 - 此候选尚无准确 CI/PR/合并。开始事件缺失的非完整流、客户端已发送但供应商尚未可见的窗口、崩溃前证据和历史核销规则仍开放；不声称 Realtime 异常结束已全部关闭。RC8、正式发布、生产步骤仍未执行。
+
+### 后续 Realtime 草稿保留与历史核对规则
+
+- [PR #77](https://github.com/dreamvm/one-hub/pull/77) 已以 head `236d2b5b2d5f8ee820c7c4a3236019e321c2fed9` 合并为 `f5c1ad53ef3e2d4b078d55404fc6e4ac4098cca5`，候选/预合并/实际树均为 `52072836cc8de7d0bd054196c2b41f5f951fa110`。候选 [36821487199](https://github.com/dreamvm/one-hub/actions/runs/36821487199) / [36821487446](https://github.com/dreamvm/one-hub/actions/runs/36821487446) 全 9 项及合并后 main [36822827773](https://github.com/dreamvm/one-hub/actions/runs/36822827773) 成功。
+- 输出进度 [PR #78](https://github.com/dreamvm/one-hub/pull/78) head `11a0e3762fc2d8a0b440a30cb7e631414e387616` 已通过 [36823355438](https://github.com/dreamvm/one-hub/actions/runs/36823355438) / [36823355908](https://github.com/dreamvm/one-hub/actions/runs/36823355908) 全 9 项；48 个隔离业务/升级回滚和 4 种 Compose 通过，未合并。后续无效报告审阅发现类型错误早退的残余表示，原进度审阅未覆盖，故 #78 改为草稿。
+- 无效报告 [PR #79](https://github.com/dreamvm/one-hub/pull/79) head `26465acdbdeed55c5d98f2912442ef51fc5543e9` 依赖 #78。旧版 10 个失败/6 个控制，候选 281 个专项叶子及规定回归通过；全新独立审阅被平台内容检查中断，无完整结论。父任务基于源码修正中间报告指出的早退路径，既有回归重跑通过，但未重试受限审阅或新增变体，不能据此关闭审阅缺口。手动候选 CI [36824874581](https://github.com/dreamvm/one-hub/actions/runs/36824874581) / [36824879034](https://github.com/dreamvm/one-hub/actions/runs/36824879034) 已启动；草稿保持未合并。
+- 本分支从已合并 main 独立整理 [HISTORICAL_ACCOUNTING_RECONCILIATION.md](HISTORICAL_ACCOUNTING_RECONCILIATION.md)，明确历史预留、支付、补偿的证据、归属和可处理状态。未读取生产账本，未执行或批准任何历史资金调整；真实逐笔核对仍开放。
+- Rollup/Vite 原有平台审阅限制继续保留；不重复或绕过受限步骤。RC8 仍未建标签，未发布镜像、部署或执行真实付费调用。只暂停依赖缺失证据的交付，继续独立的规则和身份等整改工作。

@@ -54,6 +54,10 @@ ORDER BY created_at;
 `reserved` 也可能是仍在运行的请求，不能仅凭年龄判断上游未计费。
 记录保留/归档策略、待核对管理界面和历史人工核账不是本批的自动资金操作。
 
+历史预留、任务补偿和支付歧义的归属、证据与处理规则见
+[HISTORICAL_ACCOUNTING_RECONCILIATION.md](HISTORICAL_ACCOUNTING_RECONCILIATION.md)。
+规则整理不代表已核实或处理生产历史记录。
+
 ## 验证与兼容
 
 - 旧实现的数据库恢复后 Consume/Undo 重试失败已先复现，再验证新实现恢复。
