@@ -50,7 +50,7 @@ Go 1.25.14，离线依赖，合成账户和数据；PostgreSQL 为本机 18.4，
 - Compatibility 前端实际检出 `79713bba3fd56e0c627be78d553a006bcbb5de5b`，父节点 `da936380`/`1e08ea38`；
   双架构检出候选。候选、合成、最新 main 计算及实际合并树均为 `e1898e43255737a4580d59b222d17e883e1e1b5e`。
   实际合并 `0ec84ed60d93e8cbf8ecd74413eae74f1c1cc0a9`，父节点与合成一致；
-  [合并后 main CI](https://github.com/dreamvm/one-hub/actions/runs/36905699246) 待核对。
+  [合并后 main CI](https://github.com/dreamvm/one-hub/actions/runs/36905699246) 已通过。
 - 两架构各89项业务/升级PASS、九轮并发、四种Compose通过；最终程序均为Go1.25.14、one-api、Linux、对应架构、CGO=1。
 
 | 架构 | CI 本地 image ID (sha256) | 最终程序 SHA-256 |
