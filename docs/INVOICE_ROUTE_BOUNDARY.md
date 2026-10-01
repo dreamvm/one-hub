@@ -35,3 +35,11 @@ PR #90 首轮 `df852422` 的兼容性前端检查失败：117项断言通过，�
 这是独立审阅后的测试隔离修正，未进行第二轮独立复审，不将最终测试补丁写成已独立复审。原浏览器使用实际图标组件和本地截获响应，其结果仍适用于未变更的应用代码。修正后的本地完整回归与准确新候选CI须重新通过，首轮结果不视为交付。
 
 修正后完整依赖/开发边界与12文件117项Vitest再次通过，无未处理异常；两测试Prettier通过。应用源码未变，已有lint/构建/浏览器结果仍对应当前源码；准确新候选CI仍待完成。
+
+## 2026-10-01 合并验收
+
+[PR #90](https://github.com/dreamvm/one-hub/pull/90) 修正后的 head `b68c07d06faef79cce98c13f2c48a26eabaf62d7` 的 [36848971081](https://github.com/dreamvm/one-hub/actions/runs/36848971081) / [36848971360](https://github.com/dreamvm/one-hub/actions/runs/36848971360) 全九项成功。实际日志89个PASS（SQLite12、MySQL35、PostgreSQL35、升级/回滚7），含三数据库九轮并发与四种Compose启动。首轮失败保留，不用首轮另一工作流或先前提交替代最终验证。
+
+最终测试镜像ID `sha256:465781995c45000b95a9249592963bc01ff1ceb5158f67481b1fbb7e3ce8fb5b`；提取的程序SHA256 `437f1ab18d9215e09593c28b85dd5a044d634227b0e2196955eda9aa3fa38b12`，Go1.25.14 / one-api / linux-amd64 / CGO1。仅隔离构建与运行，未发布。
+
+实际合并 `eb6a46c7a0848d15d892bd91c4c332e48628b1ef`；候选、合成 `f5ce4288ca8ecc2c5768f0a956352e376eae88e5`、本地计算和实际合并树均 `0513c20dd04dcf3e5400ce32f2ee87a88dffa527`。合并后 main [36851033301](https://github.com/dreamvm/one-hub/actions/runs/36851033301) 待核对。整体RC8、未覆盖页面及其他发布阻断项仍开放。
