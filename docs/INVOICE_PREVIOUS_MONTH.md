@@ -56,5 +56,5 @@ PostgreSQL18.0分别运行12日期回归，共36日期子例，并通过既有�
 GitHub合并引用fc0d2a3c仍保留旧叠加父提交34a83500，但内容树相同；本次验收为准确head
 手动CI，不宣称运行过更新父提交后的合成CI。
 实际合并 `8d7d68339310b6d7f09849844771ac197c9c3b9e`；
-[合并后main CI](https://github.com/dreamvm/one-hub/actions/runs/36909775467)仍待核对。
+[合并后main CI](https://github.com/dreamvm/one-hub/actions/runs/36909775467)已成功。
 没有自动重算真实历史账单、创建标签、发布镜像或部署。
