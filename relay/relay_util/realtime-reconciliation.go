@@ -21,10 +21,18 @@ func (q *Quota) recordMissingRealtimeUsage(total *types.UsageEvent, responseID s
 	if q.terminal != nil || q.terminalErr != nil {
 		return errors.New("realtime accounting is already terminal")
 	}
+	q.selectRealtimeReconciliation(total, responseID, "realtime_missing_usage")
+	return errors.New("realtime response usage missing; reservation requires reconciliation")
+}
+
+// Caller holds terminalMu. This only selects an in-memory intent; persistence
+// happens after upstream work stops, through the existing terminal retry path.
+func (q *Quota) selectRealtimeReconciliation(total *types.UsageEvent, responseID, reason string) {
 	usage := total.ToChatUsage()
 	knownQuota := q.GetTotalQuotaByUsage(usage)
 	evidence := &model.QuotaReconciliation{
-		Version: 1, Reason: "realtime_missing_usage", Usage: usage,
+		Version: 1, Reason: reason, Usage: usage,
+		UnfinishedResponses: len(q.realtimeActive), UnattributedResponse: q.realtimeUnattributed,
 		ExtraTokens: usage.GetExtraTokens(), PriceType: q.price.Type,
 		InputPrice: q.price.GetInput(), OutputPrice: q.price.GetOutput(), GroupRatio: q.groupRatio,
 		ExtraRatios: make(map[string]float64),
@@ -43,5 +51,4 @@ func (q *Quota) recordMissingRealtimeUsage(total *types.UsageEvent, responseID s
 		evidence.ExtraRatios[key] = q.price.GetExtraRatio(key)
 	}
 	q.terminal = &model.QuotaTerminal{Outcome: model.QuotaOutcomeReconcile, Reconciliation: evidence}
-	return errors.New("realtime response usage missing; reservation requires reconciliation")
 }

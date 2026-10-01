@@ -67,6 +67,7 @@ func ChatRealtime(c *gin.Context) {
 	wsProxy.Wait()
 	// Both transfer workers have stopped. No usage callback can race final
 	// accounting or outlive the Gin request context.
+	relay.quota.ReconcileUnfinishedRealtime(relay.usage)
 	relay.quota.Consume(relay.c, relay.usage.ToChatUsage(), false)
 
 }
@@ -123,6 +124,7 @@ func (r *RelayModeChatRealtime) getProvider() bool {
 			return true
 		} else {
 			r.providerConn.Close()
+			r.quota.ReconcileUnfinishedRealtime(r.usage)
 			usage := r.usage.ToChatUsage()
 			if usage.HasTokenUsage() || r.quota.NeedsRealtimeReconciliation() {
 				r.quota.Consume(r.c, usage, false)

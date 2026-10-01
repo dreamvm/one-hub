@@ -906,3 +906,10 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - fresh-context 独立审阅发现 response 整体缺失/null 的提前报错绕过；父任务复现 4 个失败、3 个控制通过后修正，原 `invalid_response` 保留。最终 94 个专项叶子、规定回归、vet、编译通过。审阅后修改未独立复审的单次周期限制见专项文档。
 - 当前尚未创建 PR、未完成准确候选 CI 或合并。新增列的 MySQL/PostgreSQL 迁移、通用异常结束、运行中崩溃和历史核对仍待各自证据；本地通过不等于交付完成。RC8 仍只预留。
 - 后续 [PR #76](https://github.com/dreamvm/one-hub/pull/76) 首候选 `f7690802` 的 CI 在 PostgreSQL 迁移夹具失败：同一池删列再加列留下旧 `SELECT *` 执行计划。SQLite/MySQL 及其余检查通过；已修正夹具为旧结构建立后新连接迁移，全部准确候选 CI 需重跑，未合并。
+
+### Realtime 缺失用量合并与未完成响应候选
+
+- PR #76 最终 head `bee84d6c4b5b784c75d7e50fc862337464d89c53` 已合并为 `51590891071dd8626ae13a9913285022a8ba79e3`；候选、合成、计算与实际合并树一致。准确候选 [36783144118](https://github.com/dreamvm/one-hub/actions/runs/36783144118) / [36783144323](https://github.com/dreamvm/one-hub/actions/runs/36783144323) 全 9 项通过，三数据库各 289 节点/249 事务叶子（含旧账本加列迁移）通过，48 个隔离业务/升级回滚 PASS、4 种 Compose 启动通过。镜像/程序身份详见 [REALTIME_MISSING_USAGE.md](REALTIME_MISSING_USAGE.md#合并验收)，未发布。
+- 合并后 main [36784595991](https://github.com/dreamvm/one-hub/actions/runs/36784595991) 已成功。首轮 PostgreSQL 夹具失败及单次审阅后的修改范围限制继续保留，不能把最后成功反写成首轮成功。
+- 下一独立分支 `codex/realtime-unfinished-response` 处理供应商已观察开始但未取得对应完整用量的收尾，见 [REALTIME_UNFINISHED_RESPONSES.md](REALTIME_UNFINISHED_RESPONSES.md)。旧版 5 个失败/4 个正常对照；候选 123 个专项叶子、规定回归、vet、编译通过；全新预调查和全新候选独立审阅完成，未发现受检范围内阻断项。快进已合并 main 后十文件源码补丁摘要保持不变。
+- 此候选尚无准确 CI/PR/合并。开始事件缺失的非完整流、客户端已发送但供应商尚未可见的窗口、崩溃前证据和历史核销规则仍开放；不声称 Realtime 异常结束已全部关闭。RC8、正式发布、生产步骤仍未执行。
