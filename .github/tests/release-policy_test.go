@@ -24,6 +24,16 @@ type workflow struct {
 }
 
 type job struct {
+	RunsOn   string `yaml:"runs-on"`
+	Strategy struct {
+		FailFast *bool `yaml:"fail-fast"`
+		Matrix   struct {
+			Include []struct {
+				Runner string `yaml:"runner"`
+				Arch   string `yaml:"arch"`
+			} `yaml:"include"`
+		} `yaml:"matrix"`
+	} `yaml:"strategy"`
 	If          string            `yaml:"if"`
 	Uses        string            `yaml:"uses"`
 	Needs       any               `yaml:"needs"`
@@ -34,13 +44,14 @@ type job struct {
 }
 
 type step struct {
-	ID              string         `yaml:"id"`
-	If              string         `yaml:"if"`
-	Uses            string         `yaml:"uses"`
-	Run             string         `yaml:"run"`
-	With            map[string]any `yaml:"with"`
-	ContinueOnError any            `yaml:"continue-on-error"`
-	TimeoutMinutes  int            `yaml:"timeout-minutes"`
+	Env             map[string]string `yaml:"env"`
+	ID              string            `yaml:"id"`
+	If              string            `yaml:"if"`
+	Uses            string            `yaml:"uses"`
+	Run             string            `yaml:"run"`
+	With            map[string]any    `yaml:"with"`
+	ContinueOnError any               `yaml:"continue-on-error"`
+	TimeoutMinutes  int               `yaml:"timeout-minutes"`
 }
 
 func readWorkflow(t *testing.T, name string) workflow {
@@ -208,7 +219,7 @@ func TestIsolatedSmokeCannotPublish(t *testing.T) {
 			built = true
 			require.Equal(t, false, item.With["push"])
 			require.Equal(t, true, item.With["load"])
-			require.Equal(t, "linux/amd64", item.With["platforms"])
+			require.Equal(t, "linux/${{ matrix.arch }}", item.With["platforms"])
 			require.Equal(t, "onehub-isolated-smoke:${{ env.SOURCE_SHA }}", item.With["tags"])
 		}
 	}
@@ -242,7 +253,7 @@ func TestSmokeRunsAllBackendsAndRollbackWithImmutableFixtures(t *testing.T) {
 	fixtures := steps["fixtures"].Run
 	require.Contains(t, fixtures, "set -euo pipefail")
 	require.Contains(t, fixtures, "for variable in OLD_IMAGE MYSQL_IMAGE POSTGRES_IMAGE REDIS_IMAGE")
-	require.Contains(t, fixtures, `docker pull --platform linux/amd64 "$reference"`)
+	require.Contains(t, fixtures, `docker pull --platform "linux/$TARGET_ARCH" "$reference"`)
 	require.Contains(t, fixtures, `docker image inspect --format '{{.Id}}' "$reference"`)
 	require.Contains(t, fixtures, `docker image inspect --format '{{.Id}}' "onehub-isolated-smoke:$SOURCE_SHA"`)
 	require.Contains(t, fixtures, `CANDIDATE_IMAGE_ID=%s`)

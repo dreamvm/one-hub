@@ -13,3 +13,12 @@ Overview筛选区域的外层Grid使用lg/xs宽度却没有item，现有11项测
 1440×1000浅色/390×844深色分别覆盖正常、HTTP503、业务失败、空结果、过时成功、过时错误、日期/分组/用户筛选七组：共14组通过，正常及恢复后真实6个ApexCharts SVG与合成汇总匹配，失败/空结果期间无旧图表，旧响应不覆盖新结果。页面异常0，HTTP失败各产生1条预期503控制台错误，其余错误/警告0。最终明暗主题截图另等图表动画稳定后取帧并目视核对。
 
 限制：只覆盖当前调用布局、上述浏览器与尺寸，不代表任意字体缩放或其他浏览器已验收。日期标题草稿语义及异常输入政策另行处理；不涉及真实模型、生产数据或发布。回滚单行将恢复原布局与警告。
+
+
+## 2026-10-01 合并验收
+
+[PR #100](https://github.com/dreamvm/one-hub/pull/100) head018b7b1713c1d85ed8ae769f751797da62b35d14的手动准确候选[Compatibility36871413655](https://github.com/dreamvm/one-hub/actions/runs/36871413655)/[Isolated36871421547](https://github.com/dreamvm/one-hub/actions/runs/36871421547)九项成功。初始叠加分支不在main事件范围，使用workflow_dispatch，不声称自动PR验收。smoke110401714685实际89PASS（12SQLite/35MySQL/35PostgreSQL/7升级回滚）、九波并发、四种Compose通过。
+
+镜像sha256:91bd4484e67785bcdae1cfea5ca5590f00f364a9ab5fce5ae114afae25b3f5d0；程序SHA256 36db5f5d9d74a1cb4dbad618e1c4c34cdce38c1f65fd4f2802b4709d31a4669d，Go1.25.14/one-api/linux amd64/CGO1。仅隔离本地镜像，未发布。
+
+改基最新main aed35474decd106090dc56c0a02719cb8cd58a82后计算合并树、候选均为c5ad44c113052146f4fa521f1085959ef7b75f0e。合成6692c152b64185a481c8655177f8b071786a7263仍保留旧d2a15495/018b7b17父节点，树相同，不声称祖先刷新。锁定head合并86fea947506186ce9cf800cc3f19152bce3d508f，API验证实际父节点为最新main/候选，实际树相同。[main CI36874138917](https://github.com/dreamvm/one-hub/actions/runs/36874138917)待核对。
