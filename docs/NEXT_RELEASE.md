@@ -919,3 +919,10 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - [PR #77](https://github.com/dreamvm/one-hub/pull/77) head `236d2b5b2d5f8ee820c7c4a3236019e321c2fed9` 已合并为 `f5c1ad53ef3e2d4b078d55404fc6e4ac4098cca5`；候选、合成、计算、实际合并树均为 `52072836cc8de7d0bd054196c2b41f5f951fa110`。准确候选 [36821487199](https://github.com/dreamvm/one-hub/actions/runs/36821487199) / [36821487446](https://github.com/dreamvm/one-hub/actions/runs/36821487446) 全 9 项成功，48 个隔离业务/升级回滚 PASS 与 4 种 Compose 通过。实际镜像程序身份见 [REALTIME_UNFINISHED_RESPONSES.md](REALTIME_UNFINISHED_RESPONSES.md#合并验收)，未发布。合并后 main [36822827773](https://github.com/dreamvm/one-hub/actions/runs/36822827773) 已成功。
 - 下一独立分支 `codex/realtime-progress-boundary` 处理缺少开始事件但出现输出进度的收尾，见 [REALTIME_PROGRESS_BOUNDARY.md](REALTIME_PROGRESS_BOUNDARY.md)。20 类事件旧版 40 个失败、20 个正常控制；候选专项 147 个叶子/150 个节点通过。全新只读候选审阅无具体发现，规定回归、vet、编译通过；源码/测试补丁摘要见专项文档。准确候选 CI/PR/合并待完成。
 - 非法完成报告、没有响应 ID 的 item 状态、客户端工作可见性、崩溃前持久化和历史核销继续开放。RC8 仍未建标签，正式发布阻断项未全部关闭。
+
+### Realtime 输出进度草稿与无效报告候选的审阅限制
+
+- [PR #78](https://github.com/dreamvm/one-hub/pull/78) head `11a0e3762fc2d8a0b440a30cb7e631414e387616` 的 [36823355438](https://github.com/dreamvm/one-hub/actions/runs/36823355438) / [36823355908](https://github.com/dreamvm/one-hub/actions/runs/36823355908) 已完成全 9 项检查；未合并。后续调查发现第一层类型错误早退仍可能丢弃可识别工作，原独立审阅未覆盖该残余表示，PR 已改草稿，不能以绿色 CI 覆盖完整性缺口。
+- 下一分支 `codex/realtime-invalid-usage` 叠加在 #78，处理解析/负数/溢出报告被拒绝后的错误终局。旧版 10 个失败/6 个控制，修正前候选 281 个专项叶子/299 个节点及规定回归、vet、编译通过。已有同 ID 合法更正、首收据权威及接受报告后的预算错误保留；详见 [REALTIME_INVALID_USAGE.md](REALTIME_INVALID_USAGE.md)。
+- 全新独立审阅先报告上述信封早退问题，随后被平台内容检查中断，没有完整结论。父任务基于项目及 Go 标准库源码修正，但不重试受限审阅或执行其新增变体；原有获授权回归重新核验，不能补足独立审阅和该变体证据。候选保留草稿，不合并，不标记该边界已修复。
+- 无标签、镜像发布、生产部署或真实付费调用。Rollup/Vite 原有审阅限制仍保留。仅暂停缺少审阅的交付步骤，继续其余独立的历史账目规则等工作。

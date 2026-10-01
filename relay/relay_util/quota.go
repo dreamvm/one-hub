@@ -168,6 +168,13 @@ func (q *Quota) UpdateUserRealtimeQuota(usage *types.UsageEvent, nowUsage *types
 	accepted, err := q.mergeRealtimeReceipt(usage, nowUsage)
 	if accepted {
 		q.completeRealtimeResponse(nowUsage.ResponseID)
+	} else if err != nil {
+		// A rejected new report cannot prove that the accepted total is final.
+		// Existing receipts stay authoritative; a later valid same-ID report
+		// can still resolve this activity before terminal reconciliation.
+		if startErr := q.startRealtimeResponse(nowUsage.ResponseID); startErr != nil {
+			return errors.Join(err, startErr)
+		}
 	}
 	if err != nil {
 		return err

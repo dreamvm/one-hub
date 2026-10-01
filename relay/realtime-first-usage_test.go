@@ -65,7 +65,7 @@ func TestRealtimeFirstUsageFailureSettlement(t *testing.T) {
 		{"unpriceable audio preserves reservation", `{"input_token_details":{"audio_tokens":7}}`, "invalid computation", false, false, false, 20, 0, 1},
 		{"ordinary tokens write", `{"input_tokens":7,"total_tokens":7}`, "tokens", true, false, false, 7, 1, 1},
 		{"zero usage write retries", `{}`, "tokens", true, false, false, 0, 0, 2},
-		{"invalid usage retries", `{"input_token_details":{"audio_tokens":-7}}`, "tokens", false, false, false, 0, 0, 2},
+		{"invalid usage preserves reservation", `{"input_token_details":{"audio_tokens":-7}}`, "tokens", false, false, false, 20, 0, 1},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			db, fixture, _, _ := searchQuotaFixture(t, tc.unlimited)
@@ -165,6 +165,10 @@ func TestRealtimeFirstUsageFailureSettlement(t *testing.T) {
 					require.Equal(t, tc.spent, receipt.FinalQuota)
 				} else if tc.pricing == "invalid computation" {
 					require.Equal(t, model.QuotaReservationReserved, receipt.State)
+					require.Empty(t, receipt.Outcome)
+					require.Equal(t, 20, receipt.ReservedQuota)
+				} else if tc.name == "invalid usage preserves reservation" {
+					require.Equal(t, model.QuotaReservationReconcile, receipt.State)
 					require.Empty(t, receipt.Outcome)
 					require.Equal(t, 20, receipt.ReservedQuota)
 				} else {

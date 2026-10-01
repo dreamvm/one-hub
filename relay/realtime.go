@@ -163,7 +163,7 @@ func (r *RelayModeChatRealtime) getRealtimeFirstMessage() error {
 	}
 	shouldContinue, usage, newMessage, err := r.messageHandler(requester.SupplierMessage, messageType, firstMessage)
 	// Capture unknown accounting even when the completion itself is rejected.
-	if usage != nil && usage.MissingUsage {
+	if usage != nil && (usage.MissingUsage || (usage.ResponseStarted && err != nil)) {
 		usageErr := r.usageHandler(usage)
 		usage = nil
 		if err == nil {

@@ -91,14 +91,16 @@ func (p *WSProxy) transfer(src, dst *websocket.Conn, source MessageSource, close
 			shouldContinue, usage, newMessage, err := p.handler(source, messageType, message)
 			// A rejected completion can still prove that accounting is unknown.
 			// Preserve its error, but retain the reservation before handling it.
-			if usage != nil && usage.MissingUsage && p.usageHandler != nil {
+			if usage != nil && (usage.MissingUsage || (usage.ResponseStarted && err != nil)) && p.usageHandler != nil {
 				usageErr := p.usageHandler(usage)
 				usage = nil
 				if usageErr != nil {
-					p.supplierConn.Close()
 					if err == nil {
 						err = usageErr
 					}
+				}
+				if err != nil {
+					p.supplierConn.Close()
 				}
 			}
 			if err != nil {
