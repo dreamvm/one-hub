@@ -6,6 +6,8 @@ import { API } from '../src/utils/api';
 import { Wrapper, zh } from './ui-test-utils';
 
 const navigation = vi.hoisted(() => vi.fn());
+// Decorative icons must not start remote loaders or outlive the isolated test DOM.
+vi.mock('@iconify/react', () => ({ Icon: () => <span /> }));
 vi.mock('react-router-dom', async (original) => ({ ...(await original()), useNavigate: () => navigation }));
 vi.mock('../src/utils/api', () => ({ API: { get: vi.fn() } }));
 vi.mock('../src/utils/common', async (original) => ({ ...(await original()), showError: vi.fn() }));

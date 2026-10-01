@@ -11,6 +11,8 @@ import { API } from '../src/utils/api';
 import { getInvoiceMonth, isInvoiceMonth } from '../src/utils/invoiceDate';
 import './ui-test-utils';
 
+// Route behavior does not depend on external icon delivery.
+vi.mock('@iconify/react', () => ({ Icon: () => <span /> }));
 vi.mock('../src/layout/MainLayout', () => ({ default: () => <Outlet /> }));
 vi.mock('../src/layout/MinimalLayout', () => ({ default: () => <Outlet /> }));
 vi.mock('../src/utils/api', () => ({ API: { get: vi.fn() } }));
