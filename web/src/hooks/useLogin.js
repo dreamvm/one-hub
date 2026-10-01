@@ -139,17 +139,19 @@ const useLogin = () => {
 
   const loadUserGroup = useCallback(() => {
     try {
-      API.get('/api/user_group_map').then((res) => {
-        const { success, data } = res.data;
-        if (success) {
-          dispatch({ type: SET_USER_GROUP, payload: data });
-        }
-      });
+      API.get('/api/user_group_map')
+        .then((res) => {
+          const { success, data } = res.data;
+          if (success) {
+            dispatch({ type: SET_USER_GROUP, payload: data });
+          }
+        })
+        .catch((error) => console.error(error));
     } catch (error) {
       console.error(error);
     }
     return [];
-  }, []);
+  }, [dispatch]);
 
   return { login, logout, githubLogin, wechatLogin, larkLogin, oidcLogin, loadUser, loadUserGroup };
 };

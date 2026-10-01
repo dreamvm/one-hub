@@ -21,3 +21,11 @@ Node22.20.0 / Yarn1.22.22，复用已frozen安装且清单锁文件相同的临�
 Browser plugin 不可用，使用现有Playwright CLI0.1.22 / Chromium154.0.8037.58访问随机localhost实际生产构建。所有用户、模型和API均为合成数据，外部请求被拦截，装饰图标本地返回。1440×1000浅色与390×844深色分别检查字母和数字厂商：元数据延迟时先展示当前顺序，释放元数据后更正为Alpha/Beta及OpenAI/360；展开/复制成功提示/收起均正常，每次导航恰好一次模型请求。四组检查均无页面错误或控制台错误/警告；最终截图已目视核对，目标卡片无截断/重叠或白屏。浏览器与临时服务已关闭。
 
 复制检查证明原有调用参数与页面成功提示，不读取系统剪贴板；未验证权限拒绝或共享复制工具的异步错误处理。未知/非法响应类型、全部页面、真实后端与生产数据不在本项验收范围。StrictMode仅为生命周期控制，当前生产入口未开启。回滚两个源码/测试文件会恢复旧排序，无数据迁移或配置变更；整体RC8状态未改变。
+
+## 2026-10-01 合并验收
+
+[PR #91](https://github.com/dreamvm/one-hub/pull/91) head `1d3102eb12dba6620cca89533e6aaf7f3234b638` 的 [36851245168](https://github.com/dreamvm/one-hub/actions/runs/36851245168) / [36851245604](https://github.com/dreamvm/one-hub/actions/runs/36851245604) 全九项成功。实际日志89个PASS（SQLite12、MySQL35、PostgreSQL35、升级/回滚7），包括三数据库九轮并发；四种Compose启动通过。
+
+隔离镜像ID `sha256:d9d3deb68b236a3739f06a35553422360e3916f3e53e6c714185f9338f6c180e`；提取程序SHA256 `36262c655d7beb0821adcc74e70ccac148abb313d9530ad62de27352ec8e1a24`，Go1.25.14 / one-api / linux-amd64 / CGO1。镜像未发布。
+
+实际合并 `c8d1ace99278cabc61b4f76ec9e2e2bb3c92a3db`；候选、GitHub合成 `815bad3530500eaf434b3054c61657b3c4bdfece`、本地计算及实际合并树均 `976780068cc44017f185ba42e40c5f9c3db5fa63`。合并后 main [36853275946](https://github.com/dreamvm/one-hub/actions/runs/36853275946) 待核对。父任务数字厂商修正未二次复审的限制仍保留，其他发布阻断项不变。
