@@ -1204,3 +1204,9 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - [#118验收](FRONTEND_OPTIONAL_TOOL_PATHS.md#2026-10-01-118合并验收)十项准确候选检查及双架构89/9/4成功，候选/合成/最新main计算/实际树一致；实际合并e84d12c1。准确head的[main CI36929440139](https://github.com/dreamvm/one-hub/actions/runs/36929440139)已成功，四项真实checkout均为该合并提交。
 - [最后75条匹配器/YAML路径](FRONTEND_MATCHER_YAML_BOUNDARIES.md)已结束静态初筛：53条受检入口不适用、22条待核实、零条确认项目漏洞。js-yaml实际完整配置解析10条和Vite matcher来源12条继续核实；未初筛队列归零不等于依赖或发布阻断项关闭，库版本仍受影响。
 - 本次只新增文档，自己的独立证据审阅、准确候选CI与合并待完成。四个受限审阅没有重试或改道；真实历史归属、生产事实及最终RC8继续开放，未发布或部署。
+
+### #119与共享YAML候选
+
+- [#119实际验收](FRONTEND_MATCHER_YAML_BOUNDARIES.md#2026-10-01-119合并验收)十项准确候选检查和双架构89/9/4成功，合并dac105ff；候选/合成/最新main计算/实际树一致。[自身main CI36934262113](https://github.com/dreamvm/one-hub/actions/runs/36934262113)已成功，准确head为dac105ff，四项真实checkout均已核对。
+- [共享js-yaml v4](JS_YAML_CONFIG_BOUNDARY.md)候选4.3.2只更新一个锁条目，新增实际ESLint边界回归，纳入test:deps；旧版13个安全断言失败、7个正常对照通过，候选20叶子/Node21全通过，完整前端回归、lint、build及一次fresh独立审阅通过。本地记录不是交付；自身准确CI、合并及main验收仍待完成。
+- 精确复查由205变195路径/93Yarn ID/72GHSA，无新增，独立v3仍有五个公告匹配；Vite十二条、此前范围缺口、受限#68/#71/#78/#79、历史归属、生产事实和最终RC8继续开放。没有标签、发布镜像、部署或真实付费调用。
