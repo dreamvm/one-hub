@@ -3,16 +3,18 @@ import PropTypes from 'prop-types';
 
 import { TableRow, TableCell, Button } from '@mui/material';
 import { renderNumber, calculateQuota } from 'utils/common';
+import { getInvoiceMonth } from 'utils/invoiceDate';
 
 import { useTranslation } from 'react-i18next';
 
 export default function InvoiceTableRow({ item, manageInvoice }) {
   const { t } = useTranslation();
+  const month = getInvoiceMonth(item.date);
 
   return (
     <>
       <TableRow tabIndex={item.id}>
-        <TableCell>{item.date ? item.date.substring(0, 7) : ''}</TableCell>
+        <TableCell>{month || t('token_index.invalidDate')}</TableCell>
         <TableCell>${calculateQuota(item.quota, 6)}</TableCell>
         <TableCell>
           {renderNumber(item.prompt_tokens)} / {renderNumber(item.completion_tokens)}
@@ -20,7 +22,7 @@ export default function InvoiceTableRow({ item, manageInvoice }) {
         <TableCell>{item.request_count}</TableCell>
         <TableCell>{(item.request_time / 1000).toFixed(3)}s</TableCell>
         <TableCell>
-          <Button variant="contained" color="primary" size="small" onClick={() => manageInvoice(item.date)}>
+          <Button variant="contained" color="primary" size="small" disabled={!month} onClick={() => manageInvoice(month)}>
             {t('invoice_index.viewInvoice')}
           </Button>
         </TableCell>
