@@ -308,7 +308,7 @@ func GetUserInvoiceDetail(params *StatisticsMonthDetailSearchParams) ([]*Statist
 
 	var statistics []*StatisticsMonthModel
 	query := DB.Table("statistics_months").
-		Select("? , model_name ,sum(request_count) as request_count, sum(quota) as quota, sum(prompt_tokens) as prompt_tokens, sum(completion_tokens) as completion_tokens, sum(request_time) as request_time", dateSqlStr).
+		Select(dateSqlStr + ", model_name, sum(request_count) as request_count, sum(quota) as quota, sum(prompt_tokens) as prompt_tokens, sum(completion_tokens) as completion_tokens, sum(request_time) as request_time").
 		Where("user_id = ? AND date = ?", params.UserId, params.Date).
 		Group("date,model_name, user_id").
 		Order("date DESC")
