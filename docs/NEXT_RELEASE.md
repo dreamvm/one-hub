@@ -1210,3 +1210,9 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - [#119实际验收](FRONTEND_MATCHER_YAML_BOUNDARIES.md#2026-10-01-119合并验收)十项准确候选检查和双架构89/9/4成功，合并dac105ff；候选/合成/最新main计算/实际树一致。[自身main CI36934262113](https://github.com/dreamvm/one-hub/actions/runs/36934262113)已成功，准确head为dac105ff，四项真实checkout均已核对。
 - [共享js-yaml v4](JS_YAML_CONFIG_BOUNDARY.md)候选4.3.2只更新一个锁条目，新增实际ESLint边界回归，纳入test:deps；旧版13个安全断言失败、7个正常对照通过，候选20叶子/Node21全通过，完整前端回归、lint、build及一次fresh独立审阅通过。本地记录不是交付；自身准确CI、合并及main验收仍待完成。
 - 精确复查由205变195路径/93Yarn ID/72GHSA，无新增，独立v3仍有五个公告匹配；Vite十二条、此前范围缺口、受限#68/#71/#78/#79、历史归属、生产事实和最终RC8继续开放。没有标签、发布镜像、部署或真实付费调用。
+
+### #120交付与Vite候选保留
+
+- [共享YAML #120](JS_YAML_CONFIG_BOUNDARY.md#2026-10-01-120合并验收)候选b7677242十项准确检查、双架构89/9/4及Go1.25.14最终程序身份通过，候选/合成/最新main计算/实际树相等；实际合并6b1b3283。[自身main CI36937929600](https://github.com/dreamvm/one-hub/actions/runs/36937929600)已成功，四项真实checkout均为实际合并。
+- [Vite matcher候选](VITE_MATCHER_CANDIDATE_REVIEW.md)在TEMP完成旧新固定对照、前端回归与一次fresh审阅，审阅的重复表示残留和空格匹配回归已核实；没有应用、提交、运行时PR、候选CI或合并，原十二条保持开放。
+- 当前main依赖快照195条；未合并候选185条消失十二个Vite key并新增两条Sass/readdirp key，新增两条各自静态保留，不能冒称无新增或main已修补。独立v3、四个受限草稿、历史归属、生产事实、最终RC8及专项发布授权继续开放。

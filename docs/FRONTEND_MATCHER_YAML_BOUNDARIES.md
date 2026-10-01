@@ -158,3 +158,14 @@ verification.json SHA256为faca7b55dda224d3304ecbd3b6983a38396196eae6e2c690fba4b
 
 后续[共享YAML v4候选](JS_YAML_CONFIG_BOUNDARY.md)已完成有界旧新对照、本地完整回归及
 一次fresh独立审阅；自身准确候选CI、合并和main仍待完成，独立v3和Vite十二条继续开放。
+
+## 2026-10-01 #120交付与Vite候选审阅
+
+[共享YAML #120](JS_YAML_CONFIG_BOUNDARY.md#2026-10-01-120合并验收)十项准确候选检查、
+双架构89/9/4和最终程序身份已通过，实际合并6b1b3283同树，
+[自身main CI36937929600](https://github.com/dreamvm/one-hub/actions/runs/36937929600)成功。
+历史22条中十条共享v4已有库修补交付；独立v3及其他范围缺口不由该记录关闭。
+
+[Vite候选审阅](VITE_MATCHER_CANDIDATE_REVIEW.md)发现重复表示残留和字面空格匹配回归，
+父代理有界核实；4.0.7候选仅在TEMP，未提交、未创建运行时PR或完成候选CI/合并。
+十二条继续开放。该候选审计185条不是main195条，新增两条Sass/readdirp输入分别静态保留。
