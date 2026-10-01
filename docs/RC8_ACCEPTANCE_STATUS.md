@@ -58,4 +58,15 @@ one-api、Linux/对应架构、CGO=1。
 
 [当前前端快照](FRONTEND_AUDIT_FOLLOWUP.md)为205条路径、98个Yarn ID和72个GHSA。
 本批六条工具链输入为受检入口not_actionable；另外96条缺少直接范围索引的输入继续核对。
+
+## 2026-10-01 #117与后续依赖范围
+
+[#117最终记录](FRONTEND_AUDIT_FOLLOWUP.md#2026-10-01-117合并验收)候选6901678f，
+十项准确检查和两个原生架构各89PASS/9waves/4Compose通过；真实checkout、
+Go1.25.14最终程序身份及实际合并2cb47018同树已核对。
+[main CI36924792593](https://github.com/dreamvm/one-hub/actions/runs/36924792593)已成功，准确head为实际合并提交2cb47018。
+
+[后续21条路径](FRONTEND_OPTIONAL_TOOL_PATHS.md)仅为当前维护入口静态not_actionable，
+并无库补丁或动态验证；其余75条仍未核对，原205条匹配全部保留。
+新增记录仍须独立证据审阅、自身准确候选CI和合并；不补足受限审阅、生产或最终RC证据。
 已有范围记录、受影响库和已修补依赖各自保留；没有宣布审计清零或整体RC8通过。

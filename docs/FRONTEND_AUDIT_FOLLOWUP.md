@@ -79,3 +79,31 @@ ddd1deae31b2c374e3b9cf64654cebe0b565c63869a2c5b8c06258f7748a3ac6；审计前后�
 一次非作者、复用上下文且非fresh的独立只读证据审阅核对六条结果和全部审计来源，
 指出压缩前JSON哈希、build警告表述和旧记录顺序三处问题；按已有证据修正。
 没有新triage、动态测试或服务运行。准确候选CI及合并另记，静态判断不能替代交付步骤。
+
+## 2026-10-01 #117合并验收
+
+候选6901678f6204485c370e4879af452455ea24374c的
+[Compatibility36921857761](https://github.com/dreamvm/one-hub/actions/runs/36921857761)和
+[Isolated36921858915](https://github.com/dreamvm/one-hub/actions/runs/36921858915)原始运行均成功，
+十项检查通过。前者四项真实checkout合成609dfc1d，后者六项真实checkout候选。
+候选、合成609dfc1db7463cd087a425c927a1e028243ba59a、最新main f2476a68计算及
+实际合并2cb47018382ae9f086ec7471580c04b0c2505a4d的树均为
+bf920560721ef979721fb806375b8f117772e618。
+
+两个前端作业均22文件209UI通过，ESLint无诊断；build成功且>500kB chunk警告保留。
+两个native作业各89PASS、九轮并发、四种Compose；最终程序为Go1.25.14、one-api、
+Linux对应架构、CGO1，来自CI本地加载image，未发布。
+
+| 架构 / job | image SHA256 | 最终程序SHA256 |
+| --- | --- | --- |
+| amd64 / 110571367470 | 204a2e42f1365e6e23a1005cb7c37b65c64909b3e972e90358b5adfbe510a3a5 | 8e3f56bdd0dd5f8248586458e87351c64f1f07a6377c7b0f761ed988e38cd0e9 |
+| arm64 / 110571367350 | 5477c3059e1179f8c55a243f1610cabe23fbb9b80d81196dd2356389f7c8c249 | 2e5a5351712d258ae66111674d315101974224afed015fc828bfdf75940f3204 |
+
+十份日志及真实checkout/树/程序身份记录保存为私有证据；verification.json SHA256为
+21fe449622001a4464edef8338059de91784e6791fd81a3c70a0161d1d8900a8，SHA清单为
+b46dcf4e92a52c33f617a8f041a4a981a4fe762d0b1be8444456a14db6dfd69f。
+[合并后main CI36924792593](https://github.com/dreamvm/one-hub/actions/runs/36924792593)
+已成功，准确head为实际合并提交2cb47018。
+
+后续[21条可选工具路径](FRONTEND_OPTIONAL_TOOL_PATHS.md)完成静态核对，剩余队列由96变75；
+这是后续独立批次，不改写#117初次六条的范围，也不称库已修补。
