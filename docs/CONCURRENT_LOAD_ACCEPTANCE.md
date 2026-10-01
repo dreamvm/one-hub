@@ -32,3 +32,13 @@ mock 容器仅在 SQLite 模式挂载本次随机名称的数据卷到 /fixture-
 ## 独立审阅与异常路径修正
 
 一次独立审阅由未参与实现的既有审阅者执行，复用了其 OIDC/指标审阅上下文，不是 fresh-context 审阅。确认 P2：原 ThreadPoolExecutor 上下文在首个失败后仍跑完 32 个排队任务才清理。主代理按同一纯内存复现核实原来 arm(0)→disarm(32)→delete(32)；修正为停止标记、取消尚未开始任务、45 秒整轮期限和25秒在途探测上限后，同一场景为 arm(0)→disarm(1)→delete(1)。新控制覆盖正常32次完成，以及四个已运行请求中发生异常、超时、取消后不启动剩余队列。该修正未再进行第二轮独立审阅；真实 Linux 静态 mock 与三数据库负载仍须候选 CI 证明。
+
+## 2026-10-01 合并验收
+
+前述待执行状态现由以下最终记录更新。[PR #87](https://github.com/dreamvm/one-hub/pull/87) head f50b2756614558fa6c0de9c8a8dee3a39abdfd4d 的[兼容 CI 36841280044](https://github.com/dreamvm/one-hub/actions/runs/36841280044)与[镜像验收 36841280643](https://github.com/dreamvm/one-hub/actions/runs/36841280643)全部九项成功。真实结果89个PASS（SQLite12、MySQL35、PostgreSQL35、升级/回滚7），含三后端各三轮32次并发、真实重叠与精确账务/上游/HTTP计数、预留和处理器排空、无OOM、PID不变、负载后正常对照；四种Compose启动通过。Linux静态mock与SQLite只读固定查询实际运行成功。
+
+逐轮排空观测：SQLite协程27/26/26、FD15/15/15、RSS66850816/66850816/66981888字节；MySQL协程30/31/30、FD18/18/18、RSS59510784/59617280/59617280；PostgreSQL协程26/26/26、FD18/18/18、RSS61779968/63819776/61698048。SQL池断言通过。这里只证明有界场景，没有证明长期零泄漏或生产容量。
+
+最终镜像ID sha256:98542d81ca7d04952d605869f5febe26640a3d5f040ad9533e9d1fd1eba41035，程序SHA256 4e9190105544be124fb88b726c3566fc2bccda400d9e507b80aeed360f6dc65d，实际身份Go1.25.14 / one-api / linux-amd64 / CGO=1；未发布镜像。
+
+合并提交d190a5c45db4ccb81adde454447aa29266e48d5c，候选、GitHub合成、本地计算和实际合并树均047d5f062416c457f27cf3b3a2c7fd137a0a9b71。合并后[main CI 36843424536](https://github.com/dreamvm/one-hub/actions/runs/36843424536)尚待核对。前置PR86 main CI36840850235已成功。受限安全审阅、arm64、生产事实及最终RC验收仍开放。
