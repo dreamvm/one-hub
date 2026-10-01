@@ -21,6 +21,7 @@ export default function Overview() {
   const [usersData, setUsersData] = useState([]);
   const [dateRange, setDateRange] = useState({ start: dayjs().subtract(6, 'day').startOf('day'), end: dayjs().endOf('day') });
 
+  const [queriedDateRange, setQueriedDateRange] = useState(dateRange);
   const requestSequence = useRef(0);
 
   const [groupType, setGroupType] = useState('model_type');
@@ -36,6 +37,7 @@ export default function Overview() {
 
   const fetchData = async (date, gType, uId) => {
     const sequence = ++requestSequence.current;
+    setQueriedDateRange(date);
     setUsersData(null);
     setChannelData(null);
     setRedemptionData(null);
@@ -125,7 +127,7 @@ export default function Overview() {
       </Grid>
       <Grid item xs={12}>
         <Typography variant="h3">
-          {dateRange.start.format('YYYY-MM-DD')} - {dateRange.end.format('YYYY-MM-DD')}
+          {queriedDateRange.start.format('YYYY-MM-DD')} - {queriedDateRange.end.format('YYYY-MM-DD')}
         </Typography>
       </Grid>
       <Grid item xs={12}>
