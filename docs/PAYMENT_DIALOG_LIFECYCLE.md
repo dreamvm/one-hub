@@ -48,3 +48,25 @@ API由浏览器合成响应，所有外部网络拦截；没有配置网关、�
 没有证明所有StrictMode初始打开方式不会重复创建；实际入口初始关闭。
 回滚会恢复前端重复请求、过期显示及轮询泄漏，无数据库结构变化。
 准确候选CI、PR、合并和合并后验证仍待完成；未发布或部署。
+
+## 2026-10-01 合并验收
+
+[PR #114](https://github.com/dreamvm/one-hub/pull/114) 准确候选
+`6bcc849d10fd01ec3d9ba5d14d802aaffc784db9` 的
+[Compatibility](https://github.com/dreamvm/one-hub/actions/runs/36910317511) /
+[Isolated smoke](https://github.com/dreamvm/one-hub/actions/runs/36910317987)共10项成功。
+前端job110531056985实际checkout候选，13项新增专项及22文件209项UI通过。
+各原生架构89项业务/升级PASS、9轮并发和4种Compose成功；从最终镜像提取程序，
+均为Go1.25.14、one-api、Linux相应架构、CGO=1。
+
+| 架构 | 本地镜像 SHA256 | 程序 SHA256 |
+| --- | --- | --- |
+| amd64 | 042146c6a7a0c65ad216a71635d4d6ec90ae21657b9190c4495e4b653f567cde | b1533d14bf24d2e9aa063051bd4b2f0573086073b0b7acc931542107ae21c367 |
+| arm64 | 91cbe2b97c100205d575569387f40ec78b1102aed2c1c87b944d13e9181c1bff | bc14c276f996f2f509485839a30ad7a4ac3b00406425a2066314ef854fa6eac9 |
+
+候选、CI合成93eb640c、最新main计算及实际合并树均为
+`4df4bfc24ef482399470fa5ebe5e435f7be0b729`；实际合并
+`966066fb567e314df79d6f3066fb38542ba45fe4`。
+[合并后main CI](https://github.com/dreamvm/one-hub/actions/runs/36913002027)已成功，核对head为上述合并提交。
+[真实本地支付链路](FRONTEND_REAL_BACKEND_ACCEPTANCE.md#2026-10-01-支付页面与真实本地结算补充)
+另补充无API替身的Gin/SQLite/Epay正常控制，使用自建模拟网关，仍无真实资金或生产调用。
