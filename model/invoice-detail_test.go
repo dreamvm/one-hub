@@ -20,14 +20,9 @@ func TestQuotaTransactionInvoiceDetail(t *testing.T) {
 	// The production reader explicitly names this table, so do not apply the
 	// shared fixture's per-test table prefix. Refuse to replace existing data.
 	require.False(t, db.Migrator().HasTable("statistics_months"))
-	// Use SQL DATE supported by all fixture engines. The legacy production
-	// model's explicit datetime tag is not a portable PostgreSQL fixture DDL.
-	require.NoError(t, db.Exec(`CREATE TABLE statistics_months (
-		date DATE NOT NULL, user_id INTEGER NOT NULL, model_name VARCHAR(255) NOT NULL,
-		request_count INTEGER, quota INTEGER, prompt_tokens INTEGER,
-		completion_tokens INTEGER, request_time INTEGER,
-		PRIMARY KEY (date, user_id, model_name)
-	)`).Error)
+	// Exercise the production model so a backend-specific migration failure
+	// cannot be hidden behind hand-written fixture DDL.
+	require.NoError(t, db.Table("statistics_months").AutoMigrate(&model.StatisticsMonth{}))
 	t.Cleanup(func() { require.NoError(t, db.Migrator().DropTable("statistics_months")) })
 	for _, row := range []map[string]any{
 		{"date": "2026-09-01", "user_id": 1, "model_name": "synthetic-a", "request_count": 2, "quota": 500000, "prompt_tokens": 120, "completion_tokens": 30, "request_time": 2000},

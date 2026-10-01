@@ -43,3 +43,22 @@ Ink 仅在 `DEV === 'true'` 时加载调试模块，因此明确关闭 DEV 的�
 一次未参与编写、复用上下文且非fresh的独立只读文档审阅无具体发现；独立核对命令、
 CLI分支、Ink及dotenv语义和范围表述。未重新核实全部公告版本或私有逐条JSON，
 没有执行CLI、测试或网络，不把这次文档审阅当成每项依赖的新安全验证。
+## 2026-10-01 合并验收
+
+- [PR #110](https://github.com/dreamvm/one-hub/pull/110) 候选 `d4f48aacb1b76d0c044aea89c608e51aa177aefe` 的
+  [Compatibility](https://github.com/dreamvm/one-hub/actions/runs/36900349924) 与
+  [Isolated](https://github.com/dreamvm/one-hub/actions/runs/36900350920) 共十项检查通过。
+  Compatibility 前端实际检出合成提交 `9cb758ca1ac0e58aea777f075d8f60990c8812a7`，
+  双架构 smoke 检出候选；候选、合成、最新 main 计算及实际合并树均为
+  `6fba6f37f50169b851d80907f9913125093d2126`。
+- 实际合并 `da936380c20e89e82006d69e4d69e10279d5c4f3`，父节点为 `e7dc28f7` 与 `d4f48aac`。
+  [合并后 main CI](https://github.com/dreamvm/one-hub/actions/runs/36902867961) 尚待核对。
+- 每个架构各 89 项业务/升级 PASS、九轮并发及四种 Compose 通过。
+  最终 `/one-api` 均确认 Go 1.25.14、main=one-api、Linux、对应架构及 CGO=1。
+
+| 架构 | 本地 CI image ID (sha256) | 最终程序 SHA-256 |
+|---|---|---|
+| amd64 | d64660274aa3bef721fcfc14d6c30ac0622f41d6754db22bb5256a24d127dfe4 | b70bf1d2ef9717e61555bd2b561c9bbc8d2e2c9f0e19ca643e18f05501b4b889 |
+| arm64 | 826e51c47b14748f7da20b2b5433d371787762a3a72ca7b2773632091888b077 | edf075f8f64c1e356dc73e130e6e80929662d130619ce279c9ffc1d6e9c52bd2 |
+
+本次镜像仅用于隔离验收；未发布、部署或执行真实翻译。上述结果不改变依赖本身未修复的边界。

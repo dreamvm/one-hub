@@ -10,7 +10,7 @@ import (
 )
 
 type StatisticsMonth struct {
-	Date             time.Time `gorm:"primary_key;type:datetime" json:"date"`
+	Date             time.Time `gorm:"primary_key" json:"date"`
 	UserId           int       `json:"user_id" gorm:"primary_key"`
 	ModelName        string    `json:"model_name" gorm:"primary_key;type:varchar(255)"`
 	RequestCount     int       `json:"request_count"`
@@ -308,7 +308,7 @@ func GetUserInvoiceDetail(params *StatisticsMonthDetailSearchParams) ([]*Statist
 
 	var statistics []*StatisticsMonthModel
 	query := DB.Table("statistics_months").
-		Select(dateSqlStr + ", model_name, sum(request_count) as request_count, sum(quota) as quota, sum(prompt_tokens) as prompt_tokens, sum(completion_tokens) as completion_tokens, sum(request_time) as request_time").
+		Select(dateSqlStr+", model_name, sum(request_count) as request_count, sum(quota) as quota, sum(prompt_tokens) as prompt_tokens, sum(completion_tokens) as completion_tokens, sum(request_time) as request_time").
 		Where("user_id = ? AND date = ?", params.UserId, params.Date).
 		Group("date,model_name, user_id").
 		Order("date DESC")
