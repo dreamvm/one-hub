@@ -42,3 +42,5 @@ mock 容器仅在 SQLite 模式挂载本次随机名称的数据卷到 /fixture-
 最终镜像ID sha256:98542d81ca7d04952d605869f5febe26640a3d5f040ad9533e9d1fd1eba41035，程序SHA256 4e9190105544be124fb88b726c3566fc2bccda400d9e507b80aeed360f6dc65d，实际身份Go1.25.14 / one-api / linux-amd64 / CGO=1；未发布镜像。
 
 合并提交d190a5c45db4ccb81adde454447aa29266e48d5c，候选、GitHub合成、本地计算和实际合并树均047d5f062416c457f27cf3b3a2c7fd137a0a9b71。合并后[main CI 36843424536](https://github.com/dreamvm/one-hub/actions/runs/36843424536)尚待核对。前置PR86 main CI36840850235已成功。受限安全审阅、arm64、生产事实及最终RC验收仍开放。
+
+2026-10-01 补记：PR #87 合并后 main d190a5c45db4ccb81adde454447aa29266e48d5c 的 [CI36843424536](https://github.com/dreamvm/one-hub/actions/runs/36843424536) 已成功，更新此前待核对状态。

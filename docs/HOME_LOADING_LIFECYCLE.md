@@ -21,3 +21,9 @@ Browser plugin not available；使用已有 Playwright CLI 0.1.22 和独立临�
 正常配置显示标题内容，空配置保留默认首页；HTTP503 显示错误并结束加载，恢复后重新访问显示内容。真实点击主题切换，检查1440×1000桌面浅色与390×844移动深色；无进度遮罩或白屏，主体可见。正常/恢复页无控制台错误或警告，故障页只有预期HTTP503。初次公告夹具错误返回数组已修正后复查；没有把该夹具错误写成应用缺陷。截图及原始日志保存在专项证据中。
 
 该检查不覆盖全部页面、全部语言、移动默认页布局、外部图标可用性、生产API或整体端到端；这些后续验收仍独立开放。临时浏览器和服务已清理。回滚可撤销本项两文件补丁，将恢复旧异常加载问题，不改变数据模型或生产配置。
+
+## 2026-10-01 合并验收
+
+[PR #88](https://github.com/dreamvm/one-hub/pull/88) head fce0129d192c45af08e2550c75ab6dc0684528c8 的[兼容 CI36843813203](https://github.com/dreamvm/one-hub/actions/runs/36843813203)和[镜像 CI36843813637](https://github.com/dreamvm/one-hub/actions/runs/36843813637)共九项成功。实际镜像89个PASS（SQLite12、MySQL35、PostgreSQL35、升级回滚7），包括九轮并发及四种Compose启动。实际镜像ID sha256:601df6d4c0f22e0900906875a8c4554f2ef444b4b2bee6f20f71e2c0ba8b5b32；程序SHA256 93ad83aa643b5246ec7ca8b8c4a0f05fa621e6797adeb8699fdc92fec88ea141，身份Go1.25.14 / one-api / linux-amd64 / CGO=1。
+
+合并提交c784264f6b880aa2e05acceeed67a1368ec42b3a，候选、GitHub合成、本地计算及实际树均a065d82937011515c141732b4ca922933ed21597。合并后[main CI36845885783](https://github.com/dreamvm/one-hub/actions/runs/36845885783)待核对。没有标签、镜像发布或生产部署，其他页面和前端体积验收仍开放。
