@@ -11,3 +11,11 @@ Browser plugin不可用，缓存PlaywrightCLI0.1.22/Chromium154.0.8037.58；随�
 最初脚本被重复价格定位歧义中断，最终用唯一输出价格等待倍率更新后确认；最终截图重新取稳定帧、滚动至价格区域并目视核对。浏览器和临时服务已关闭。没有真实计费或外部报价验证，不替代其他价格配置与全页面端到端验收；回滚一行仅恢复多余重算与警告，RC8及其他发布门槛不变。
 
 继承PR #94后续测试时限修正后，完整162项Vitest及依赖边界和lint再次通过，仍3条警告；应用源码与已审阅/构建/浏览器验证的价格候选逐字一致，只有前置测试同步变化。
+
+## 2026-10-01 合并验收
+
+[PR #95](https://github.com/dreamvm/one-hub/pull/95) head `cd225ef21f3aaf598f886fbc4bdc744854866493` 九项准确候选检查成功：[36861728740](https://github.com/dreamvm/one-hub/actions/runs/36861728740) / [36861729201](https://github.com/dreamvm/one-hub/actions/runs/36861729201)。实际 smoke 为 SQLite 12、MySQL 35、PostgreSQL 35、升级及两条回滚7项，共89个PASS，含九轮并发；四种Compose启动通过。
+
+最终runner镜像 `sha256:9e326b19a03582130834136fdfed95bd5dc5d2d4ec726ec969db5d2af28680a6` 内的实际程序为Go1.25.14 / one-api / linux/amd64 / CGO1，binary SHA256 `649afad56316f377bb9c3d3655d587c5ba8df63198ba7cb7064c18850ae159b9`。镜像未发布。
+
+GitHub合成提交 `c8c0e6a8efb59b414915b0bb3760467ddfd78442`，实际合并 `ca1b429c64c8fff6a80dc1f9463b434bcc85d143`；候选、合成、计算及实际合并树均为 `d4408e24f5108d875f406414e4971ed9e82637e3`。合并后main [36864331311](https://github.com/dreamvm/one-hub/actions/runs/36864331311) 待核对，不替代其他待交付候选的CI。
