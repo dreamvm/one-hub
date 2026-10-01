@@ -962,3 +962,9 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 
 - PR #84 合并提交 `9f0db48c6eb325f14417ae6645e007c0dfc42c92` 的 [main CI 36834793394](https://github.com/dreamvm/one-hub/actions/runs/36834793394) 成功。
 - PR #85 首轮候选 `647f7ffb` 8 项基础检查成功，真实镜像 smoke 在恢复网络原 IP 时因自动子网不支持显式 IP 失败。已修正为 Docker 选取后显式配置的本次内部子网；准确新候选 CI、实际网络矩阵与合并仍待完成。详见 [网络分区记录](NETWORK_PARTITION_ACCEPTANCE.md)。
+
+### 2026-10-01 网络分区交付与指标上下文修复候选
+
+- PR #85 修正候选 df235557 的九项检查成功，16 项实际网络分区、80 项业务/升级检查与四种 Compose 通过，合并 a95142550659965969b1306c91c4e7cb6aa1f488；候选/合成/计算/实际合并树一致。main CI 待核对，详细镜像身份和首轮失败见 [网络分区验收](NETWORK_PARTITION_ACCEPTANCE.md)。
+- 并发预检确认 HTTP 指标异步闭包读取已回收 Gin Context，旧版 race 与计数失败；最小候选改为同步复制 method/path/status。正常对照、专项和相关回归通过；一次复用上下文的独立审阅发现重复测试累计值问题，已改精确增量并通过 -count=2。候选 CI、PR、合并仍待完成，见 [指标生命周期](METRICS_CONTEXT_LIFECYCLE.md)。
+- 完整并发账务、资源释放和 SQLite 实际负载验收仍开放；临时模拟夹具及本地结果不等于交付。RC8 无标签，发布/部署/付费调用未执行。

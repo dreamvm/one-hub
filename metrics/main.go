@@ -56,18 +56,19 @@ func init() {
 
 // 记录 HTTP 请求
 func RecordHttp(c *gin.Context, duration time.Duration) {
+	// Gin reuses the context after the handler returns. Retain only immutable labels.
+	method, path, statusCode := c.Request.Method, c.FullPath(), strconv.Itoa(c.Writer.Status())
 	go SafelyRecordMetric(func() {
-		statusCode := strconv.Itoa(c.Writer.Status())
 
 		httpRequestsTotal.WithLabelValues(
-			c.Request.Method,
-			c.FullPath(),
+			method,
+			path,
 			statusCode,
 		).Inc()
 
 		httpRequestDuration.WithLabelValues(
-			c.Request.Method,
-			c.FullPath(),
+			method,
+			path,
 			statusCode,
 		).Observe(duration.Seconds())
 	})
