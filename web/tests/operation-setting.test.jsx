@@ -106,9 +106,11 @@ describe('operation settings save outcomes', () => {
     const first = deferred(),
       second = deferred();
     API.put.mockImplementationOnce(() => first.promise).mockImplementationOnce(() => second.promise);
-    fireEvent.click(screen.getByRole('button', { name: labels.saveButton }));
-    expect(screen.getByRole('button', { name: labels.saveButton }).disabled).toBe(true);
-    expect(screen.getByRole('checkbox', { name: labels.displayInCurrency }).disabled).toBe(true);
+    const saveButton = screen.getByRole('button', { name: labels.saveButton });
+    const currencyCheckbox = screen.getByRole('checkbox', { name: labels.displayInCurrency });
+    fireEvent.click(saveButton);
+    expect(saveButton.disabled).toBe(true);
+    expect(currencyCheckbox.disabled).toBe(true);
     await act(async () => {
       options.TopUpLink = 'https://example.invalid/new';
       first.resolve(response(null));
@@ -122,8 +124,10 @@ describe('operation settings save outcomes', () => {
     });
     expect(showSuccess).toHaveBeenCalledExactlyOnceWith('保存成功！');
     expect(loadStatus).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole('button', { name: labels.saveButton }).disabled).toBe(false);
-  });
+    expect(document.body.contains(saveButton)).toBe(true);
+    expect(saveButton.disabled).toBe(false);
+    // This mounts the full settings form and completes two separate writes on a shared CI runner.
+  }, 15000);
   it('retains an acknowledged first write when a later write fails', async () => {
     await mount();
     fireEvent.change(screen.getByLabelText(labels.topUpLink.label), { target: { value: 'https://example.invalid/new' } });

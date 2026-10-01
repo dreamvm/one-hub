@@ -26,4 +26,4 @@ Browser plugin不可用，沿用缓存Playwright CLI0.1.22/Chromium154.0.8037.58
 
 隔离镜像ID `sha256:476c7a3238d54f4f012d7ce15f01485e2b34f9b1b3c77b44936caef964a5ceea`；提取程序SHA256 `ca364fa81c1e0017147577f500a61b0b0639f155d4d57d65b49c3d0bfa19a247`，Go1.25.14 / one-api / linux-amd64 / CGO1。仅隔离构建与运行，未发布。
 
-实际合并 `0f50ed877c91dd9b645c9005e00f388df1f052ff`；候选、GitHub合成 `b3c85fa42a651131bdd75aba08e28ccd59fa8d66`、本地计算与实际合并树均 `8bb335e5f7933559ac5408d502ee6b426ca6428e`。合并后 main [36858232247](https://github.com/dreamvm/one-hub/actions/runs/36858232247) 待核对。共享拦截器及本地审阅覆盖限制仍如上；RC8与其他发布阻断项继续开放。
+实际合并 `0f50ed877c91dd9b645c9005e00f388df1f052ff`；候选、GitHub合成 `b3c85fa42a651131bdd75aba08e28ccd59fa8d66`、本地计算与实际合并树均 `8bb335e5f7933559ac5408d502ee6b426ca6428e`。合并后 main [36858232247](https://github.com/dreamvm/one-hub/actions/runs/36858232247) 已成功。共享拦截器及本地审阅覆盖限制仍如上；RC8与其他发布阻断项继续开放。
