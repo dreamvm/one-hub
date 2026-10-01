@@ -3,6 +3,7 @@
 
 import argparse
 import copy
+from concurrent.futures import ThreadPoolExecutor
 import http.cookies
 import json
 import os
@@ -276,6 +277,12 @@ def assert_paid_accounting(before, after, unlimited):
             "recovered request token/ledger mismatch")
 
 
+def assert_consumed_details(receipt, before, after, cost):
+    require(tuple(receipt) == ("consumed", "consume", str(cost)), "wrong terminal reservation")
+    require(tuple(right - left for left, right in zip(before, after)) == (1, cost, cost),
+            "consume log or channel accounting mismatch")
+
+
 def redis_failure_checks(backend, user, token, user_id, mock, passed):
     """Fault only this run's synthetic Redis; verify database and upstream effects."""
     user_id = int(user_id)
@@ -292,10 +299,10 @@ def redis_failure_checks(backend, user, token, user_id, mock, passed):
                  f"FROM users WHERE id={user_id};")
         return tuple(int(value) for value in backend.sql(query).stdout.strip().split("\t"))
 
-    def counter():
+    def counter(stream=False):
         code, _, body = upstream.request("/stats")
         require(code == 200, "mock stats unavailable")
-        return json.loads(body).get("openai-smoke_false", 0)
+        return json.loads(body).get("openai-smoke_" + str(stream).lower(), 0)
 
     def refused():
         before, calls = snapshot(), counter()
@@ -305,20 +312,110 @@ def redis_failure_checks(backend, user, token, user_id, mock, passed):
         require(counter() == calls, "refused request reached upstream")
         require(snapshot() == before, "refused request changed persistent accounting")
 
-    def paid_control():
+    def paid_control(control_token=token, control_unlimited=unlimited):
         before = snapshot()
-        require(chat(user, token, "openai-smoke", False)["content"] == "中文对话成功", "recovered chat failed")
+        require(chat(user, control_token, "openai-smoke", False)["content"] == "中文对话成功", "recovered chat failed")
         deadline = time.monotonic() + 10
         while time.monotonic() < deadline:
             after = snapshot()
             if after[2] == before[2] + 1:
-                assert_paid_accounting(before, after, unlimited)
-                return
+                assert_paid_accounting(before, after, control_unlimited)
+                return after[1] - before[1]
             time.sleep(0.1)
         raise AssertionError("recovered request did not settle exactly once")
 
     # Establish a completed paid control before taking failure snapshots.
-    paid_control()
+    control_cost = paid_control()
+
+    def gate(action):
+        code, _, raw = upstream.request("/fixture/response-gate", token="fixture-gate-control",
+                                        data={"action": action})
+        require(code == 200, "synthetic response gate control failed")
+        return json.loads(raw)
+
+    def details():
+        query = (f"SELECT COUNT(*),COALESCE(SUM(quota),0),"
+                 f"(SELECT used_quota FROM channels WHERE name='Mock OpenAI') "
+                 f"FROM logs WHERE user_id={user_id} AND type=2;")
+        return tuple(int(value) for value in backend.sql(query).stdout.strip().split("\t"))
+
+    def admitted_outage(request_token, request_unlimited, stream, finite_id=None):
+        before, before_details, calls = snapshot(), details(), counter(stream)
+        def remaining():
+            return int(backend.sql(f"SELECT remain_quota FROM tokens WHERE id={finite_id};").stdout.strip())
+        token_before = remaining() if finite_id is not None else None
+        gate("arm")
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(chat, user, request_token, "openai-smoke", stream)
+            try:
+                deadline = time.monotonic() + 5
+                while time.monotonic() < deadline:
+                    state = gate("state")
+                    if state["entered"]:
+                        break
+                    time.sleep(0.05)
+                else:
+                    raise AssertionError("request never reached the bounded upstream gate")
+                require(state["stream_started"] == stream, "SSE did not reach its first flushed chunk")
+                require(not future.done(), "request completed before the fault")
+                held = snapshot()
+                require(held[1:3] == before[1:3] and held[4] == before[4] + 1,
+                        "request was not held after reservation and before terminal accounting")
+                row = backend.sql(f"SELECT id,state,reserved_quota FROM quota_reservations WHERE user_id={user_id} "
+                                  "AND state='reserved';").stdout.strip().split("\t")
+                require(len(row) == 3 and row[1] == "reserved" and
+                        re.fullmatch(r"[0-9a-f-]{32,36}", row[0]), "expected one owned pending request")
+                receipt_id, reserved = row[0], int(row[2])
+                require(reserved > 0 and before[0] - held[0] == reserved, "reservation did not hold user quota")
+                require(held[3] - before[3] == (0 if request_unlimited else reserved),
+                        "reservation token accounting mismatch")
+                if finite_id is not None:
+                    require(token_before - remaining() == reserved, "reservation did not hold finite token quota")
+                require(counter(stream) == calls + 1, "upstream admission was not exactly once")
+                command("docker", "stop", "--time", "1", backend.redis)
+                gate("release")
+                require(future.result(timeout=25)["content"] == "中文对话成功",
+                        "admitted chat failed during Redis outage")
+                deadline = time.monotonic() + 10
+                while time.monotonic() < deadline:
+                    after = snapshot()
+                    if after[2] == before[2] + 1:
+                        break
+                    time.sleep(0.1)
+                assert_paid_accounting(before, after, request_unlimited)
+                if finite_id is not None:
+                    require(token_before - remaining() == control_cost, "finite token remaining quota mismatch")
+                require(after[1] - before[1] == control_cost, "fault changed the normal request price")
+                receipt = backend.sql("SELECT state,outcome,final_quota FROM quota_reservations "
+                                      f"WHERE id='{receipt_id}';").stdout.strip().split("\t")
+                assert_consumed_details(receipt, before_details, details(), control_cost)
+                require(counter(stream) == calls + 1, "admitted request was retried upstream")
+            finally:
+                try:
+                    gate("release")
+                finally:
+                    command("docker", "start", backend.redis)
+                    backend.wait_ready()
+        paid_control(request_token, request_unlimited)
+        passed(f"Redis lost after upstream admission: {'unlimited' if request_unlimited else 'finite'} "
+               f"{'SSE' if stream else 'JSON'} settles once; restart recovers")
+
+    for stream in (False, True):
+        admitted_outage(token, unlimited, stream)
+    user.api("/api/token/", data={"name": "smoke_inflight_finite", "expired_time": -1,
+                                  "remain_quota": 1000000, "unlimited_quota": False})
+    finite_id = int(backend.sql(f"SELECT id FROM tokens WHERE user_id={user_id} "
+                                "AND name='smoke_inflight_finite';").stdout.strip())
+    try:
+        finite = user.api(f"/api/token/{finite_id}")
+        require(finite["unlimited_quota"] is False, "finite token fixture is unlimited")
+        finite_token = finite["key"]
+        require(paid_control(finite_token, False) == control_cost, "finite token normal price changed")
+        for stream in (False, True):
+            admitted_outage(finite_token, False, stream, finite_id)
+    finally:
+        user.api(f"/api/token/{finite_id}", method="DELETE")
+
     command("docker", "stop", "--time", "1", backend.redis)
     try:
         refused()

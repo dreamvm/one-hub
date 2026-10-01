@@ -936,3 +936,10 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - 后续独立 [OIDC_IDENTITY_BOUNDARY.md](OIDC_IDENTITY_BOUNDARY.md) 候选保存已验证 issuer/精确 subject 和 nullable 唯一身份键，防止跨 issuer 归属混用和重复注册；历史未知归属保持原值，不自动关联。旧版五个失败/四个正常控制；候选本地 59 个专项叶子及完整规定回归/vet/编译通过。真实 MySQL/PostgreSQL 验收仍等待准确候选 CI。
 - 全新只读独立审阅未报告具体问题；父任务之后的完整回归和确定性交错测试发现首轮查询与新注册之间的时序回归，已最小修正并重跑。按单次周期，后续修正未再独立复审，明确保留这一覆盖限制。尚未完成该候选 PR/CI/合并，不把 PR81 的绿色检查替代它。
 - 旧程序回退会恢复 subject-only 登录，并不理解新身份键；即使可读取 schema，也不能宣称 OIDC 回退安全。生产升级/回滚与历史身份恢复仍需独立核实，当前没有生产读写。原目录 Babel 暂存工作继续保留；RC8 未建标签，发布阻断项仍开放。
+
+### OIDC issuer 交付与请求中途 Redis 验收
+
+- [PR #82](https://github.com/dreamvm/one-hub/pull/82) 最终 head `eb625210c639186450c709ac313ed571e67ad940` 已合并为 `4ba29b48f9629512ce7170a509a3383739387b07`，候选/合成/计算/实际树均为 `7c02f9b827c6e308bd5d1eae10339697a687755a`。[36829774827](https://github.com/dreamvm/one-hub/actions/runs/36829774827) / [36829775344](https://github.com/dreamvm/one-hub/actions/runs/36829775344) 全 9 项通过，包含三数据库 OIDC 归属/迁移/并发注册、48 个隔离业务/升级回滚 PASS 和四种 Compose 启动；实际镜像/程序身份见 [OIDC_IDENTITY_BOUNDARY.md](OIDC_IDENTITY_BOUNDARY.md#合并验收)。合并后 main [36831183355](https://github.com/dreamvm/one-hub/actions/runs/36831183355) 尚待核对。
+- 初次 PostgreSQL 夹具失败及修正、独立审阅后的并发查找修正未再次复审，均如实保留；不将初次候选或最终全部补丁写成独立复审通过。保守历史迁移规则已实现，真实身份核实与恢复仍未执行。
+- 下一独立 [请求中途 Redis 验收](REDIS_INFLIGHT_ACCEPTANCE.md) 仅扩展隔离 smoke：在 JSON 返回前或上游首个 SSE 内容块后，停止测试自己的 Redis，检查有限/无限令牌的一次结算与恢复。本地夹具和准确候选 CI 待最终验收；数据库故障、网络分区、并发负载仍开放。
+- Rollup/Vite 及 Realtime 草稿的受限审阅步骤继续暂停，未重试或绕过。RC8 未创建标签，未发布镜像、部署或执行真实付费调用。
