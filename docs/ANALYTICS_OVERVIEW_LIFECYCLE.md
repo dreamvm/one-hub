@@ -15,3 +15,12 @@
 合成正常数据对应消费$1.000、Tokens6、请求1、注册3、充值10，六张真实ApexCharts渲染。失败或空数据时六个暂无数据、零残留SVG和骨架屏，恢复后重新显示六图。零未处理页面异常；每个HTTP503场景有一条预期网络错误，其余无控制台错误/警告（现有console.log不计作错误/警告）。截图首轮处于柱图动画中间帧，重取有界等待后的稳定截图并目视核对最终柱高1.0；不以动画中间帧作为最终数值证据。
 
 日期正常流程可操作，但移动字段仍被压窄：390视口两个input宽约80.55px，左右padding共32px，日期文字约75.07px，无法完整显示；独立截图已核对，后续单独修复，不纳入本项已解决范围。日期标题仍随草稿变化，Grid开发期警告仍存在。浏览器和临时服务已关闭；没有真实后端数据、付费调用或写入，不代表长期性能、完整布局或全部日期边界通过。
+
+
+## 2026-10-01 合并验收
+
+[PR #98](https://github.com/dreamvm/one-hub/pull/98) head `6088330297714fef5f8c2013873bd2b8ee7292b1` 的手动准确候选 [Compatibility 36867907042](https://github.com/dreamvm/one-hub/actions/runs/36867907042) 和 [Isolated 36867916459](https://github.com/dreamvm/one-hub/actions/runs/36867916459) 共九项成功。初始叠加分支不是 main，使用 workflow_dispatch，不声称自动 PR 事件通过。smoke job `110389754159` 实际 89 个 PASS（SQLite 12、MySQL 35、PostgreSQL 35、升级/回滚 7），含九波并发；default/sqlite/mysql/sqlite-redis 四种 Compose 均成功。
+
+镜像 `sha256:7e95c5b6051755ba903a85d6467dc9768bb4977b15c06ed4f0df397822a95f5f`；程序 SHA256 `2aa6bd6e0c34a9a7413c727041fe5d36bd23b3fb9dc3bcb84b3cb3101995a2f8`，Go 1.25.14/main one-api/linux amd64/CGO=1。仅隔离 CI 本地镜像，不是发布或生产。
+
+改基最新 main `bbca75aacaea59c5e03d7dd156a5b0355a03ccb3` 后计算合并树与候选均为 `f3a0bdcad243b297efdfa2f6a499b8070ae23344`。GitHub 合成 `12b30a1b9f0a71b42252c57624941f4ac89251d9` 仍保留旧叠加父节点 2651bd0c/60883302，树相同，不声称其祖先已刷新。锁定 head 合并为 `9c4c3cd906e65f2b497904620a0d641b5cae0499`，API 核实实际父节点为最新 main/候选，实际树同上。[合并后 main CI 36870649003](https://github.com/dreamvm/one-hub/actions/runs/36870649003) 已成功。
