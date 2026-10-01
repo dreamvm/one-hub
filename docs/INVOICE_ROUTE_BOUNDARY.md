@@ -43,3 +43,5 @@ PR #90 首轮 `df852422` 的兼容性前端检查失败：117项断言通过，�
 最终测试镜像ID `sha256:465781995c45000b95a9249592963bc01ff1ceb5158f67481b1fbb7e3ce8fb5b`；提取的程序SHA256 `437f1ab18d9215e09593c28b85dd5a044d634227b0e2196955eda9aa3fa38b12`，Go1.25.14 / one-api / linux-amd64 / CGO1。仅隔离构建与运行，未发布。
 
 实际合并 `eb6a46c7a0848d15d892bd91c4c332e48628b1ef`；候选、合成 `f5ce4288ca8ecc2c5768f0a956352e376eae88e5`、本地计算和实际合并树均 `0513c20dd04dcf3e5400ce32f2ee87a88dffa527`。合并后 main [36851033301](https://github.com/dreamvm/one-hub/actions/runs/36851033301) 待核对。整体RC8、未覆盖页面及其他发布阻断项仍开放。
+
+PR #90 合并后 main CI36851033301 已成功，更新上述待核对状态。
