@@ -1,4 +1,5 @@
 import { lazy } from 'react';
+import { Navigate } from 'react-router-dom';
 
 // project imports
 import MainLayout from 'layout/MainLayout';
@@ -53,6 +54,10 @@ const MainRoutes = {
     {
       path: 'invoice/detail/:date',
       element: <InvoiceDetail />
+    },
+    {
+      path: 'invoice/detail/*',
+      element: <Navigate to="/panel/invoice" replace />
     },
     {
       path: 'multi_user_stats',
@@ -141,6 +146,10 @@ const MainRoutes = {
     {
       path: 'system_info',
       element: <SystemInfo />
+    },
+    {
+      path: '*',
+      element: <NotFoundView />
     }
   ]
 };

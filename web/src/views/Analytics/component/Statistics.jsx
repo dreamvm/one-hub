@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Grid } from '@mui/material';
+import { useState, useEffect } from 'react';
+import { Alert, Grid } from '@mui/material';
 import DataCard from 'ui-component/cards/DataCard';
 import { gridSpacing } from 'store/constant';
 import { showError, renderQuota } from 'utils/common';
@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 
 export default function Overview() {
   const { t } = useTranslation();
+  const [loadError, setLoadError] = useState(false);
   const [userLoading, setUserLoading] = useState(true);
   const [channelLoading, setChannelLoading] = useState(true);
   const [rechargeLoading, setRechargeLoading] = useState(true);
@@ -27,97 +28,67 @@ export default function Overview() {
     OderContent: ''
   });
 
-  const userStatisticsData = (data) => {
-    data.total_quota = renderQuota(data.total_quota);
-    data.total_used_quota = renderQuota(data.total_used_quota);
-    data.total_direct_user = data.total_user - data.total_inviter_user;
-    setUserStatistics(data);
-  };
+  useEffect(() => {
+    let active = true;
+    const loadStatistics = async () => {
+      try {
+        const res = await API.get('/api/analytics/statistics');
+        if (!active) return;
+        const { success, message, data } = res.data;
+        if (!success) {
+          setLoadError(true);
+          showError(message);
+          return;
+        }
 
-  const channelStatisticsData = (data) => {
-    let channelData = channelStatistics;
-    channelData.total = 0;
-    data.forEach((item) => {
-      if (item.status === 1) {
-        channelData.active = item.total_channels;
-      } else if (item.status === 2) {
-        channelData.disabled = item.total_channels;
-      } else if (item.status === 3) {
-        channelData.test_disabled = item.total_channels;
+        const userData = data.user_statistics || {};
+        setUserStatistics({
+          ...userData,
+          total_quota: renderQuota(userData.total_quota || 0),
+          total_used_quota: renderQuota(userData.total_used_quota || 0),
+          total_direct_user: (userData.total_user || 0) - (userData.total_inviter_user || 0)
+        });
+
+        const channelData = { active: 0, disabled: 0, test_disabled: 0, total: 0 };
+        (data.channel_statistics || []).forEach((item) => {
+          if (item.status === 1) channelData.active = item.total_channels;
+          else if (item.status === 2) channelData.disabled = item.total_channels;
+          else if (item.status === 3) channelData.test_disabled = item.total_channels;
+          channelData.total += item.total_channels;
+        });
+        setChannelStatistics(channelData);
+
+        const redemption = (data.redemption_statistic || []).reduce((total, item) => total + item.quota, 0);
+        let order = 0;
+        const currencies = new Map();
+        (data.order_statistics || []).forEach((item) => {
+          order += item.quota;
+          currencies.set(item.order_currency, (currencies.get(item.order_currency) || 0) + item.money);
+        });
+        setRechargeStatistics({
+          total: renderQuota(redemption + order),
+          Redemption: renderQuota(redemption),
+          Oder: renderQuota(order),
+          OderContent: [...currencies].map(([currency, money]) => `${currency}: ${money}`).join(' ')
+        });
+      } catch (error) {
+        if (active) setLoadError(true);
+      } finally {
+        if (active) {
+          setUserLoading(false);
+          setChannelLoading(false);
+          setRechargeLoading(false);
+        }
       }
-      channelData.total += item.total_channels;
-    });
-    setChannelStatistics(channelData);
-  };
+    };
 
-  const rechargeStatisticsData = (redemptionData, OrderData) => {
-    let rechargeData = rechargeStatistics;
-    rechargeData.total = 0;
-
-    if (redemptionData) {
-      redemptionData.forEach((item) => {
-        rechargeData.Redemption += item.quota;
-      });
-
-      rechargeData.total += rechargeData.Redemption;
-      rechargeData.Redemption = renderQuota(rechargeData.Redemption);
-    }
-
-    if (OrderData) {
-      let orderMap = {};
-      OrderData.forEach((item) => {
-        rechargeData.Oder += item.quota;
-        if (!orderMap[item.order_currency]) {
-          orderMap[item.order_currency] = 0;
-        }
-        orderMap[item.order_currency] += item.money;
-      });
-
-      rechargeData.total += rechargeData.Oder;
-      rechargeData.Oder = renderQuota(rechargeData.Oder);
-
-      // 循环遍历orderMap
-      for (let key in orderMap) {
-        rechargeData.OderContent += key + ': ' + orderMap[key] + ' ';
-      }
-
-      console.log(rechargeData.OderContent);
-    }
-
-    rechargeData.total = renderQuota(rechargeData.total);
-    setRechargeStatistics(rechargeData);
-  };
-
-  const statisticsData = useCallback(async () => {
-    try {
-      const res = await API.get('/api/analytics/statistics');
-      const { success, message, data } = res.data;
-      if (success) {
-        if (data.user_statistics) {
-          userStatisticsData(data.user_statistics);
-        }
-
-        if (data.channel_statistics) {
-          channelStatisticsData(data.channel_statistics);
-        }
-
-        if (data.redemption_statistic || data.order_statistics) {
-          rechargeStatisticsData(data?.redemption_statistic, data?.order_statistics);
-        }
-        setUserLoading(false);
-        setChannelLoading(false);
-        setRechargeLoading(false);
-      } else {
-        showError(message);
-      }
-    } catch (error) {
-      console.log(error);
-    }
+    loadStatistics();
+    return () => {
+      active = false;
+    };
   }, []);
 
-  useEffect(() => {
-    statisticsData();
-  }, [statisticsData]);
+  if (loadError) return <Alert severity="error">{t('common.unableServer')}</Alert>;
 
   return (
     <Grid container spacing={gridSpacing}>

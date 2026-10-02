@@ -178,3 +178,49 @@ i18n 依赖与 `4603ed13` 相同。未升级翻译工具或执行真实模型。
 
 详细逐路径来源、源码行号、反证及未决事实保留在 triage JSON。此静态阶段没有运行漏洞
 探针、翻译任务或模型，不以它替代未来补丁的旧新对照、独立审阅和准确候选 CI。
+
+## 2026-10-01 固定 JSON 维护范围
+
+维护者委托选择方案后，按[维护范围](I18N_MAINTENANCE_SCOPE.md)保留现有单文件 JSON，
+固定配置并显式 `DEV=false`；Markdown、目录 glob、自定义配置和 DEV 调试在完成各自整改前不启用。
+这是新的支持约定，不能倒推历史使用情况；旧依赖及可选入口仍然存在，没有技术封禁或升级。
+
+在该范围下，以下每个原始输入分别为 `not_actionable`、中等置信度，无待核实队列排名。
+原始75条及历史54/21初筛记录保留不改；这里更新20条可选路径的项目适用性，不宣称审计清零。
+
+| 输入编号 | 各自公告 | 当前入口缺少的必要路径 |
+|---|---|---|
+| 024、025、026、027、028、029、030、031 | 依次为 v6h2-p8h4-qcjw、f886-m6hf-6m8v、3jxr-9vmj-r5cp、mh99-v99m-4gvg、rgw5-rvv9-x895、q2hr-2g5m-vwhr、qhr7-859c-m2p7、6j4f-fj2g-mc7p | 固定 zh_CN.json 进入 genFlatQuery，内容不成为 brace-expansion 模式 |
+| 045、046 | 各自依赖路径上的 58qx-3vcg-4xpx | DEV=false 跳过 Ink devtools 导入；不靠缺失 peer 或全局 WebSocket 推断 |
+| 047、048 | 各自依赖路径上的 96hv-2xvq-fx4p | 同上，无该调试 ws 连接路径 |
+| 068 | mh29-5h37-fv8m | JSON 内容不进入 gray-matter/YAML |
+| 069 | h67p-54hq-rp68 | 同上 |
+| 070 | 52cp-r559-cp3m | 同上 |
+| 071 | 5p4m-2wfm-xmqj | 同上 |
+| 072 | 2883-xcg3-v3hh | 同上 |
+| 073、074、075 | 依次为 3ppc-4f35-3m26、7r86-cg39-jmmj、23c5-xmqv-rm74 | 固定 JSON 不调用目录/Markdown glob，不把语言文本作为 minimatch 模式 |
+
+上述表格仅压缩显示；私有 `i18n-supported-json-scope-triage-20261001.json` 保留20个独立输入、
+路径、来源、证据、反证及缺口，没有合并或删除重复输入。受检代码为 abd750d4，相关依赖与早期基线相同。
+
+新增源码证据确认：Markdown `genFilesQuery` 在翻译请求前解析前言，`includeMatter` 不会跳过解析；
+目标文件已存在时只跳过该输出，不是通用安全控制。gray-matter 的 safeLoad 仍启用 merge/omap，
+js-yaml 3.14.1 的重复合并、空来源遍历及 omap 线性去重机制均存在；异常捕获不能中断同步解析。
+原型公告涉及解析结果的原型，未证明本 CLI 的安全敏感继承属性消费，不扩大为全局原型修改或代码执行。
+
+官方公告分别列出修复线：[结果原型3.14.2](https://github.com/advisories/GHSA-mh29-5h37-fv8m)、
+[重复别名3.15.0](https://github.com/advisories/GHSA-h67p-54hq-rp68)、
+[合并链3.15.0](https://github.com/advisories/GHSA-52cp-r559-cp3m)、
+[omap3.15.1](https://github.com/advisories/GHSA-5p4m-2wfm-xmqj)、
+[空合并来源3.15.2](https://github.com/advisories/GHSA-2883-xcg3-v3hh)。
+这里只核对官方修复依据，没有安装升级、执行漏洞探针、翻译请求或宣布兼容通过。
+
+007 的既有 JSON 对照及数组失败限制继续保留。未来配置、模式或环境改变须重新分流；
+真实历史使用情况和任何曾处理的文件仍未核实。
+
+## 2026-10-01 v3候选补充
+
+[独立v3候选](JS_YAML_V3_CANDIDATE_REVIEW.md)完成同源码旧新对照、本地前端检查和一次fresh审阅。
+审阅后确认覆盖跟踪、顶层stringify拷贝和错误缓存边界；运行时候选仅保留TEMP，未应用、提交或合并。
+其190条审计和五条v3匹配消失不是main已修补；当前固定JSON的五个原范围结论和历史缺口继续保留。
+omap仅有微小语义与官方源码证据，不能冒称复杂度失败复现；Markdown/其他引擎仍未支持。

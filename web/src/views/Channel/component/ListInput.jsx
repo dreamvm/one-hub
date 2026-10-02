@@ -140,6 +140,7 @@ const ListInput = ({ listValue, onChange, disabled, error, label }) => {
                 minimap: { enabled: false },
                 scrollBeyondLastLine: false,
                 automaticLayout: true,
+                fixedOverflowWidgets: true,
                 fontSize: 14,
                 lineNumbers: 'on',
                 folding: true,

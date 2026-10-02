@@ -50,3 +50,12 @@ mcp_call_arguments 的 delta/done。事件来源依据官方
 这里不证明真实供应商成本，也不宣称全部 Realtime 异常结束已修复。
 回退恢复原来丢弃进度证据的行为；必须保留已持久化的待核对记录，不自动退款。
 没有新建标签、发布镜像、部署或调用真实付费模型。
+
+
+## 2026-10-02 continuation
+
+The branch now incorporates main 1a89e9e28e884ebee417d54e647e012718b4c4e2 without changing the progress parser or its regression file. Earlier pending-CI text is historical: old candidate 11a0e376 already passed its recorded CI. Refreshed candidate checks are separate.
+
+The later #79 review identified a typed-envelope error path that also limits this candidate. Its correction exists only in #79 and lacks completed independent review. Earlier successful progress review does not cover that path. Keep #78 draft and held together with #79; no interrupted review is retried or rerouted. No release or deployment.
+
+Refreshed-source local checks passed with Go1.25.14: existing Realtime regressions, required five-package offline race set, affected-package vet and providers/relay compilation. No new interrupted-review variants were executed. Final-candidate CI remains separate and pending; the delivery hold is unchanged.
