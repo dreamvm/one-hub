@@ -176,3 +176,10 @@ verification.json SHA256为faca7b55dda224d3304ecbd3b6983a38396196eae6e2c690fba4b
 官方3.15.2有五个公告修复，但候选仍有v3保留键覆盖、gray-matter拷贝/错误缓存和omap回归证据缺口；
 190条TEMP审计不是main195条。当前固定JSON的原适用性结论、可选Markdown及历史缺口各自保留。
 审阅有关共享v4同样覆盖瑕疵的假设已被空原型跟踪表及真实ESLint旧新控制反证，不误记#120回归。
+
+## 2026-10-02 Vite输入清单补充
+
+[当前来源记录](VITE_PATTERN_INPUT_INVENTORY.md)区分2130份安装元数据、439份实际加载元数据、
+19673个正常build模块与26次已观察编译；新增highlight.js提供方和Vitest固定run覆盖来源。
+插件、metadata、watch、HTTP模式归属及观察覆盖限制分别保留，十二条仍needs_review。
+该来源补充没有更改库或重复安全候选审阅，自己的文档验收尚待完成。
