@@ -1241,6 +1241,23 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - 现有 CI 的上游 v0.14.27 升级夹具不替代实际 RC5 补丁镜像到最终候选的验收；新恢复点、准确升级与回退、四项受限审阅、保留依赖候选和最终 RC8 仍未完成。本批仅交付盘点文档，无独立事实审阅结论；自身候选 CI 和合并结果另在对应 PR 记录，未完成前不记为通过，没有发布或部署。
 
 
+## 2026-10-02: Vite candidate synchronized with current main
+
+The delivery branch preserves its candidate history and incorporates main 1a89e9e28e884ebee417d54e647e012718b4c4e2. Ledger conflicts retain current main records, including historical exact-candidate CI; package.json retains all current tests and adds the map regression. Monaco 0.57.0, js-yaml 4.3.2 and current UI changes remain.
+
+Preliminary temporary integration passed frozen offline installation with scripts disabled, 6 normal map leaves, 209 UI tests, lint and build. These do not replace complete final-candidate checks or CI. Independent review remains incomplete; do not merge. No interrupted review was retried or rerouted. Old CI, audit and browser evidence apply only to their recorded candidates. No tag, publication, deployment or paid call.
+
+Final refreshed-source verification: Node22.20.0/Yarn1.22.22 frozen offline installation with forced lifecycle rebuild, complete existing yarn test including 209 UI tests, lint with zero ESLint warnings, and production build passed. Peer dependency and large-chunk warnings remain. This supersedes the preliminary scripts-disabled limitation for local installation only; final-candidate CI and independent-review gates remain separate and open.
+
+
+### 2026-10-02: Rollup delivery and Vite integration
+
+Rollup #68 candidate 4ddc5b3d was merged as b53412b493b878532b7b5d377af6792b4256ccb0 after an explicit owner-approved one-time independent-review exception. Review remains incomplete; the exception records risk acceptance, not a successful review, and applies only to that Rollup candidate. Candidate/synthetic/actual merge tree is 5bea4492875e76a9b84712e654a03a85d4c2fc45. All ten candidate checks and all four post-merge main checks in run 36993356458 passed. No publication/deployment. This delivery supersedes earlier Rollup draft holds in this ledger; Vite/Realtime holds remain.
+
+Vite #71 now incorporates that main. Vite8/Rolldown removes the Rollup dependency, so the obsolete Rollup-only regression file and its entry are retired with it; their source and evidence remain in #68 history. All current application tests and source-map regressions remain. Lock resolution keeps the already validated Vite dependency graph rather than reintroducing unreferenced Rollup native packages. Refreshed installation/regression/CI must verify this exact combined candidate; #68 and the previous Vite candidate's independent green CI are not substitutes. Vite independent review remains incomplete, with no owner exception or merge authorization.
+
+Local verification of this integration: clean temporary frozen offline install with lifecycle scripts, complete existing yarn test (47 development nodes and 88 dependency nodes including parents, plus 22 files / 209 UI tests), lint with zero ESLint warnings and build passed. Peer dependency and large-chunk warnings remain. Both lock selectors and the installed dependency tree contain no Rollup package. Compared with prior Vite candidate 7204ce2b, application source, package manifest, lockfile, configuration and source-map regression are identical; only acceptance/test documentation differs. Exact new candidate CI remains required; independent review remains incomplete.
+
 ### 2026-10-02: Realtime progress candidate synchronized with current main
 
 PR #78 retains original candidate history and incorporates main 1a89e9e28e884ebee417d54e647e012718b4c4e2. Current main ledger and all delivered fixes are preserved. The progress source/test patch is unchanged; updated local checks and exact candidate CI must be recorded separately from historical results.
@@ -1257,3 +1274,22 @@ PR #79 now incorporates #78 candidate 04be2d23b2248579385b24ab14b1d32391e7906b a
 The interrupted independent review still has no final conclusion. The previously corrected typed-envelope path remains without completed independent re-review and without parent dynamic verification of the additional reported variants. Existing regression checks must not be described as those missing checks. Both #78/#79 remain draft and held. No interrupted review is retried, renamed, split or rerouted. No actual account/balance changes, tag, image publication, deployment or paid call.
 
 Refreshed-source checks passed with Go1.25.14: existing Realtime regressions, required five-package offline race tests, affected-package vet and providers/relay compilation. All eight invalid-report source/test files remain byte-identical to old candidate 26465acd. This is not independent review and does not validate the interrupted-review additional variants. New exact-candidate CI is pending.
+
+
+### 2026-10-02: Vite final owner-exception delivery
+
+PR #71 exact candidate b40c25510a6727ad70150423facea7dce93cddc2 was merged as 1f6d08bf5ba4e77a566070ecf5f21c411bfc205e after the sole maintainer explicitly approved a separate one-time independent-review exception. Review remains incomplete; this is risk acceptance, not review success. Candidate/synthetic/actual merge tree d7167ef1a702827713874c599697e7342f8c1d3c matches. All ten candidate checks (36994380096 / 36994380462) and all four post-merge main jobs (36998195334) passed; all main jobs actually checked out that merge SHA. Fresh Chrome154 browser controls passed; two focus warnings and remaining browser/platform limits remain. This supersedes earlier Vite draft/unmerged/CI-pending text only. No tag, image publication, deployment or paid call. Realtime #78/#79 have no such exception and remain held.
+
+
+### Integration with delivered Vite/main
+
+This candidate incorporates main 1f6d08bf5ba4e77a566070ecf5f21c411bfc205e, retaining the complete Vite/Rollup delivery history. Progress source and regression bytes remain identical to 04be2d23. Earlier successful CI belongs to the prior candidate; refreshed exact-candidate checks are separate. #78 cannot merge alone: #79 supplies the typed-envelope correction and its independent-review/additional-variant gaps remain open. No interrupted review or additional variants are retried or rerouted, and no merge exception is authorized for Realtime.
+
+Existing Go1.25.14 Realtime and required five-package race checks, affected vet and providers/relay compilation passed after this integration. Sandbox-only localhost bind denial was resolved by running the same existing fixtures with local networking allowed. These results do not replace missing review/additional-variant evidence; exact refreshed CI remains required.
+
+
+### Invalid-report integration with delivered Vite/main
+
+PR #79 incorporates refreshed #78 f63d6e96 and main 1f6d08bf. All eight invalid-report source/test files remain byte-identical to f5cbf834; the synchronization changes build dependencies and acceptance records only. Existing tests and exact new CI must be distinguished from the missing independent-review/additional-variant verification. Both PRs remain draft; no Realtime exception, merge, release or deployment is authorized by the Vite decision.
+
+After integration, existing Go1.25.14 Realtime regressions and required five-package race tests, affected vet and providers/relay compilation passed. No missing additional-variant check or independent review is claimed. Exact new candidate CI remains pending.

@@ -94,3 +94,24 @@ Linux 前端 109 个依赖叶子及 62 项 Vitest、lint/build 通过；三数�
 `ecb4992546eb48e109e16895594bf37aa88c544bb6a922c60a7b161cbfbd9054`。
 仅在隔离 runner 加载，未发布。缺少独立审阅结论，PR 保持草稿且未合并；
 上述 CI 不作为交付完成或生产验收证明。本文件记录候选，不表示 main 已升级 Vite。
+
+
+## 2026-10-02: Vite candidate synchronized with current main
+
+The delivery branch preserves its candidate history and incorporates main 1a89e9e28e884ebee417d54e647e012718b4c4e2. Ledger conflicts retain current main records, including historical exact-candidate CI; package.json retains all current tests and adds the map regression. Monaco 0.57.0, js-yaml 4.3.2 and current UI changes remain.
+
+Preliminary temporary integration passed frozen offline installation with scripts disabled, 6 normal map leaves, 209 UI tests, lint and build. These do not replace complete final-candidate checks or CI. Independent review remains incomplete; do not merge. No interrupted review was retried or rerouted. Old CI, audit and browser evidence apply only to their recorded candidates. No tag, publication, deployment or paid call.
+
+Final refreshed-source verification: Node22.20.0/Yarn1.22.22 frozen offline installation with forced lifecycle rebuild, complete existing yarn test including 209 UI tests, lint with zero ESLint warnings, and production build passed. Peer dependency and large-chunk warnings remain. This supersedes the preliminary scripts-disabled limitation for local installation only; final-candidate CI and independent-review gates remain separate and open.
+
+
+## Integration after Rollup merge
+
+This revision incorporates main b53412b4 / Rollup #68. The existing Vite8 dependency graph has no Rollup; retire its obsolete test file and script entry together with that dependency, preserving history and prior evidence. The Vite source-map suite and all main application tests remain. Rollup's owner-approved one-time independent-review exception does not apply to Vite. New exact-candidate checks remain required; keep this PR draft and do not merge.
+
+Local verification of this integration: clean temporary frozen offline install with lifecycle scripts, complete existing yarn test (47 development nodes and 88 dependency nodes including parents, plus 22 files / 209 UI tests), lint with zero ESLint warnings and build passed. Peer dependency and large-chunk warnings remain. Both lock selectors and the installed dependency tree contain no Rollup package. Compared with prior Vite candidate 7204ce2b, application source, package manifest, lockfile, configuration and source-map regression are identical; only acceptance/test documentation differs. Exact new candidate CI remains required; independent review remains incomplete.
+
+
+### 2026-10-02: Vite final owner-exception delivery
+
+PR #71 exact candidate b40c25510a6727ad70150423facea7dce93cddc2 was merged as 1f6d08bf5ba4e77a566070ecf5f21c411bfc205e after the sole maintainer explicitly approved a separate one-time independent-review exception. Review remains incomplete; this is risk acceptance, not review success. Candidate/synthetic/actual merge tree d7167ef1a702827713874c599697e7342f8c1d3c matches. All ten candidate checks (36994380096 / 36994380462) and all four post-merge main jobs (36998195334) passed; all main jobs actually checked out that merge SHA. Fresh Chrome154 browser controls passed; two focus warnings and remaining browser/platform limits remain. This supersedes earlier Vite draft/unmerged/CI-pending text only. No tag, image publication, deployment or paid call. Realtime #78/#79 have no such exception and remain held.

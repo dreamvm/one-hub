@@ -57,3 +57,10 @@ PR #79 now incorporates #78 candidate 04be2d23b2248579385b24ab14b1d32391e7906b a
 The interrupted independent review still has no final conclusion. The previously corrected typed-envelope path remains without completed independent re-review and without parent dynamic verification of the additional reported variants. Existing regression checks must not be described as those missing checks. Both #78/#79 remain draft and held. No interrupted review is retried, renamed, split or rerouted. No actual account/balance changes, tag, image publication, deployment or paid call.
 
 Refreshed-source checks passed with Go1.25.14: existing Realtime regressions, required five-package offline race tests, affected-package vet and providers/relay compilation. All eight invalid-report source/test files remain byte-identical to old candidate 26465acd. This is not independent review and does not validate the interrupted-review additional variants. New exact-candidate CI is pending.
+
+
+### Invalid-report integration with delivered Vite/main
+
+PR #79 incorporates refreshed #78 f63d6e96 and main 1f6d08bf. All eight invalid-report source/test files remain byte-identical to f5cbf834; the synchronization changes build dependencies and acceptance records only. Existing tests and exact new CI must be distinguished from the missing independent-review/additional-variant verification. Both PRs remain draft; no Realtime exception, merge, release or deployment is authorized by the Vite decision.
+
+After integration, existing Go1.25.14 Realtime regressions and required five-package race tests, affected vet and providers/relay compilation passed. No missing additional-variant check or independent review is claimed. Exact new candidate CI remains pending.
