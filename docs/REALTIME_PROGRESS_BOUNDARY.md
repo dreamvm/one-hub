@@ -59,3 +59,10 @@ The branch now incorporates main 1a89e9e28e884ebee417d54e647e012718b4c4e2 withou
 The later #79 review identified a typed-envelope error path that also limits this candidate. Its correction exists only in #79 and lacks completed independent review. Earlier successful progress review does not cover that path. Keep #78 draft and held together with #79; no interrupted review is retried or rerouted. No release or deployment.
 
 Refreshed-source local checks passed with Go1.25.14: existing Realtime regressions, required five-package offline race set, affected-package vet and providers/relay compilation. No new interrupted-review variants were executed. Final-candidate CI remains separate and pending; the delivery hold is unchanged.
+
+
+### Integration with delivered Vite/main
+
+This candidate incorporates main 1f6d08bf5ba4e77a566070ecf5f21c411bfc205e, retaining the complete Vite/Rollup delivery history. Progress source and regression bytes remain identical to 04be2d23. Earlier successful CI belongs to the prior candidate; refreshed exact-candidate checks are separate. #78 cannot merge alone: #79 supplies the typed-envelope correction and its independent-review/additional-variant gaps remain open. No interrupted review or additional variants are retried or rerouted, and no merge exception is authorized for Realtime.
+
+Existing Go1.25.14 Realtime and required five-package race checks, affected vet and providers/relay compilation passed after this integration. Sandbox-only localhost bind denial was resolved by running the same existing fixtures with local networking allowed. These results do not replace missing review/additional-variant evidence; exact refreshed CI remains required.
