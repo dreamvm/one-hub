@@ -8,6 +8,10 @@ import jsconfigPaths from 'vite-jsconfig-paths';
 
 export default defineConfig({
   plugins: [react(), jsconfigPaths()],
+  // Retain the Vite 7 JavaScript browser targets when upgrading the build engine.
+  build: {
+    target: ['chrome107', 'edge107', 'firefox104', 'safari16']
+  },
   // https://github.com/jpuri/react-draft-wysiwyg/issues/1317
   //   define: {
   //     global: 'window'

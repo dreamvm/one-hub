@@ -1241,10 +1241,19 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - 现有 CI 的上游 v0.14.27 升级夹具不替代实际 RC5 补丁镜像到最终候选的验收；新恢复点、准确升级与回退、四项受限审阅、保留依赖候选和最终 RC8 仍未完成。本批仅交付盘点文档，无独立事实审阅结论；自身候选 CI 和合并结果另在对应 PR 记录，未完成前不记为通过，没有发布或部署。
 
 
-### 2026-10-02: Rollup draft synchronized with current main
+## 2026-10-02: Vite candidate synchronized with current main
 
-- PR #68 retains candidate 79316d4c history and incorporates main 1a89e9e28e884ebee417d54e647e012718b4c4e2. Monaco 0.57.0, js-yaml 4.3.2, current UI fixes and all existing test entries are retained; only the Rollup regression entry is appended.
-- Preliminary temporary integration passed 8 normal output leaves, 209 UI tests, lint and build. These results are not final-candidate CI. Final installation, regression and CI evidence must identify the updated commit.
-- Independent review remains incomplete: do not merge. No interrupted review was retried or rerouted. Previous CI/audits remain historical evidence; no tag, image publication, deployment or paid call.
+The delivery branch preserves its candidate history and incorporates main 1a89e9e28e884ebee417d54e647e012718b4c4e2. Ledger conflicts retain current main records, including historical exact-candidate CI; package.json retains all current tests and adds the map regression. Monaco 0.57.0, js-yaml 4.3.2 and current UI changes remain.
 
-Final integration local verification: Node 22.20.0 / Yarn 1.22.22 frozen offline installation (lifecycle scripts enabled), complete existing yarn test, 22 files / 209 UI tests, lint (zero ESLint warnings) and production build passed. Large-chunk and dependency peer warnings remain. The Rollup test file is byte-identical to candidate 79316d4c. Updated commit CI is pending; independent review remains incomplete.
+Preliminary temporary integration passed frozen offline installation with scripts disabled, 6 normal map leaves, 209 UI tests, lint and build. These do not replace complete final-candidate checks or CI. Independent review remains incomplete; do not merge. No interrupted review was retried or rerouted. Old CI, audit and browser evidence apply only to their recorded candidates. No tag, publication, deployment or paid call.
+
+Final refreshed-source verification: Node22.20.0/Yarn1.22.22 frozen offline installation with forced lifecycle rebuild, complete existing yarn test including 209 UI tests, lint with zero ESLint warnings, and production build passed. Peer dependency and large-chunk warnings remain. This supersedes the preliminary scripts-disabled limitation for local installation only; final-candidate CI and independent-review gates remain separate and open.
+
+
+### 2026-10-02: Rollup delivery and Vite integration
+
+Rollup #68 candidate 4ddc5b3d was merged as b53412b493b878532b7b5d377af6792b4256ccb0 after an explicit owner-approved one-time independent-review exception. Review remains incomplete; the exception records risk acceptance, not a successful review, and applies only to that Rollup candidate. Candidate/synthetic/actual merge tree is 5bea4492875e76a9b84712e654a03a85d4c2fc45. All ten candidate checks and all four post-merge main checks in run 36993356458 passed. No publication/deployment. This delivery supersedes earlier Rollup draft holds in this ledger; Vite/Realtime holds remain.
+
+Vite #71 now incorporates that main. Vite8/Rolldown removes the Rollup dependency, so the obsolete Rollup-only regression file and its entry are retired with it; their source and evidence remain in #68 history. All current application tests and source-map regressions remain. Lock resolution keeps the already validated Vite dependency graph rather than reintroducing unreferenced Rollup native packages. Refreshed installation/regression/CI must verify this exact combined candidate; #68 and the previous Vite candidate's independent green CI are not substitutes. Vite independent review remains incomplete, with no owner exception or merge authorization.
+
+Local verification of this integration: clean temporary frozen offline install with lifecycle scripts, complete existing yarn test (47 development nodes and 88 dependency nodes including parents, plus 22 files / 209 UI tests), lint with zero ESLint warnings and build passed. Peer dependency and large-chunk warnings remain. Both lock selectors and the installed dependency tree contain no Rollup package. Compared with prior Vite candidate 7204ce2b, application source, package manifest, lockfile, configuration and source-map regression are identical; only acceptance/test documentation differs. Exact new candidate CI remains required; independent review remains incomplete.

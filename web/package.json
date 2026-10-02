@@ -22,7 +22,7 @@
     "@mui/x-data-grid": "^6.19.4",
     "@mui/x-date-pickers": "^6.18.5",
     "@tabler/icons-react": "^2.46.0",
-    "@vitejs/plugin-react": "4.7.0",
+    "@vitejs/plugin-react": "5.2.0",
     "apexcharts": "3.35.3",
     "axios": "1.18.0",
     "country-flag-icons": "^1.5.19",
@@ -51,7 +51,7 @@
     "react-router-dom": "6.21.3",
     "react-turnstile": "^1.1.2",
     "redux": "^5.0.1",
-    "vite": "7.3.5",
+    "vite": "8.3.1",
     "vite-jsconfig-paths": "^2.0.1",
     "web-vitals": "^4.2.3",
     "yup": "^0.32.11"
@@ -65,8 +65,8 @@
     "lint": "eslint \"src/**/*.{js,jsx,ts,tsx}\"",
     "lint:fix": "eslint --fix \"src/**/*.{js,jsx,ts,tsx}\"",
     "prettier": "prettier --write \"src/**/*.{js,jsx,ts,tsx}\"",
-    "test:dev": "node --test tests/vite-file-boundary.test.mjs",
-    "test:deps": "node --test tests/axios-browser-boundary.test.mjs tests/axios-xhr.test.mjs tests/postcss-file-boundary.test.mjs tests/babel-file-boundary.test.mjs tests/js-yaml-config-boundary.test.mjs tests/rollup-output-boundary.test.mjs"
+    "test:dev": "node --test tests/vite-file-boundary.test.mjs tests/vite-source-map-boundary.test.mjs",
+    "test:deps": "node --test tests/axios-browser-boundary.test.mjs tests/axios-xhr.test.mjs tests/postcss-file-boundary.test.mjs tests/babel-file-boundary.test.mjs tests/js-yaml-config-boundary.test.mjs"
   },
   "eslintConfig": {
     "extends": [
@@ -93,7 +93,7 @@
     "@testing-library/react": "16.3.0",
     "@testing-library/dom": "10.4.1",
     "jsdom": "26.1.0",
-    "vitest": "3.2.7",
+    "vitest": "4.1.11",
     "@babel/core": "7.29.7",
     "@babel/eslint-parser": "^7.23.10",
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",

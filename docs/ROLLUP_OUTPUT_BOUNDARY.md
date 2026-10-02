@@ -68,3 +68,10 @@ The delivery branch now incorporates main 1a89e9e28e884ebee417d54e647e012718b4c4
 Preliminary temporary integration passed 8 normal Rollup leaves (9 including parent), 22 files / 209 Vitest tests, lint and production build, retaining large-chunk warnings. That dependency overlay was not a frozen installation and does not replace final-candidate CI. Independent review remains incomplete; author checks do not replace it. Keep this PR draft and do not merge. No tags, image publication or deployment.
 
 Final integration local verification: Node 22.20.0 / Yarn 1.22.22 frozen offline installation (lifecycle scripts enabled), complete existing yarn test, 22 files / 209 UI tests, lint (zero ESLint warnings) and production build passed. Large-chunk and dependency peer warnings remain. The Rollup test file is byte-identical to candidate 79316d4c. Updated commit CI is pending; independent review remains incomplete.
+
+
+## Delivery and subsequent Vite candidate
+
+The owner explicitly approved a one-time independent-review exception for candidate 4ddc5b3d only. PR #68 merged as b53412b493b878532b7b5d377af6792b4256ccb0 with identical candidate tree; ten candidate checks and four main checks (36993356458) passed. This supersedes historical pending/do-not-merge statements for that candidate only; review was not completed. No release/deployment.
+
+The subsequent Vite8 candidate replaces Rollup with Rolldown and removes Rollup from its lockfile and installed graph, so its standalone Rollup regression is retired there. The original test and bounded results remain available in #68 history. This does not erase the review gap or extend the owner's exception to Vite.
