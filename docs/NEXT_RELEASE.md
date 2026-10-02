@@ -1257,3 +1257,24 @@ Rollup #68 candidate 4ddc5b3d was merged as b53412b493b878532b7b5d377af6792b4256
 Vite #71 now incorporates that main. Vite8/Rolldown removes the Rollup dependency, so the obsolete Rollup-only regression file and its entry are retired with it; their source and evidence remain in #68 history. All current application tests and source-map regressions remain. Lock resolution keeps the already validated Vite dependency graph rather than reintroducing unreferenced Rollup native packages. Refreshed installation/regression/CI must verify this exact combined candidate; #68 and the previous Vite candidate's independent green CI are not substitutes. Vite independent review remains incomplete, with no owner exception or merge authorization.
 
 Local verification of this integration: clean temporary frozen offline install with lifecycle scripts, complete existing yarn test (47 development nodes and 88 dependency nodes including parents, plus 22 files / 209 UI tests), lint with zero ESLint warnings and build passed. Peer dependency and large-chunk warnings remain. Both lock selectors and the installed dependency tree contain no Rollup package. Compared with prior Vite candidate 7204ce2b, application source, package manifest, lockfile, configuration and source-map regression are identical; only acceptance/test documentation differs. Exact new candidate CI remains required; independent review remains incomplete.
+
+### 2026-10-02: Realtime progress candidate synchronized with current main
+
+PR #78 retains original candidate history and incorporates main 1a89e9e28e884ebee417d54e647e012718b4c4e2. Current main ledger and all delivered fixes are preserved. The progress source/test patch is unchanged; updated local checks and exact candidate CI must be recorded separately from historical results.
+
+Keep this draft held: its earlier review covered successfully decoded events only. The later typed-envelope error path is corrected only in stacked #79, whose complete independent review is missing. Do not merge #78 alone or treat prior CI as closing this known gap. No review retry/rerouting, tag, publication, deployment or paid call.
+
+Refreshed-source local checks passed with Go1.25.14: existing Realtime regressions, required five-package offline race set, affected-package vet and providers/relay compilation. No new interrupted-review variants were executed. Final-candidate CI remains separate and pending; the delivery hold is unchanged.
+
+
+
+### 2026-10-02: Vite final owner-exception delivery
+
+PR #71 exact candidate b40c25510a6727ad70150423facea7dce93cddc2 was merged as 1f6d08bf5ba4e77a566070ecf5f21c411bfc205e after the sole maintainer explicitly approved a separate one-time independent-review exception. Review remains incomplete; this is risk acceptance, not review success. Candidate/synthetic/actual merge tree d7167ef1a702827713874c599697e7342f8c1d3c matches. All ten candidate checks (36994380096 / 36994380462) and all four post-merge main jobs (36998195334) passed; all main jobs actually checked out that merge SHA. Fresh Chrome154 browser controls passed; two focus warnings and remaining browser/platform limits remain. This supersedes earlier Vite draft/unmerged/CI-pending text only. No tag, image publication, deployment or paid call. Realtime #78/#79 have no such exception and remain held.
+
+
+### Integration with delivered Vite/main
+
+This candidate incorporates main 1f6d08bf5ba4e77a566070ecf5f21c411bfc205e, retaining the complete Vite/Rollup delivery history. Progress source and regression bytes remain identical to 04be2d23. Earlier successful CI belongs to the prior candidate; refreshed exact-candidate checks are separate. #78 cannot merge alone: #79 supplies the typed-envelope correction and its independent-review/additional-variant gaps remain open. No interrupted review or additional variants are retried or rerouted, and no merge exception is authorized for Realtime.
+
+Existing Go1.25.14 Realtime and required five-package race checks, affected vet and providers/relay compilation passed after this integration. Sandbox-only localhost bind denial was resolved by running the same existing fixtures with local networking allowed. These results do not replace missing review/additional-variant evidence; exact refreshed CI remains required.
