@@ -1257,3 +1257,10 @@ Rollup #68 candidate 4ddc5b3d was merged as b53412b493b878532b7b5d377af6792b4256
 Vite #71 now incorporates that main. Vite8/Rolldown removes the Rollup dependency, so the obsolete Rollup-only regression file and its entry are retired with it; their source and evidence remain in #68 history. All current application tests and source-map regressions remain. Lock resolution keeps the already validated Vite dependency graph rather than reintroducing unreferenced Rollup native packages. Refreshed installation/regression/CI must verify this exact combined candidate; #68 and the previous Vite candidate's independent green CI are not substitutes. Vite independent review remains incomplete, with no owner exception or merge authorization.
 
 Local verification of this integration: clean temporary frozen offline install with lifecycle scripts, complete existing yarn test (47 development nodes and 88 dependency nodes including parents, plus 22 files / 209 UI tests), lint with zero ESLint warnings and build passed. Peer dependency and large-chunk warnings remain. Both lock selectors and the installed dependency tree contain no Rollup package. Compared with prior Vite candidate 7204ce2b, application source, package manifest, lockfile, configuration and source-map regression are identical; only acceptance/test documentation differs. Exact new candidate CI remains required; independent review remains incomplete.
+
+### 2026-10-02：实际RC5本机升级与回退演练
+
+- 上述Vite候选的后续交付、#125整改清单及当前剩余门槛以[最新状态表](RC8_ACCEPTANCE_STATUS.md)为准；#125已合并62486f76，其main CI37018102081四项准确checkout通过。
+- [实际RC5演练](ACTUAL_RC5_UPGRADE_REHEARSAL.md)使用实际旧镜像、62486f76源码构建的候选、临时MySQL/Redis和模拟上游，7项升级/镜像回退/备份恢复/清理检查通过。最终程序Go1.25.14、Linux/amd64、CGO1身份已核对；不是上游v0.14.27夹具或其他提交CI的替代记录。
+- 本机为amd64仿真，不证明原生性能；未改服务器、复制生产数据库、创建标签、发布镜像或真实付费调用。最终RC8仍未确定，依赖和Realtime缺口、新恢复点及最终候选重验继续开放。
+- 本批只补录文档，尚无独立事实审阅结论；自身候选CI和合并结果另行记录。本地演练通过不等于文档交付或发布批准。
