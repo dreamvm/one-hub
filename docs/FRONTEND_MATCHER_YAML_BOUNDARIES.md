@@ -169,3 +169,10 @@ verification.json SHA256为faca7b55dda224d3304ecbd3b6983a38396196eae6e2c690fba4b
 [Vite候选审阅](VITE_MATCHER_CANDIDATE_REVIEW.md)发现重复表示残留和字面空格匹配回归，
 父代理有界核实；4.0.7候选仅在TEMP，未提交、未创建运行时PR或完成候选CI/合并。
 十二条继续开放。该候选审计185条不是main195条，新增两条Sass/readdirp输入分别静态保留。
+
+## 2026-10-01 独立v3候选审阅
+
+[v3候选记录](JS_YAML_V3_CANDIDATE_REVIEW.md)保留一次fresh审阅及父代理确认，未交付运行时补丁。
+官方3.15.2有五个公告修复，但候选仍有v3保留键覆盖、gray-matter拷贝/错误缓存和omap回归证据缺口；
+190条TEMP审计不是main195条。当前固定JSON的原适用性结论、可选Markdown及历史缺口各自保留。
+审阅有关共享v4同样覆盖瑕疵的假设已被空原型跟踪表及真实ESLint旧新控制反证，不误记#120回归。
