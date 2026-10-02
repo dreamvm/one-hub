@@ -55,7 +55,7 @@ func OIDCEndpoint(c *gin.Context) {
 }
 
 // OIDCAuth 通过OIDC登录
-// 已绑定 subject 可登录；未知 subject 只能注册未占用的用户名，不自动关联已有账号。
+// 已绑定 issuer/subject 可登录；历史归属不明的记录不得自动关联。
 func OIDCAuth(c *gin.Context) {
 	if !config.OIDCAuthEnabled {
 		c.JSON(http.StatusOK, gin.H{
@@ -135,19 +135,15 @@ func OIDCAuth(c *gin.Context) {
 		return
 	}
 
+	issuer := oidcConfig.IdentityIssuer(idToken)
 	// 初始化用户对象
 	user := model.User{
 		Username: userName,
 		OidcId:   idToken.Subject,
 	}
 
-	// 尝试通过OIDCid查询用户
-	if err = user.FillUserByOidcId(); err == nil {
-		// SQL collations may equate distinct case-sensitive OIDC subjects.
-		if user.OidcId != idToken.Subject {
-			c.JSON(http.StatusOK, gin.H{"success": false, "message": "OIDC身份不匹配"})
-			return
-		}
+	// 仅使用当前 verifier 已验证的 issuer 和精确 subject 查询身份。
+	if err = user.FillUserByOIDCIdentity(issuer, idToken.Subject); err == nil {
 		if user.Status == config.UserStatusEnabled {
 			setupLogin(&user, c)
 			return
@@ -223,11 +219,16 @@ func OIDCAuth(c *gin.Context) {
 	user.Role = config.RoleCommonUser
 	user.Status = config.UserStatusEnabled
 
-	if err := user.Insert(0); err != nil {
+	if err := user.InsertOIDC(issuer, idToken.Subject); err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
 			"message": err.Error(),
 		})
+		return
+	}
+	// A concurrent registration may have selected an existing winner.
+	if user.Status != config.UserStatusEnabled {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "用户已被封禁或不存在"})
 		return
 	}
 

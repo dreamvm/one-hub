@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Grid, Typography, Divider, Box, TextField, Button, Select, MenuItem } from '@mui/material';
 import { gridSpacing } from 'store/constant';
 import DateRangePicker from 'ui-component/DateRangePicker';
@@ -21,6 +21,9 @@ export default function Overview() {
   const [usersData, setUsersData] = useState([]);
   const [dateRange, setDateRange] = useState({ start: dayjs().subtract(6, 'day').startOf('day'), end: dayjs().endOf('day') });
 
+  const [queriedDateRange, setQueriedDateRange] = useState(dateRange);
+  const requestSequence = useRef(0);
+
   const [groupType, setGroupType] = useState('model_type');
   const [userId, setUserId] = useState(0);
 
@@ -33,6 +36,12 @@ export default function Overview() {
   };
 
   const fetchData = async (date, gType, uId) => {
+    const sequence = ++requestSequence.current;
+    setQueriedDateRange(date);
+    setUsersData(null);
+    setChannelData(null);
+    setRedemptionData(null);
+    setOrderData(null);
     setUsersLoading(true);
     setChannelLoading(true);
     setRedemptionLoading(true);
@@ -46,38 +55,45 @@ export default function Overview() {
           user_id: uId
         }
       });
+      if (sequence !== requestSequence.current) return;
       const { success, message, data } = res.data;
       if (success) {
         if (data) {
-          setUsersData(getUsersData(data?.user_statistics, date));
-
-          setChannelData(getBarChartOptions(data?.channel_statistics, date));
-
-          setRedemptionData(getRedemptionData(data?.redemption_statistics, date));
-
-          setOrderData(getOrdersData(data?.order_statistics, date));
+          const users = getUsersData(data?.user_statistics, date);
+          const channels = getBarChartOptions(data?.channel_statistics, date);
+          const redemptions = getRedemptionData(data?.redemption_statistics, date);
+          const orders = getOrdersData(data?.order_statistics, date);
+          setUsersData(users);
+          setChannelData(channels);
+          setRedemptionData(redemptions);
+          setOrderData(orders);
         }
       } else {
         showError(message);
       }
-      setUsersLoading(false);
-      setChannelLoading(false);
-      setRedemptionLoading(false);
-      setOrderLoading(false);
     } catch (error) {
-      console.log(error);
-      return;
+      if (sequence === requestSequence.current) console.log(error);
+    } finally {
+      if (sequence === requestSequence.current) {
+        setUsersLoading(false);
+        setChannelLoading(false);
+        setRedemptionLoading(false);
+        setOrderLoading(false);
+      }
     }
   };
 
   useEffect(() => {
     fetchData(dateRange, groupType, userId);
+    return () => {
+      requestSequence.current += 1;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <Grid container spacing={gridSpacing}>
-      <Grid lg={12} xs={12}>
+      <Grid item lg={12} xs={12}>
         <Box sx={{ display: 'flex', gap: 2, m: 3 }}>
           <Grid container spacing={2} sx={{ mb: 2 }}>
             <Grid item xs={12} sm={6}>
@@ -111,7 +127,7 @@ export default function Overview() {
       </Grid>
       <Grid item xs={12}>
         <Typography variant="h3">
-          {dateRange.start.format('YYYY-MM-DD')} - {dateRange.end.format('YYYY-MM-DD')}
+          {queriedDateRange.start.format('YYYY-MM-DD')} - {queriedDateRange.end.format('YYYY-MM-DD')}
         </Typography>
       </Grid>
       <Grid item xs={12}>

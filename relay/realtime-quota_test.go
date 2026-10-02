@@ -186,9 +186,12 @@ func TestRealtimeInvalidResponseDoneIsRejected(t *testing.T) {
 	p := &openai.OpenAIProvider{}
 	for _, msg := range []string{`{"type":"response.done"}`, `{"type":"response.done","response":null}`} {
 		require.NotPanics(t, func() {
-			accepted, _, _, err := p.HandleMessage(requester.SupplierMessage, websocket.TextMessage, []byte(msg))
+			accepted, usage, _, err := p.HandleMessage(requester.SupplierMessage, websocket.TextMessage, []byte(msg))
 			require.False(t, accepted)
 			require.Error(t, err)
+			require.Contains(t, err.Error(), "invalid_response")
+			require.NotNil(t, usage)
+			require.True(t, usage.MissingUsage)
 		})
 	}
 }

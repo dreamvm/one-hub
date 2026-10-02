@@ -5,10 +5,24 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from run import SIGNATURES, NAMES, MySQLRedis, PostgreSQLRedis, assert_paid_accounting, check_tools, parse_chat, start_container, validate_backend
+from run import SIGNATURES, NAMES, MySQLRedis, PostgreSQLRedis, assert_consumed_details, assert_paid_accounting, check_tools, parse_chat, start_container, validate_backend
 
 
 class StreamValidationTests(unittest.TestCase):
+    def test_midflight_requires_exact_terminal_log_and_channel_accounting(self):
+        before, after = (2, 10, 15), (3, 17, 22)
+        assert_consumed_details(("consumed", "consume", "7"), before, after, 7)
+        for receipt, details in (
+            (("pending", "consume", "7"), after),
+            (("consumed", "refund", "7"), after),
+            (("consumed", "consume", "8"), after),
+            (("consumed", "consume", "7"), (4, 17, 22)),
+            (("consumed", "consume", "7"), (3, 16, 22)),
+            (("consumed", "consume", "7"), (3, 17, 23)),
+        ):
+            with self.assertRaises(AssertionError):
+                assert_consumed_details(receipt, before, details, 7)
+
     def test_postgres_redis_rejects_mutable_or_missing_images(self):
         pinned = "sha256:" + "a" * 64
         for invalid in (None, "postgres:18", "redis:latest", "sha256:123", "existing-postgres"):

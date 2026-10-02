@@ -47,12 +47,16 @@ Search 子调用和 MJ 替换模式不会共用同一账务 ID。账本固定用
 SELECT id, user_id, token_id, model_name, state, outcome,
        reserved_quota, final_quota, created_at, updated_at, failure_code
 FROM quota_reservations
-WHERE state IN ('reserved', 'pending')
+WHERE state IN ('reserved', 'pending', 'reconcile')
 ORDER BY created_at;
 ```
 
 `reserved` 也可能是仍在运行的请求，不能仅凭年龄判断上游未计费。
 记录保留/归档策略、待核对管理界面和历史人工核账不是本批的自动资金操作。
+
+历史预留、任务补偿和支付歧义的归属、证据与处理规则见
+[HISTORICAL_ACCOUNTING_RECONCILIATION.md](HISTORICAL_ACCOUNTING_RECONCILIATION.md)。
+规则整理不代表已核实或处理生产历史记录。
 
 ## 验证与兼容
 
@@ -72,3 +76,15 @@ ORDER BY created_at;
 旧进程不使用账本，不应把新旧混合运行视为完整幂等覆盖。回退代码前须核对 pending/运行中请求；
 旧镜像不会自动恢复新账本。恢复数据库备份仍会丢失恢复点之后的写入，需独立数据决策。
 本批不自动删除账本、不回填猜测的历史记录、不补扣历史费用。
+
+## Realtime 缺失报告的待核对状态
+
+后续修复增加 `reconcile` 状态及隐藏于普通 JSON 的 `reconciliation_data` TEXT 列，
+详见 [REALTIME_MISSING_USAGE.md](REALTIME_MISSING_USAGE.md)。它保存已观察用量和计价快照，
+不代表最终消费或退款；`outcome` 为空，`final_quota` 不得作为已知总费用使用。
+既有恢复任务只自动完成 `pending`，不会把 `reconcile` 自动扣款或退款。
+读取证据须使用受控数据库权限；没有新增公开读取或核销接口。
+
+迁移须先于新节点启动。回退前核对运行中请求和 `reserved/pending/reconcile`；
+保留新列与记录，不执行删除列或强制改状态。旧账本实现忽略该状态，旧 Realtime
+解析器不保护新连接的缺失报告；混合运行和回退后的业务正确性尚未完成最终验收。

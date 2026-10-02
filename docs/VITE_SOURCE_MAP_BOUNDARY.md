@@ -77,3 +77,29 @@ Monaco 的既有审阅覆盖限制、hover 裁剪和其余发布阻断项不由�
 
 回滚须反向提交本项依赖/配置/回归改动、恢复旧锁文件并重做 frozen 安装和验收；
 会重新引入旧版 source map 风险。RC8 仍预留，没有标签、镜像发布、部署或付费调用。
+
+## 准确候选 CI：通过，审阅仍阻断合并
+
+[草稿 PR #71](https://github.com/dreamvm/one-hub/pull/71) 的准确 head
+`9c90385c665440e1016e6b9eb4c970b626763d46`，tree
+`977d25052941950ec8f9a46c275ba41beb2cbd9d`，在
+[36769982936](https://github.com/dreamvm/one-hub/actions/runs/36769982936) /
+[36769983549](https://github.com/dreamvm/one-hub/actions/runs/36769983549) 全 9 项成功。
+Linux 前端 109 个依赖叶子及 62 项 Vitest、lint/build 通过；三数据库各 284 个节点、
+245 个事务叶子通过。三个后端 9/16/16 条与升级/两条回滚 7 条，共 48 个 PASS；
+4 种 Compose 实际启动通过。
+
+最终 runner 镜像 `sha256:410f9e766c9b9c0f8d9e3d58d7630ca729125079e2609fc00788f3cc44bfb458`
+的实际程序为 Go1.25.14 / one-api / linux/amd64 / CGO_ENABLED=1，binary SHA256
+`ecb4992546eb48e109e16895594bf37aa88c544bb6a922c60a7b161cbfbd9054`。
+仅在隔离 runner 加载，未发布。缺少独立审阅结论，PR 保持草稿且未合并；
+上述 CI 不作为交付完成或生产验收证明。本文件记录候选，不表示 main 已升级 Vite。
+
+
+## 2026-10-02: Vite candidate synchronized with current main
+
+The delivery branch preserves its candidate history and incorporates main 1a89e9e28e884ebee417d54e647e012718b4c4e2. Ledger conflicts retain current main records, including historical exact-candidate CI; package.json retains all current tests and adds the map regression. Monaco 0.57.0, js-yaml 4.3.2 and current UI changes remain.
+
+Preliminary temporary integration passed frozen offline installation with scripts disabled, 6 normal map leaves, 209 UI tests, lint and build. These do not replace complete final-candidate checks or CI. Independent review remains incomplete; do not merge. No interrupted review was retried or rerouted. Old CI, audit and browser evidence apply only to their recorded candidates. No tag, publication, deployment or paid call.
+
+Final refreshed-source verification: Node22.20.0/Yarn1.22.22 frozen offline installation with forced lifecycle rebuild, complete existing yarn test including 209 UI tests, lint with zero ESLint warnings, and production build passed. Peer dependency and large-chunk warnings remain. This supersedes the preliminary scripts-disabled limitation for local installation only; final-candidate CI and independent-review gates remain separate and open.

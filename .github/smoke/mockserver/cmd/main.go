@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -15,6 +16,30 @@ import (
 )
 
 func main() {
+	if len(os.Args) == 2 && os.Args[1] == "sqlite-fixture" {
+		var input mockserver.SQLiteFixtureRequest
+		if err := json.NewDecoder(io.LimitReader(os.Stdin, 512)).Decode(&input); err != nil {
+			json.NewEncoder(os.Stdout).Encode(map[string]string{"error": "invalid fixture input"})
+			return
+		}
+		values, err := mockserver.ReadSQLiteFixture("/fixture-db/one-api.db", input)
+		if err != nil {
+			json.NewEncoder(os.Stdout).Encode(map[string]string{"error": "fixture accounting read failed"})
+		} else {
+			json.NewEncoder(os.Stdout).Encode(map[string]any{"values": values})
+		}
+		return
+	}
+	if len(os.Args) == 3 && os.Args[1] == "check-dependency" {
+		dialer := &net.Dialer{}
+		reachable, err := mockserver.DependencyReachable(os.Args[2], dialer.DialContext)
+		if err != nil {
+			json.NewEncoder(os.Stdout).Encode(map[string]string{"error": err.Error()})
+		} else {
+			json.NewEncoder(os.Stdout).Encode(map[string]bool{"reachable": reachable})
+		}
+		return
+	}
 	if len(os.Args) == 2 && os.Args[1] == "request" {
 		probe()
 		return

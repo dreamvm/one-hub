@@ -292,9 +292,9 @@ const EditModal = ({ open, editId, onCancel, onOk, existingModels = [] }) => {
                         })
                       }
                       renderInput={(params) => <TextField {...params} label="输入模态" placeholder="选择或输入" />}
-                      renderOption={(props, option) => {
+                      renderOption={(optionProps, option) => {
                         const color = MODALITY_OPTIONS[option]?.color || 'default';
-                        const { key, ...otherProps } = props;
+                        const { key, ...otherProps } = optionProps;
                         return (
                           <li key={key} {...otherProps}>
                             <Chip
@@ -354,9 +354,9 @@ const EditModal = ({ open, editId, onCancel, onOk, existingModels = [] }) => {
                         })
                       }
                       renderInput={(params) => <TextField {...params} label="输出模态" placeholder="选择或输入" />}
-                      renderOption={(props, option) => {
+                      renderOption={(optionProps, option) => {
                         const color = MODALITY_OPTIONS[option]?.color || 'default';
-                        const { key, ...otherProps } = props;
+                        const { key, ...otherProps } = optionProps;
                         return (
                           <li key={key} {...otherProps}>
                             <Chip

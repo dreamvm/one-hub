@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Navigate, useParams, useNavigate } from 'react-router-dom';
 import { showError, calculateQuota, thousandsSeparator } from 'utils/common';
 
 import {
@@ -21,6 +21,7 @@ import {
   alpha
 } from '@mui/material';
 import { API } from 'utils/api';
+import { isInvoiceMonth } from 'utils/invoiceDate';
 import { useTranslation } from 'react-i18next';
 import Logo from 'ui-component/Logo';
 import { Icon } from '@iconify/react';
@@ -35,6 +36,7 @@ export default function InvoiceDetail() {
   const theme = useTheme();
 
   useEffect(() => {
+    if (!isInvoiceMonth(date)) return;
     const fetchInvoiceDetail = async () => {
       setLoading(true);
       try {
@@ -63,12 +65,10 @@ export default function InvoiceDetail() {
       setLoading(false);
     };
 
-    if (date) {
-      fetchInvoiceDetail();
-    } else {
-      navigate('/panel/invoice');
-    }
+    fetchInvoiceDetail();
   }, [date, navigate]);
+
+  if (!isInvoiceMonth(date)) return <Navigate to="/panel/invoice" replace />;
 
   if (loading || !invoiceData || !userData) {
     return (
@@ -109,7 +109,7 @@ export default function InvoiceDetail() {
               px: 2
             }}
           >
-            {t('back')}
+            {t('common.back')}
           </Button>
           {/*<Button*/}
           {/*  variant="contained"*/}

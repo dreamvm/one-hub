@@ -10,7 +10,7 @@ import (
 )
 
 type StatisticsMonth struct {
-	Date             time.Time `gorm:"primary_key;type:datetime" json:"date"`
+	Date             time.Time `gorm:"primary_key" json:"date"`
 	UserId           int       `json:"user_id" gorm:"primary_key"`
 	ModelName        string    `json:"model_name" gorm:"primary_key;type:varchar(255)"`
 	RequestCount     int       `json:"request_count"`
@@ -160,9 +160,12 @@ func IsStatisticsMonthGenerated(date time.Time) bool {
 
 // InsertStatisticsMonth 生成当前时间上个月的账单
 func InsertStatisticsMonth() error {
+	return insertStatisticsMonth(time.Now())
+}
+
+func insertStatisticsMonth(now time.Time) error {
 	// 获取上个月的日期
-	lastMonth := time.Now().AddDate(0, -1, 0)
-	date := time.Date(lastMonth.Year(), lastMonth.Month(), 1, 0, 0, 0, 0, time.Local)
+	date := time.Date(now.Year(), now.Month()-1, 1, 0, 0, 0, 0, time.Local)
 	if IsStatisticsMonthGenerated(date) {
 		logger.SysLog("Statistics month data already generated")
 		return nil
@@ -193,7 +196,9 @@ func InsertStatisticsMonthForDate(date time.Time) error {
 		tx.Rollback()
 		return err
 	}
-	tx.Commit()
+	if err := tx.Commit().Error; err != nil {
+		return err
+	}
 	logger.SysLog(fmt.Sprintf("Insert statistics month for date %s success", date.Format("2006-01-02")))
 	return nil
 }
@@ -308,7 +313,7 @@ func GetUserInvoiceDetail(params *StatisticsMonthDetailSearchParams) ([]*Statist
 
 	var statistics []*StatisticsMonthModel
 	query := DB.Table("statistics_months").
-		Select("? , model_name ,sum(request_count) as request_count, sum(quota) as quota, sum(prompt_tokens) as prompt_tokens, sum(completion_tokens) as completion_tokens, sum(request_time) as request_time", dateSqlStr).
+		Select(dateSqlStr+", model_name, sum(request_count) as request_count, sum(quota) as quota, sum(prompt_tokens) as prompt_tokens, sum(completion_tokens) as completion_tokens, sum(request_time) as request_time").
 		Where("user_id = ? AND date = ?", params.UserId, params.Date).
 		Group("date,model_name, user_id").
 		Order("date DESC")

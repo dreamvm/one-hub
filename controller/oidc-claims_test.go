@@ -3,6 +3,7 @@ package controller_test
 import (
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -52,7 +53,8 @@ func TestOIDCClaimsAndIdentity(t *testing.T) {
 			claims := map[string]any{"iss": config.OIDCIssuer, "aud": config.OIDCClientId, "sub": "new-subject", "exp": time.Now().Add(time.Hour).Unix(), "iat": time.Now().Unix(), "preferred_username": "newuser", "email": "new@example.invalid", "displayName": "New User", "avatar": "https://fixture.invalid/avatar"}
 			switch stage {
 			case "bound login", "bound subject collation", "subject case variant", "subject space variant", "bound registration disabled", "bound profile collision", "bound optional missing", "disabled":
-				require.NoError(t, model.DB.Model(&model.User{}).Where("id = 3").Update("oidc_id", "bound-subject").Error)
+				identityKey := fmt.Sprintf("%x", sha256.Sum256([]byte(fmt.Sprintf("%d:%s%s", len(config.OIDCIssuer), config.OIDCIssuer, "bound-subject"))))
+				require.NoError(t, model.DB.Model(&model.User{}).Where("id = 3").Updates(map[string]any{"oidc_id": "bound-subject", "oidc_issuer": config.OIDCIssuer, "oidc_identity_key": identityKey}).Error)
 				claims["sub"] = "bound-subject"
 				claims["preferred_username"] = "renamed"
 				if stage == "bound registration disabled" {
@@ -70,10 +72,14 @@ func TestOIDCClaimsAndIdentity(t *testing.T) {
 					ddl = strings.Replace(ddl, "`oidc_id` text", "`oidc_id` text COLLATE "+collation, 1)
 					require.NoError(t, model.DB.Exec(ddl).Error)
 					require.NoError(t, model.DB.Exec("INSERT INTO users SELECT * FROM oidc_original_users").Error)
+					require.NoError(t, model.DB.Exec("DROP TABLE oidc_original_users").Error)
+					require.NoError(t, model.DB.Migrator().CreateIndex(&model.User{}, "OidcIdentityKey"))
 					if stage == "subject case variant" {
+						config.RegisterEnabled = false
 						claims["sub"] = "BOUND-SUBJECT"
 					}
 					if stage == "subject space variant" {
+						config.RegisterEnabled = false
 						claims["sub"] = "bound-subject "
 					}
 				}

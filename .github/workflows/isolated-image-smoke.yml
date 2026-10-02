@@ -20,9 +20,18 @@ jobs:
 
   smoke:
     needs: test
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            arch: amd64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 35
     env:
+      TARGET_ARCH: ${{ matrix.arch }}
       SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
       # Public, immutable fixtures: One Hub v0.14.27, MySQL 8.2.0, Redis 8.8.0.
       OLD_IMAGE: martialbe/one-api@sha256:a498510e4b847ce59514c60463d505492fc0b627fa278703dba67be7839ae8a7
@@ -44,10 +53,10 @@ jobs:
           cache: true
       - name: Compile the synthetic mock upstream
         env:
-          CGO_ENABLED: '0'
+          CGO_ENABLED: '1'
           GOOS: linux
-          GOARCH: amd64
-        run: go build -o "$RUNNER_TEMP/onehub-mock" ./.github/smoke/mockserver/cmd
+          GOARCH: ${{ matrix.arch }}
+        run: go build -tags 'netgo osusergo sqlite_omit_load_extension' -ldflags '-linkmode external -extldflags "-static"' -o "$RUNNER_TEMP/onehub-mock" ./.github/smoke/mockserver/cmd
       - name: Set up Buildx
         uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
       - name: Build and load locally without publishing
@@ -55,7 +64,7 @@ jobs:
         with:
           context: .
           file: Dockerfile
-          platforms: linux/amd64
+          platforms: linux/${{ matrix.arch }}
           load: true
           push: false
           tags: onehub-isolated-smoke:${{ env.SOURCE_SHA }}
@@ -68,11 +77,13 @@ jobs:
           set -euo pipefail
           for variable in OLD_IMAGE MYSQL_IMAGE POSTGRES_IMAGE REDIS_IMAGE; do
             reference="${!variable}"
-            docker pull --platform linux/amd64 "$reference"
+            docker pull --platform "linux/$TARGET_ARCH" "$reference"
+            [[ "$(docker image inspect --format '{{.Architecture}}' "$reference")" == "$TARGET_ARCH" ]]
             image_id="$(docker image inspect --format '{{.Id}}' "$reference")"
             [[ "$image_id" =~ ^sha256:[a-f0-9]{64}$ ]]
             printf '%s_ID=%s\n' "$variable" "$image_id" >> "$GITHUB_ENV"
           done
+          [[ "$(docker image inspect --format '{{.Architecture}}' "onehub-isolated-smoke:$SOURCE_SHA")" == "$TARGET_ARCH" ]]
           candidate_id="$(docker image inspect --format '{{.Id}}' "onehub-isolated-smoke:$SOURCE_SHA")"
           [[ "$candidate_id" =~ ^sha256:[a-f0-9]{64}$ ]]
           printf 'CANDIDATE_IMAGE_ID=%s\n' "$candidate_id" >> "$GITHUB_ENV"
@@ -88,7 +99,7 @@ jobs:
           docker cp "$container_id:/one-api" "$RUNNER_TEMP/onehub-candidate"
           go run ./.github/smoke/buildinfo \
             -binary "$RUNNER_TEMP/onehub-candidate" \
-            -go-version go1.25.14 -goarch amd64
+            -go-version go1.25.14 -goarch "$TARGET_ARCH"
 
       - name: Run isolated SQLite checks
         id: sqlite
