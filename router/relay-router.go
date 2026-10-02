@@ -1,14 +1,17 @@
 package router
 
 import (
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+
+	"one-api/common"
 	"one-api/middleware"
 	"one-api/relay"
 	"one-api/relay/midjourney"
 	"one-api/relay/task"
 	"one-api/relay/task/kling"
 	"one-api/relay/task/suno"
-
-	"github.com/gin-gonic/gin"
 )
 
 func SetRelayRouter(router *gin.Engine) {
@@ -24,6 +27,13 @@ func SetRelayRouter(router *gin.Engine) {
 }
 
 func setOpenAIRouter(router *gin.Engine) {
+	// Realtime is excluded from this release. Reject before authentication,
+	// distribution, WebSocket upgrade or quota admission can have side effects.
+	// Re-enabling it requires a reviewed code change, not a runtime option.
+	router.GET("/v1/realtime", func(c *gin.Context) {
+		common.AbortWithMessage(c, http.StatusNotImplemented, "realtime_disabled_for_release")
+	})
+
 	modelsRouter := router.Group("/v1/models")
 	modelsRouter.Use(middleware.OpenaiAuth(), middleware.Distribute())
 	{
@@ -47,7 +57,6 @@ func setOpenAIRouter(router *gin.Engine) {
 		relayV1Router.POST("/audio/speech", relay.Relay)
 		relayV1Router.POST("/moderations", relay.Relay)
 		relayV1Router.POST("/rerank", relay.RelayRerank)
-		relayV1Router.GET("/realtime", relay.ChatRealtime)
 
 		relayV1Router.Use(middleware.SpecifiedChannel())
 		{
