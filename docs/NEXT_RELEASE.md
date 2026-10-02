@@ -1270,3 +1270,14 @@ Local verification of this integration: clean temporary frozen offline install w
 - 维护者已批准首版暂不提供双向Realtime，保留普通聊天和SSE。[入口限制](REALTIME_RELEASE_SCOPE.md)从已合并f48f5fab独立开发：`GET /v1/realtime`在认证、WebSocket和额度预留之前固定返回501，没有重新启用的配置开关。
 - 本项不合并#78/#79，也不关闭其解析、计费、跨连接及恢复证据缺口。原实现/测试保留，重新开放需代码变更及专项验收；旧镜像回退可能重新开放，必须单独核对。
 - 当前为未交付候选，须完成自身本地回归、独立审阅、准确候选CI和合并核对；不是发布或部署批准。
+
+### 2026-10-02：Realtime交付与渠道检测页面候选
+
+- #127 已合并 `9534294a774f6c1b680662613497edff749772dd`；十项准确候选检查与
+  [自身main四项CI](https://github.com/dreamvm/one-hub/actions/runs/37039750279)全部通过，实际checkout已核对。
+  候选与合并树相同，双架构各92条PASS及4种Compose；这更新前文“尚未交付”，不关闭底层Realtime问题或表示旧站点已经部署。
+- 当前准确main官方Yarn复查仍为181路径/89ID/69GHSA，与上一快照相比零新增、零移除；
+  Axios三处调用未变，fresh只读调查没有推翻现有范围结论。库仍受影响，未升级或宣称审计清零。
+- 调查发现独立的[渠道检测进度兼容问题](CHANNEL_CHECK_PROGRESS.md)：旧页面错误读取Axios包装事件，
+  且HTTP错误分支未释放加载状态。六项组件旧新对照已建立；自身完整回归、准确CI及合并记录另行补齐。
+  本候选不升级依赖、不执行真实渠道检测，也不是RC8、发布或部署批准。
