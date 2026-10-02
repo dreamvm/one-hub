@@ -103,3 +103,10 @@ The delivery branch preserves its candidate history and incorporates main 1a89e9
 Preliminary temporary integration passed frozen offline installation with scripts disabled, 6 normal map leaves, 209 UI tests, lint and build. These do not replace complete final-candidate checks or CI. Independent review remains incomplete; do not merge. No interrupted review was retried or rerouted. Old CI, audit and browser evidence apply only to their recorded candidates. No tag, publication, deployment or paid call.
 
 Final refreshed-source verification: Node22.20.0/Yarn1.22.22 frozen offline installation with forced lifecycle rebuild, complete existing yarn test including 209 UI tests, lint with zero ESLint warnings, and production build passed. Peer dependency and large-chunk warnings remain. This supersedes the preliminary scripts-disabled limitation for local installation only; final-candidate CI and independent-review gates remain separate and open.
+
+
+## Integration after Rollup merge
+
+This revision incorporates main b53412b4 / Rollup #68. The existing Vite8 dependency graph has no Rollup; retire its obsolete test file and script entry together with that dependency, preserving history and prior evidence. The Vite source-map suite and all main application tests remain. Rollup's owner-approved one-time independent-review exception does not apply to Vite. New exact-candidate checks remain required; keep this PR draft and do not merge.
+
+Local verification of this integration: clean temporary frozen offline install with lifecycle scripts, complete existing yarn test (47 development nodes and 88 dependency nodes including parents, plus 22 files / 209 UI tests), lint with zero ESLint warnings and build passed. Peer dependency and large-chunk warnings remain. Both lock selectors and the installed dependency tree contain no Rollup package. Compared with prior Vite candidate 7204ce2b, application source, package manifest, lockfile, configuration and source-map regression are identical; only acceptance/test documentation differs. Exact new candidate CI remains required; independent review remains incomplete.

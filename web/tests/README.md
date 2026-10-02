@@ -62,3 +62,8 @@ and legitimate CSS, CSS Modules, SCSS, local assets and source maps. Only
 synthetic temporary files are observed. These checks cover PostCSS processing;
 Vite's separate development source-map loader remains a documented boundary in
 `docs/POSTCSS_FILE_BOUNDARY.md`, not a claimed fix of every source-map read.
+
+The Rollup-only suite was retired when the Vite 8 candidate removed Rollup
+from the dependency graph. Its regression and acceptance evidence remain in
+PR #68 history and docs/ROLLUP_OUTPUT_BOUNDARY.md. Vite source-map tests and
+application tests remain active; this is not an independent-review result.
