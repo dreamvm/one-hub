@@ -1239,3 +1239,12 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - [站点升级准备](SITE_UPGRADE_READINESS.md)记录维护者确认的仅自用测试范围及只读核对：公开版本为 RC5 + Gemini 修复，实际 image ID 与历史部署一致，配置与保存的部署候选相同，旧备份七项哈希匹配。原有测试数据未修改。
 - 同一只读快照的支付订单、异步任务和旧 OIDC 绑定均为空，相应历史逐笔处理在该快照没有对象；旧版尚无新预留账本，不能据此认定旧请求全部结算或补建记录。升级前重新核对，未知历史 issuer 的保守规则保持。
 - 现有 CI 的上游 v0.14.27 升级夹具不替代实际 RC5 补丁镜像到最终候选的验收；新恢复点、准确升级与回退、四项受限审阅、保留依赖候选和最终 RC8 仍未完成。本批仅交付盘点文档，无独立事实审阅结论；自身候选 CI 和合并结果另在对应 PR 记录，未完成前不记为通过，没有发布或部署。
+
+
+### 2026-10-02: Rollup draft synchronized with current main
+
+- PR #68 retains candidate 79316d4c history and incorporates main 1a89e9e28e884ebee417d54e647e012718b4c4e2. Monaco 0.57.0, js-yaml 4.3.2, current UI fixes and all existing test entries are retained; only the Rollup regression entry is appended.
+- Preliminary temporary integration passed 8 normal output leaves, 209 UI tests, lint and build. These results are not final-candidate CI. Final installation, regression and CI evidence must identify the updated commit.
+- Independent review remains incomplete: do not merge. No interrupted review was retried or rerouted. Previous CI/audits remain historical evidence; no tag, image publication, deployment or paid call.
+
+Final integration local verification: Node 22.20.0 / Yarn 1.22.22 frozen offline installation (lifecycle scripts enabled), complete existing yarn test, 22 files / 209 UI tests, lint (zero ESLint warnings) and production build passed. Large-chunk and dependency peer warnings remain. The Rollup test file is byte-identical to candidate 79316d4c. Updated commit CI is pending; independent review remains incomplete.
