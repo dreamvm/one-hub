@@ -1267,6 +1267,14 @@ Keep this draft held: its earlier review covered successfully decoded events onl
 Refreshed-source local checks passed with Go1.25.14: existing Realtime regressions, required five-package offline race set, affected-package vet and providers/relay compilation. No new interrupted-review variants were executed. Final-candidate CI remains separate and pending; the delivery hold is unchanged.
 
 
+## 2026-10-02: Invalid-report candidate synchronized with refreshed prerequisite
+
+PR #79 now incorporates #78 candidate 04be2d23b2248579385b24ab14b1d32391e7906b and main 1a89e9e28e884ebee417d54e647e012718b4c4e2. Current ledger and all main fixes are retained; the invalid-report source/test patch is unchanged. Historical CI belongs to candidate 26465acd, not this refreshed revision.
+
+The interrupted independent review still has no final conclusion. The previously corrected typed-envelope path remains without completed independent re-review and without parent dynamic verification of the additional reported variants. Existing regression checks must not be described as those missing checks. Both #78/#79 remain draft and held. No interrupted review is retried, renamed, split or rerouted. No actual account/balance changes, tag, image publication, deployment or paid call.
+
+Refreshed-source checks passed with Go1.25.14: existing Realtime regressions, required five-package offline race tests, affected-package vet and providers/relay compilation. All eight invalid-report source/test files remain byte-identical to old candidate 26465acd. This is not independent review and does not validate the interrupted-review additional variants. New exact-candidate CI is pending.
+
 
 ### 2026-10-02: Vite final owner-exception delivery
 
@@ -1278,3 +1286,10 @@ PR #71 exact candidate b40c25510a6727ad70150423facea7dce93cddc2 was merged as 1f
 This candidate incorporates main 1f6d08bf5ba4e77a566070ecf5f21c411bfc205e, retaining the complete Vite/Rollup delivery history. Progress source and regression bytes remain identical to 04be2d23. Earlier successful CI belongs to the prior candidate; refreshed exact-candidate checks are separate. #78 cannot merge alone: #79 supplies the typed-envelope correction and its independent-review/additional-variant gaps remain open. No interrupted review or additional variants are retried or rerouted, and no merge exception is authorized for Realtime.
 
 Existing Go1.25.14 Realtime and required five-package race checks, affected vet and providers/relay compilation passed after this integration. Sandbox-only localhost bind denial was resolved by running the same existing fixtures with local networking allowed. These results do not replace missing review/additional-variant evidence; exact refreshed CI remains required.
+
+
+### Invalid-report integration with delivered Vite/main
+
+PR #79 incorporates refreshed #78 f63d6e96 and main 1f6d08bf. All eight invalid-report source/test files remain byte-identical to f5cbf834; the synchronization changes build dependencies and acceptance records only. Existing tests and exact new CI must be distinguished from the missing independent-review/additional-variant verification. Both PRs remain draft; no Realtime exception, merge, release or deployment is authorized by the Vite decision.
+
+After integration, existing Go1.25.14 Realtime regressions and required five-package race tests, affected vet and providers/relay compilation passed. No missing additional-variant check or independent review is claimed. Exact new candidate CI remains pending.

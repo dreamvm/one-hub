@@ -98,3 +98,48 @@ func TestWSProxyClosesSupplierBeforeBlockedBudgetError(t *testing.T) {
 	var timeout net.Error
 	require.False(t, errors.As(err, &timeout) && timeout.Timeout(), "supplier stayed open while client delivery blocked")
 }
+
+func TestWSProxyRetainsRejectedLifecycleBeforeProtocolError(t *testing.T) {
+	for _, callbackErr := range []bool{false, true} {
+		name := "metadata accepted"
+		if callbackErr {
+			name = "metadata capacity error"
+		}
+		t.Run(name, func(t *testing.T) {
+			old := logger.Logger
+			logger.Logger = zap.NewNop()
+			t.Cleanup(func() { logger.Logger = old })
+			user, gatewayUser := websocketPair(t)
+			gatewaySupplier, supplier := websocketPair(t)
+			protocolErr := types.NewErrorEvent("fixture", "json_unmarshal_failed", "invalid_event", "fixture invalid report")
+			var received *types.UsageEvent
+			proxy := requester.NewWSProxy(gatewayUser, gatewaySupplier, time.Second,
+				func(source requester.MessageSource, _ int, _ []byte) (bool, *types.UsageEvent, []byte, error) {
+					if source == requester.SupplierMessage {
+						return true, &types.UsageEvent{ResponseStarted: true, ResponseID: "fixture-a"}, nil, protocolErr
+					}
+					return true, nil, nil, nil
+				}, func(usage *types.UsageEvent) error {
+					received = usage
+					if callbackErr {
+						return errors.New("fixture capacity limit")
+					}
+					return nil
+				})
+			proxy.Start()
+			require.NoError(t, supplier.WriteMessage(websocket.TextMessage, []byte("fixture invalid report")))
+			_ = user.SetReadDeadline(time.Now().Add(time.Second))
+			_, message, err := user.ReadMessage()
+			require.NoError(t, err)
+			require.Equal(t, protocolErr.Error(), string(message))
+			_ = supplier.SetReadDeadline(time.Now().Add(time.Second))
+			_, _, err = supplier.ReadMessage()
+			proxy.Close()
+			proxy.Wait()
+			require.Error(t, err)
+			var timeout net.Error
+			require.False(t, errors.As(err, &timeout) && timeout.Timeout())
+			require.Equal(t, &types.UsageEvent{ResponseStarted: true, ResponseID: "fixture-a"}, received)
+		})
+	}
+}

@@ -56,9 +56,22 @@ func (p *OpenAIProvider) HandleMessage(source requester.MessageSource, messageTy
 	var progress struct {
 		Type       string          `json:"type"`
 		ResponseID json.RawMessage `json:"response_id"`
+		Response   json.RawMessage `json:"response"`
 	}
 	if err := json.Unmarshal(message, &progress); err != nil {
-		return true, nil, nil, types.NewErrorEvent("", "json_unmarshal_failed", "invalid_event", err.Error())
+		// encoding/json can retain a recognizable type while also returning an
+		// earlier field error. Keep that evidence without accepting the frame.
+		var usage *types.UsageEvent
+		if progress.Type == types.EventTypeResponseDone || progress.Type == types.EventTypeResponseCreated {
+			usage = &types.UsageEvent{ResponseStarted: true, ResponseID: realtimeResponseID(progress.Response)}
+		} else if isRealtimeResponseProgress(progress.Type) {
+			var responseID string
+			if idErr := json.Unmarshal(progress.ResponseID, &responseID); idErr != nil {
+				responseID = ""
+			}
+			usage = &types.UsageEvent{ResponseStarted: true, ResponseID: responseID}
+		}
+		return true, usage, nil, types.NewErrorEvent("", "json_unmarshal_failed", "invalid_event", err.Error())
 	}
 	if isRealtimeResponseProgress(progress.Type) {
 		var responseID string
@@ -71,6 +84,12 @@ func (p *OpenAIProvider) HandleMessage(source requester.MessageSource, messageTy
 	}
 	var event types.Event
 	if err := json.Unmarshal(message, &event); err != nil {
+		if progress.Type == types.EventTypeResponseDone || progress.Type == types.EventTypeResponseCreated {
+			// Recognizable work remains unresolved when its typed report fails.
+			// Preserve the protocol error without treating discarded usage as zero.
+			usage := &types.UsageEvent{ResponseStarted: true, ResponseID: realtimeResponseID(progress.Response)}
+			return true, usage, nil, types.NewErrorEvent("", "json_unmarshal_failed", "invalid_event", err.Error())
+		}
 		return true, nil, nil, types.NewErrorEvent("", "json_unmarshal_failed", "invalid_event", err.Error())
 	}
 
@@ -103,6 +122,20 @@ func (p *OpenAIProvider) HandleMessage(source requester.MessageSource, messageTy
 
 	// 处理其他事件类型
 	return true, nil, nil, nil
+}
+
+func realtimeResponseID(raw json.RawMessage) string {
+	var response struct {
+		ID json.RawMessage `json:"id"`
+	}
+	if err := json.Unmarshal(raw, &response); err != nil {
+		return ""
+	}
+	var id string
+	if err := json.Unmarshal(response.ID, &id); err != nil {
+		return ""
+	}
+	return id
 }
 
 func isRealtimeResponseProgress(eventType string) bool {
