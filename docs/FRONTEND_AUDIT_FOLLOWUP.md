@@ -137,3 +137,10 @@ b46dcf4e92a52c33f617a8f041a4a981a4fe762d0b1be8444456a14db6dfd69f。
 空格兼容问题已有限核实，未应用、提交或合并。其审计185条/91Yarn ID/72GHSA，仅属于TEMP。
 与195比较消失十二个Vite claim key并新增两个Sass/readdirp key，不能写成无新增或main185。
 两个新输入均单独静态not_actionable，仅限确证的function filter图路径，不称2.3.1已修补。
+
+## 2026-10-01 独立v3候选保留
+
+[gray-matter / js-yaml v3](JS_YAML_V3_CANDIDATE_REVIEW.md)临时候选审计为190路径/88Yarn ID/67GHSA，
+与main195比较五条v3 claim key消失、零新增；实际发送字段及官方接收端已核实。
+一次fresh审阅指出兼容/后续拷贝边界及omap回归缺口，父代理有界确认并保留错误缓存限制。
+没有运行时提交、PR、准确CI或合并；main保持195快照，固定JSON范围结论不等于库已修补。

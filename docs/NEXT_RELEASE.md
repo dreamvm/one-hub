@@ -1216,3 +1216,14 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - [共享YAML #120](JS_YAML_CONFIG_BOUNDARY.md#2026-10-01-120合并验收)候选b7677242十项准确检查、双架构89/9/4及Go1.25.14最终程序身份通过，候选/合成/最新main计算/实际树相等；实际合并6b1b3283。[自身main CI36937929600](https://github.com/dreamvm/one-hub/actions/runs/36937929600)已成功，四项真实checkout均为实际合并。
 - [Vite matcher候选](VITE_MATCHER_CANDIDATE_REVIEW.md)在TEMP完成旧新固定对照、前端回归与一次fresh审阅，审阅的重复表示残留和空格匹配回归已核实；没有应用、提交、运行时PR、候选CI或合并，原十二条保持开放。
 - 当前main依赖快照195条；未合并候选185条消失十二个Vite key并新增两条Sass/readdirp key，新增两条各自静态保留，不能冒称无新增或main已修补。独立v3、四个受限草稿、历史归属、生产事实、最终RC8及专项发布授权继续开放。
+
+### 独立v3候选保留
+
+- [gray-matter / js-yaml v3候选](JS_YAML_V3_CANDIDATE_REVIEW.md)27叶子/Node28、完整209项UI及依赖回归、lint/build本地通过；一次fresh审阅后确认兼容和后续拷贝/错误缓存边界，omap未有复杂度失败判据。仅保留TEMP，没有运行时提交、PR、准确CI或合并。
+- 其审计190路径/88Yarn ID/67GHSA，五条原v3 key消失、零新增；main仍195快照。共享v4同类覆盖缺陷假设已由源码和真实ESLint旧新控制反证；固定JSON范围、历史缺口及受限四项继续保留。
+- 本文叠加台账#121，须先交付前置并完成自身文档审阅、准确CI与合并；不把文档交付写成v3修补或RC8批准。没有标签、发布、部署或真实付费调用。
+
+### #121前置台账交付
+
+- [#121验收](JS_YAML_V3_CANDIDATE_REVIEW.md#2026-10-01-前置台账121交付)准确b56d0917十项候选CI、双架构89/9/4及Go1.25.14程序身份成功；候选/合成/最新main计算/实际合并树一致，实际合并df9b650d。[自身main CI36942692779](https://github.com/dreamvm/one-hub/actions/runs/36942692779)已成功，四项实际完整checkout均为该合并提交。
+- v3候选和Vite候选仍保留TEMP、未交付运行时修补；本文证据整理仍须自己的准确候选CI与合并，发布阻断及专项授权边界不变。
