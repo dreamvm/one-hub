@@ -2,13 +2,14 @@ package oidc
 
 import (
 	"context"
-	"one-api/common/config"
-	"one-api/common/logger"
 	"strings"
 	"sync"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"golang.org/x/oauth2"
+
+	"one-api/common/config"
+	"one-api/common/logger"
 )
 
 type OIDCConfig struct {
@@ -16,6 +17,17 @@ type OIDCConfig struct {
 	OAuth2Config *oauth2.Config
 	Verifier     *oidc.IDTokenVerifier
 	LoginURL     func(state string) string
+	issuer       string
+}
+
+// IdentityIssuer is used only after this configuration's verifier succeeds.
+// Preserve go-oidc's finite Google alias without normalizing arbitrary issuers
+// or consulting mutable application options at callback time.
+func (c *OIDCConfig) IdentityIssuer(token *oidc.IDToken) string {
+	if c.issuer == "https://accounts.google.com" && token.Issuer == "accounts.google.com" {
+		return c.issuer
+	}
+	return token.Issuer
 }
 
 var oidcConfigInstance *OIDCConfig
@@ -26,7 +38,8 @@ func InitOIDCConfig() error {
 		return nil
 	}
 	logger.SysLog("OIDC功能启用")
-	provider, err := oidc.NewProvider(context.Background(), config.OIDCIssuer)
+	issuer := config.OIDCIssuer
+	provider, err := oidc.NewProvider(context.Background(), issuer)
 	if err != nil {
 		logger.SysError("OIDC配置错误, err:" + err.Error())
 		return err
@@ -46,6 +59,7 @@ func InitOIDCConfig() error {
 		Provider:     provider,
 		OAuth2Config: oauth2Config,
 		Verifier:     verifier,
+		issuer:       issuer,
 		LoginURL: func(state string) string {
 			return oauth2Config.AuthCodeURL(state, oauth2.AccessTypeOffline)
 		},

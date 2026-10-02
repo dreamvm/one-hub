@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { API } from 'utils/api';
 import { showError, copy } from 'utils/common';
 import { Box, Card, Stack, alpha, Tooltip, IconButton, Typography } from '@mui/material';
@@ -9,48 +9,47 @@ import { useSelector } from 'react-redux';
 import IconWrapper from 'ui-component/IconWrapper';
 
 const SupportModels = () => {
-  const [modelList, setModelList] = useState([]);
+  const [modelGroups, setModelGroups] = useState({});
   const [expanded, setExpanded] = useState(false);
   const { t } = useTranslation();
   const ownedby = useSelector((state) => state.siteInfo?.ownedby);
 
-  const fetchModels = async () => {
-    try {
-      const res = await API.get(`/api/available_model`);
-      const { data, success } = res.data;
-      if (!success) return;
+  useEffect(() => {
+    let active = true;
+    const fetchModels = async () => {
+      try {
+        const res = await API.get('/api/available_model');
+        if (!active) return;
+        const { data, success } = res.data;
+        if (!success) return;
 
-      const modelGroup = Object.entries(data).reduce((acc, [modelId, modelInfo]) => {
-        const { owned_by } = modelInfo;
-        if (!acc[owned_by]) {
-          acc[owned_by] = [];
-        }
-        acc[owned_by].push(modelId);
-        return acc;
-      }, {});
-
-      Object.values(modelGroup).forEach((models) => models.sort());
-
-      const sortedModelGroup = Object.keys(modelGroup)
-        .sort((a, b) => {
-          const ownerA = ownedby?.find((item) => item.name === a);
-          const ownerB = ownedby?.find((item) => item.name === b);
-          return (ownerA?.id || 0) - (ownerB?.id || 0);
-        })
-        .reduce((acc, key) => {
-          acc[key] = modelGroup[key];
+        const groups = Object.entries(data).reduce((acc, [modelId, modelInfo]) => {
+          const { owned_by } = modelInfo;
+          if (!acc[owned_by]) acc[owned_by] = [];
+          acc[owned_by].push(modelId);
           return acc;
         }, {});
-
-      setModelList(sortedModelGroup);
-    } catch (error) {
-      showError(error.message);
-    }
-  };
-
-  useEffect(() => {
+        Object.values(groups).forEach((models) => models.sort());
+        setModelGroups(groups);
+      } catch (error) {
+        if (active) showError(error.message);
+      }
+    };
     fetchModels();
+    return () => {
+      active = false;
+    };
   }, []);
+
+  const modelList = useMemo(
+    () =>
+      Object.entries(modelGroups).sort(([a], [b]) => {
+        const ownerA = ownedby?.find((item) => item.name === a);
+        const ownerB = ownedby?.find((item) => item.name === b);
+        return (ownerA?.id || 0) - (ownerB?.id || 0);
+      }),
+    [modelGroups, ownedby]
+  );
 
   const getIconByName = (name) => {
     const owner = ownedby.find((item) => item.name === name);
@@ -87,46 +86,44 @@ const SupportModels = () => {
                   WebkitMaskImage: 'linear-gradient(to right, black 90%, transparent 100%)'
                 }}
               >
-                {Object.entries(modelList)
-                  .slice(0, 1)
-                  .map(([provider, models]) => (
-                    <Box
-                      key={provider}
+                {modelList.slice(0, 1).map(([provider, models]) => (
+                  <Box
+                    key={provider}
+                    sx={{
+                      display: 'flex',
+                      gap: 1,
+                      alignItems: 'center'
+                    }}
+                  >
+                    <Typography
+                      variant="subtitle2"
                       sx={{
-                        display: 'flex',
-                        gap: 1,
-                        alignItems: 'center'
+                        color: 'text.secondary',
+                        whiteSpace: 'nowrap',
+                        fontWeight: 'bold'
                       }}
                     >
-                      <Typography
-                        variant="subtitle2"
+                      {provider}:
+                    </Typography>
+                    {models.map((model) => (
+                      <Label
+                        key={model}
+                        variant="soft"
+                        color="primary"
+                        onClick={() => copy(model, t('dashboard_index.model_name'))}
                         sx={{
-                          color: 'text.secondary',
+                          cursor: 'pointer',
                           whiteSpace: 'nowrap',
-                          fontWeight: 'bold'
+                          '&:hover': {
+                            bgcolor: (theme) => alpha(theme.palette.primary.main, 0.16)
+                          }
                         }}
                       >
-                        {provider}:
-                      </Typography>
-                      {models.map((model) => (
-                        <Label
-                          key={model}
-                          variant="soft"
-                          color="primary"
-                          onClick={() => copy(model, t('dashboard_index.model_name'))}
-                          sx={{
-                            cursor: 'pointer',
-                            whiteSpace: 'nowrap',
-                            '&:hover': {
-                              bgcolor: (theme) => alpha(theme.palette.primary.main, 0.16)
-                            }
-                          }}
-                        >
-                          {model}
-                        </Label>
-                      ))}
-                    </Box>
-                  ))}
+                        {model}
+                      </Label>
+                    ))}
+                  </Box>
+                ))}
               </Box>
             )}
           </Stack>
@@ -160,7 +157,7 @@ const SupportModels = () => {
 
         {expanded && (
           <Stack spacing={2}>
-            {Object.entries(modelList).map(([provider, models]) => (
+            {modelList.map(([provider, models]) => (
               <Box key={provider}>
                 <Typography
                   variant="subtitle2"

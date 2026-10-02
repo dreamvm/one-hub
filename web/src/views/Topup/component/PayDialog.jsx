@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button, Dialog, DialogContent, DialogTitle, IconButton, Stack, Typography } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { useTheme } from '@mui/material/styles';
@@ -15,37 +15,26 @@ const PayDialog = ({ open, onClose, amount, uuid }) => {
   const defaultLogo = theme.palette.mode === 'light' ? '/logo-loading.svg' : '/logo-loading-white.svg';
   const [message, setMessage] = useState('正在拉起支付中...');
   const [subMessage, setSubMessage] = useState(null);
+  const [pollError, setPollError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState(null);
   const [success, setSuccess] = useState(false);
-  const [intervalId, setIntervalId] = useState(null);
+  const onCloseRef = useRef(onClose);
+  const cancelRef = useRef(() => {});
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   let useLogo = siteInfo.logo ? siteInfo.logo : defaultLogo;
 
   const clearValue = () => {
     setMessage('正在拉起支付中...');
     setSubMessage(null);
+    setPollError(null);
     setLoading(false);
     setQrCodeUrl(null);
     setSuccess(false);
   };
-
-  const pollOrderStatus = useCallback((tradeNo) => {
-    const id = setInterval(() => {
-      API.get(`/api/user/order/status?trade_no=${tradeNo}`).then((response) => {
-        if (response.data.success) {
-          clearInterval(id);
-          setMessage('支付成功');
-          setLoading(false);
-          setSuccess(true);
-          setQrCodeUrl(null);
-          clearInterval(id);
-          setIntervalId(null);
-        }
-      });
-    }, 3000);
-    setIntervalId(id);
-  }, []);
 
   function openPayUrl(method, url, params) {
     const form = document.createElement('form');
@@ -67,40 +56,87 @@ const PayDialog = ({ open, onClose, amount, uuid }) => {
     if (!open) {
       return;
     }
-    setMessage('正在拉起支付中...');
+    let active = true;
+    let timer;
+    const cancel = () => {
+      active = false;
+      clearTimeout(timer);
+    };
+    cancelRef.current = cancel;
+    clearValue();
     setLoading(true);
 
-    API.post('/api/user/order', {
-      uuid: uuid,
-      amount: Number(amount)
-    }).then((response) => {
-      if (!response.data.success) {
-        showError(response.data.message);
-        setLoading(false);
-        onClose();
-        return;
-      }
+    const pollOrderStatus = (tradeNo) => {
+      timer = setTimeout(async () => {
+        try {
+          const response = await API.get(`/api/user/order/status?trade_no=${encodeURIComponent(tradeNo)}`);
+          if (!active) return;
+          if (response.data.success) {
+            setMessage('支付成功');
+            setSubMessage(null);
+            setPollError(null);
+            setLoading(false);
+            setSuccess(true);
+            setQrCodeUrl(null);
+            return;
+          }
+          setPollError(null);
+        } catch {
+          if (!active) return;
+          setPollError('暂时无法查询支付状态，正在重试，请勿重复支付。');
+        }
+        if (active) pollOrderStatus(tradeNo);
+      }, 3000);
+    };
 
-      const { type, data } = response.data.data;
-      if (type === 1) {
-        setMessage('等待支付中...');
-        setSubMessage(
-          <>
-            如果没有自动跳转，请点击
-            <a href="#" onClick={() => openPayUrl(data.method, data.url, data.params)}>
-              这里跳转
-            </a>
-          </>
-        );
-        openPayUrl(data.method, data.url, data.params);
-      } else if (type === 2) {
-        setQrCodeUrl(data.url);
+    const createOrder = async () => {
+      try {
+        const response = await API.post('/api/user/order', {
+          uuid: uuid,
+          amount: Number(amount)
+        });
+        if (!active) return;
+        if (!response.data.success) {
+          showError(response.data.message);
+          setLoading(false);
+          onCloseRef.current();
+          return;
+        }
+
+        const { type, data } = response.data.data;
+        if (type === 1) {
+          setMessage('等待支付中...');
+          setSubMessage(
+            <>
+              如果没有自动跳转，请点击
+              <a
+                href="#"
+                onClick={(event) => {
+                  event.preventDefault();
+                  if (active) openPayUrl(data.method, data.url, data.params);
+                }}
+              >
+                这里跳转
+              </a>
+            </>
+          );
+          openPayUrl(data.method, data.url, data.params);
+        } else if (type === 2) {
+          setQrCodeUrl(data.url);
+          setLoading(false);
+          setMessage('请扫码支付');
+        }
+        pollOrderStatus(response.data.data.trade_no);
+      } catch {
+        if (!active) return;
         setLoading(false);
-        setMessage('请扫码支付');
+        setMessage('无法确认订单创建结果');
+        setSubMessage('请先核对订单或付款记录，再决定是否重试。');
       }
-      pollOrderStatus(response.data.data.trade_no);
-    });
-  }, [open, onClose, amount, uuid, pollOrderStatus]);
+    };
+    createOrder();
+    return cancel;
+  }, [open, amount, uuid]);
 
   //打开支付宝
   const handleOpenAlipay = (alipayUrl) => {
@@ -114,10 +150,7 @@ const PayDialog = ({ open, onClose, amount, uuid }) => {
       <IconButton
         aria-label="close"
         onClick={() => {
-          if (intervalId) {
-            clearInterval(intervalId);
-            setIntervalId(null);
-          }
+          cancelRef.current();
           clearValue();
           onClose();
         }}
@@ -146,6 +179,7 @@ const PayDialog = ({ open, onClose, amount, uuid }) => {
             )}
             {success && <img src={successSvg} alt="success" height="100" />}
             <Typography variant="h3">{message}</Typography>
+            {pollError && <Typography role="status">{pollError}</Typography>}
             {subMessage && <Typography variant="body">{subMessage}</Typography>}
             {qrCodeUrl && qrCodeUrl.startsWith('https://qr.alipay.com') && !success && (
               <Button variant="contained" color="primary" onClick={() => handleOpenAlipay(qrCodeUrl)}>

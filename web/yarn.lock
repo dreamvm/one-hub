@@ -3671,10 +3671,10 @@ dom-helpers@^5.0.1:
     "@babel/runtime" "^7.8.7"
     csstype "^3.0.2"
 
-dompurify@3.2.7:
-  version "3.2.7"
-  resolved "https://registry.yarnpkg.com/dompurify/-/dompurify-3.2.7.tgz#721d63913db5111dd6dfda8d3a748cfd7982d44a"
-  integrity sha512-WhL/YuveyGXJaerVlMYGWhvQswa7myDG17P7Vu65EWC05o8vfeNbvNf4d/BOvH99+ZW+LlQsc1GDKMa1vNK6dw==
+dompurify@3.4.15:
+  version "3.4.15"
+  resolved "https://registry.yarnpkg.com/dompurify/-/dompurify-3.4.15.tgz#30351b34513894f428c13bddb28bff0a027ae804"
+  integrity sha512-EUBjM+B+lkDE41iE82DDSCfkoPGfXx8IxFxPMjNzm/Uk4xDet77rTN9wqlxlVg71kK7XGuUMv6wUxJUwwv+Xyw==
   optionalDependencies:
     "@types/trusted-types" "^2.0.7"
 
@@ -5200,9 +5200,9 @@ js-yaml@^3.13.1:
     esprima "^4.0.0"
 
 js-yaml@^4.1.0:
-  version "4.1.0"
-  resolved "https://registry.npmmirror.com/js-yaml/-/js-yaml-4.1.0.tgz"
-  integrity sha512-wpxZs9NoxZaJESJGIZTyDEaYpl0FKSA+FB9aJiyemKhMwkxQg63h4T1KJgUGHpTqPDNRcmmYLugrRjJlBtWvRA==
+  version "4.3.2"
+  resolved "https://registry.npmjs.org/js-yaml/-/js-yaml-4.3.2.tgz#8e44fb14a2643c59726bb15787b5f1512cb3d3fb"
+  integrity sha512-SFNOvSJ+Dgf/9An904Yx+CgSlIPCkIpao4qo51lpee25TIRejdH3rhR4EZMGoNx3/TP3O+wzWuiTFl4sqbltzA==
   dependencies:
     argparse "^2.0.1"
 
@@ -5988,12 +5988,12 @@ minimist@^1.2.0, minimist@^1.2.6:
   resolved "https://registry.npmmirror.com/minipass/-/minipass-7.1.2.tgz"
   integrity sha512-qOOzS1cBTWYF4BH8fVePDBOO9iptMnGUEZwNc/cMWnTV2nVLZ7VoNWEPHkYczZA0pdoA7dl6e7FL659nX9S2aw==
 
-monaco-editor@^0.55.1:
-  version "0.55.1"
-  resolved "https://registry.yarnpkg.com/monaco-editor/-/monaco-editor-0.55.1.tgz#e74c6fe5a6bf985b817d2de3eb88d56afc494a1b"
-  integrity sha512-jz4x+TJNFHwHtwuV9vA9rMujcZRb0CEilTEwG2rRSpe/A7Jdkuj8xPKttCgOh+v/lkHy7HsZ64oj+q3xoAFl9A==
+monaco-editor@0.57.0:
+  version "0.57.0"
+  resolved "https://registry.yarnpkg.com/monaco-editor/-/monaco-editor-0.57.0.tgz#9889fb51ddc27fe90e6da0e96c237c852adc4654"
+  integrity sha512-5BkI9KGoqrNvBGUe15/QlZq3OooZ8WLg1AxTpaqHRCP3HNpzPPZKE2EDz8M7c+VRmCeUw1Brp4cx/PWm3kI/5A==
   dependencies:
-    dompurify "3.2.7"
+    dompurify "3.4.15"
     marked "14.0.0"
 
 mri@^1.1.0:

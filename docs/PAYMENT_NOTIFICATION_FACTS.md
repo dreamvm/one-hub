@@ -16,3 +16,7 @@
 四种网关验证使用临时 RSA 密钥、本地签名/加密通知及模拟证书响应，不接触真实支付。SQLite/MySQL/PostgreSQL 矩阵覆盖共享入账与每个网关的正常、优惠、缺失/不匹配事实、错误签名、历史归属及微信凭据轮换；具体提交和 CI 结果记录于 NEXT_RELEASE.md。
 
 本批仍不完成订单创建算术/外部请求时机、关闭或停用后的延迟通知、Stripe webhook 订阅和历史财务核对。混合运行旧版本会绕过这些约束；回退前应停写并核对在途回调。微信首次初始化/轮换需要访问官方证书接口，失败返回可重试错误；普通已缓存通知不逐次下载证书。
+
+后续已实现的延迟通知见 [PAYMENT_LATE_SETTLEMENT.md](PAYMENT_LATE_SETTLEMENT.md)；
+历史歧义的证据和归属规则见 [HISTORICAL_ACCOUNTING_RECONCILIATION.md](HISTORICAL_ACCOUNTING_RECONCILIATION.md)。
+后者没有执行生产核账或资金调整，不能更新为“历史财务核对已完成”。

@@ -16,7 +16,7 @@ import NavCollapse from '../src/layout/MainLayout/Sidebar/MenuList/NavCollapse';
 
 vi.mock('../src/utils/api', () => ({ API: { get: vi.fn(), put: vi.fn(), post: vi.fn() } }));
 // Keep real MUI, Formik, routing and i18n; isolate external editors/icons/network.
-vi.mock('@monaco-editor/react', () => ({
+vi.mock('../src/ui-component/JsonEditor', () => ({
   default: ({ value, onChange }) => <textarea aria-label="JSON editor" value={value || ''} onChange={(e) => onChange(e.target.value)} />
 }));
 vi.mock('@iconify/react', async () => {

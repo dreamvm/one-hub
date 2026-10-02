@@ -1,0 +1,43 @@
+# 请求中途网络分区验收
+
+分支 `codex/network-partition-acceptance`，基于 PR #84 已合并 main `9f0db48c6eb325f14417ae6645e007c0dfc42c92`。
+
+独立候选继承 Redis 和数据库中途停止验收；只扩展测试，不修改应用故障处理。真实网络断开/恢复结果尚未取得，等待准确候选 CI。
+
+## 断开与恢复边界
+
+仅操作本次 smoke 创建的内部 Docker 网络和同一随机前缀的 MySQL/PostgreSQL/Redis 容器；拒绝其他名称、网关容器、非内部或多网络目标。先保存地址、别名和进程 PID，短时断开网络附件，恢复时沿用原 IP/别名并确认进程没有重启。finally 处理命令结果不明确、请求异常及重复恢复；外层仍只清理本次创建的资源。
+
+Docker 官方 [disconnect](https://docs.docker.com/reference/cli/docker/network/disconnect/) 支持断开运行中的容器，[connect](https://docs.docker.com/reference/cli/docker/network/connect/) 提供 `--ip`/`--alias` 用于恢复本夹具的网络身份。这里不是主机防火墙修改，也不是跨主机或跨可用区拓扑验证。
+
+有限/无限令牌 × JSON/SSE × Redis/数据库的组合，在 MySQL 和 PostgreSQL 后端分别执行：
+
+1. 沿用有界上游暂停，在预留已落库而终局尚未完成时制造网络分区。SSE 已由模拟上游刷出首个内容块，但不推断客户端此时已收到它。
+2. 从模拟上游执行固定依赖的 TCP 连通性对照。仅允许 `database:3306`、`database:5432`、`cache:6379`，单次 context 限时 1 秒；只建连并立即关闭，不发送认证或业务数据。断开前成功、断开后失败、恢复后成功都必须成立。
+3. 目标仍须通过容器自己的 loopback 响应 SQL/PING。正常路径释放上游后保持分区 3 秒，再次确认网络未连接且进程未变；数据库分区期间账务仍为原预留，不能提前写成终局。
+4. 恢复连接后核对正常响应、唯一上游调用、正常费用、消费收据、用户/令牌余额与用量、消费日志、渠道统计及后续正常请求。分区可能阻塞后继续，也可能先失败再由恢复任务完成，因此不强制短分区产生数据库停止场景的错误日志。
+
+3 秒是正常路径的等待时间，不是 Docker 命令的绝对时限；命令沿用 90 秒上限、HTTP 客户端 20 秒、恢复检查 45 秒及 CI 步骤总时限。异常路径先尝试恢复网络，随后执行运行级清理。不会制造真实 OOM、无界断网、外部服务中断或扫描第三方。
+
+## 验证状态与剩余范围
+
+本地 25 项 Python 测试、Go1.25.14 smoke/策略 race 与相关 vet 通过。负向控制包括非本次目标拒绝、断开命令已生效却报错后的恢复、重复恢复、PID 变化、错误 IP/别名、连接检查目标白名单、超时和连接释放。
+
+这些离线夹具控制不证明真实网络矩阵已经通过；准确候选 CI、实际两数据库网络分区结果、合并与 main 检查仍待完成。本项不是应用安全修复，没有另开安全修复独立审阅周期。
+并发负载和资源释放、崩溃前未持久化用量、历史真实账目及生产恢复点仍需各自证据。RC8 未创建标签，没有发布、部署或真实付费调用。
+
+### 2026-10-01 首轮候选 CI 与夹具修正
+
+PR #85 首个候选 `647f7ffb559be3726ae573bec02d2c6746b33aa5` 的 8 项基础检查成功；[镜像 smoke 36835071194](https://github.com/dreamvm/one-hub/actions/runs/36835071194) 在 MySQL/Redis 网络恢复时失败：Docker 自动分配子网不支持 `network connect --ip`。没有把该次失败记为网络矩阵通过，PostgreSQL 分区步骤尚未执行。
+
+夹具改为先让 Docker 为本次随机命名的内部空网络选择无冲突子网，确认没有容器附件后重建该网络并显式传入同一子网；此后才启动容器。若子网被同时占用则失败，不换用未知网络。恢复仍严格保留原 IP、别名和进程 PID。新增正常命令顺序和已有附件拒绝重建的控制；等待修正候选的完整 CI。
+
+### 2026-10-01 修正候选通过并合并
+
+[PR #85](https://github.com/dreamvm/one-hub/pull/85) 最终候选 df2355573d21071f7430a239907d8948de9f514e 的 [兼容 CI 36836580306](https://github.com/dreamvm/one-hub/actions/runs/36836580306) 与 [smoke 36836580677](https://github.com/dreamvm/one-hub/actions/runs/36836580677) 全九项检查成功。实际日志确认 MySQL/Redis 和 PostgreSQL/Redis 的有限/无限 × JSON/SSE × Redis/数据库共 16 项网络分区通过；SQLite 9、MySQL 32、PostgreSQL 32、升级回滚 7，共 80 项 PASS，四种 Compose 均通过。
+
+候选 image ID 为 sha256:7eb2f8c6bf0f32a01c636b01920aefb331c6304566b0fbc511bf96bc4a46c0e7；实际 /one-api 为 Go1.25.14、main=one-api、linux/amd64、CGO=1，binary SHA256 f69c25dd2830203dc3ef86dff7d49073ab45a897def7fdb52b3b7444db842e2a。该镜像只在 CI 本地构建，没有发布。
+
+候选树、GitHub 合成合并树、本地计算合并树和实际 main 合并树均为 c884c757122981303a298f346ce17599cc43510c。合并提交 a95142550659965969b1306c91c4e7cb6aa1f488；合并后 main CI 待核对。首轮失败记录保留。验收范围仍为单宿主隔离网络，不能推断多宿主分区、生产恢复或其他尚未关闭的项目。
+
+合并后 [main CI 36838531843](https://github.com/dreamvm/one-hub/actions/runs/36838531843) 已在准确提交 a95142550659965969b1306c91c4e7cb6aa1f488 成功；此前“待核对”状态由本记录更新。

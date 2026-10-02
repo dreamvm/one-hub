@@ -67,6 +67,7 @@ func ChatRealtime(c *gin.Context) {
 	wsProxy.Wait()
 	// Both transfer workers have stopped. No usage callback can race final
 	// accounting or outlive the Gin request context.
+	relay.quota.ReconcileUnfinishedRealtime(relay.usage)
 	relay.quota.Consume(relay.c, relay.usage.ToChatUsage(), false)
 
 }
@@ -123,8 +124,10 @@ func (r *RelayModeChatRealtime) getProvider() bool {
 			return true
 		} else {
 			r.providerConn.Close()
-			if r.usage.InputTokens > 0 || r.usage.OutputTokens > 0 {
-				r.quota.Consume(r.c, r.usage.ToChatUsage(), false)
+			r.quota.ReconcileUnfinishedRealtime(r.usage)
+			usage := r.usage.ToChatUsage()
+			if usage.HasTokenUsage() || r.quota.NeedsRealtimeReconciliation() {
+				r.quota.Consume(r.c, usage, false)
 				r.abortWithMessage(err.Error())
 				return false
 			}
@@ -159,6 +162,14 @@ func (r *RelayModeChatRealtime) getRealtimeFirstMessage() error {
 		return errors.New("unexpected realtime initial message")
 	}
 	shouldContinue, usage, newMessage, err := r.messageHandler(requester.SupplierMessage, messageType, firstMessage)
+	// Capture unknown accounting even when the completion itself is rejected.
+	if usage != nil && usage.MissingUsage {
+		usageErr := r.usageHandler(usage)
+		usage = nil
+		if err == nil {
+			err = usageErr
+		}
+	}
 	if err != nil {
 		return err
 	}

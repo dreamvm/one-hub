@@ -1,0 +1,46 @@
+# 有界并发、账务与资源验收候选
+
+尚未交付。独立分支 codex/concurrent-load-acceptance，基于 PR #86 已合并 main 5712dbb205b1544a130ee02b7ea1063058019296，已继承 HTTP 指标上下文修复。当前没有真实镜像负载通过记录。
+
+## 范围与控制
+
+沿用本次运行创建的内部 Docker 网络、合成账号、固定模拟上游、隔离 SQLite、MySQL/PostgreSQL 和 Redis，不接触外部模型。每个后端三轮，每轮最多四个并发 worker、32 次请求，有限/无限令牌与 JSON/SSE 四种组合各八次；保留开始和结束的正常付费对照。SQLite 已接入同样的并发和账务断言；三种数据库的实际镜像负载结果仍待准确候选 CI，不能从本地夹具结果外推。
+
+模拟上游的专用 load-window 要求固定夹具控制认证，只在本次有效 OpenAI 模拟请求启用；单次短暂等待 300ms，以观测真实请求重叠。每轮最多接纳 32 次、同时最多四次，不排无界队列，取消会释放活动计数；与已有故障暂停门互斥。最终必须 started=completed=32、cancelled=active=0、2<=peak<=4。仅客户端发起并发不构成通过。
+
+## 逐轮验收条件
+
+- 用户余额、累计用量、请求数；有限令牌余额和用量；无限令牌计数保持预期；预留总数、消费终态数量、终态费用；消费日志数量与费用；渠道用量均按串行正常对照单价核对精确增量。
+- JSON 与 SSE 上游次数分别增加 16，不能出现丢失或重试。reserved/pending/reconcile 均为空。
+- 生成仅供本次夹具使用的 Basic Auth 配置，未认证或错误认证读取 metrics 仍为 404。有效读取核对 HTTP 成功计数与时长样本数分别增加 32。
+- 网关 PID 不变、未 OOM。记录 go_goroutines、process_open_fds、process_resident_memory_bytes。第一轮排空后为参考，后续排空最多允许额外八个协程、四个描述符，收敛等待十秒；RSS 必须低于现有 512MiB 容器限制。该短时有界观察不证明长期零泄漏或生产容量。
+
+网关保持 512MiB/1CPU，mock 128MiB/0.25CPU；测试显式配置 SQL 连接池上限八个、空闲四个。负载请求使用 20 秒 HTTP 客户端和 25 秒 Docker 子进程超时；整轮等待上限 45 秒。首个失败/取消立即设置停止标记并取消排队任务，只等待最多四个已经运行的探测按上述上限退出，再解除 load-window 和清理令牌。控制命令仍有 90 秒上限，CI 步骤保留总时限；失败时只清理本次资源。不得用增加负载制造真实 OOM 或服务中断。
+
+## 证据状态
+
+本地 Go1.25.14 模拟上游 race 回归、vet 通过；Python 共 38 项通过，包括账务漏记/多记/错归属、未结预留、超出轮次上限、指标错路径/缺项/重复/非法数值等负向控制。没有把这些离线控制写成真实网关验收。候选已进入独立分支；准确候选 CI、PR 和合并仍待完成。
+
+资源采样是有限观察。MySQL/PostgreSQL 另外从服务端会话目录核对本次应用账户的连接数不超过八个，活动/非空闲会话为零；查询自身排除在外，完全关闭的池也接受。SQLite 没有服务端会话目录，仍要求进程指标收敛、无未决预留和负载后正常请求成功。三数据库实际镜像结果、持续压测和生产规模仍未闭环。前置安全修复的审阅缺口、arm64、前端端到端、生产事实及最终发布批准仍须分别处理。
+
+## SQLite 只读观测
+
+mock 容器仅在 SQLite 模式挂载本次随机名称的数据卷到 /fixture-db，运行前检查卷名、同前缀容器和只读挂载。CLI 只接受 tokens/snapshot 操作及正整数 ID，不接收路径或 SQL；固定读取 /fixture-db/one-api.db，以 mode=ro、query_only、单连接、两秒 context 查询固定字段并立即关闭。一次 SELECT 提供一致的账务快照，不复制活跃数据库文件。缺失数据库不会新建；账号归属不匹配或不完整记录直接失败，不转成零值。
+
+使用现有 go-sqlite3 依赖，不改依赖清单。CI 的 mock 改为 CGO=1 静态构建，固定 netgo/osusergo/sqlite_omit_load_extension 标签，以保持原纯 Go DNS 行为并省去动态扩展。最终 Linux 静态 mock 的可执行性须由准确候选 CI 验证，本机 darwin 测试不能替代该证据。只读/WAL/未知操作/缺失数据/归属边界控制已在临时数据库执行通过。
+
+## 独立审阅与异常路径修正
+
+一次独立审阅由未参与实现的既有审阅者执行，复用了其 OIDC/指标审阅上下文，不是 fresh-context 审阅。确认 P2：原 ThreadPoolExecutor 上下文在首个失败后仍跑完 32 个排队任务才清理。主代理按同一纯内存复现核实原来 arm(0)→disarm(32)→delete(32)；修正为停止标记、取消尚未开始任务、45 秒整轮期限和25秒在途探测上限后，同一场景为 arm(0)→disarm(1)→delete(1)。新控制覆盖正常32次完成，以及四个已运行请求中发生异常、超时、取消后不启动剩余队列。该修正未再进行第二轮独立审阅；真实 Linux 静态 mock 与三数据库负载仍须候选 CI 证明。
+
+## 2026-10-01 合并验收
+
+前述待执行状态现由以下最终记录更新。[PR #87](https://github.com/dreamvm/one-hub/pull/87) head f50b2756614558fa6c0de9c8a8dee3a39abdfd4d 的[兼容 CI 36841280044](https://github.com/dreamvm/one-hub/actions/runs/36841280044)与[镜像验收 36841280643](https://github.com/dreamvm/one-hub/actions/runs/36841280643)全部九项成功。真实结果89个PASS（SQLite12、MySQL35、PostgreSQL35、升级/回滚7），含三后端各三轮32次并发、真实重叠与精确账务/上游/HTTP计数、预留和处理器排空、无OOM、PID不变、负载后正常对照；四种Compose启动通过。Linux静态mock与SQLite只读固定查询实际运行成功。
+
+逐轮排空观测：SQLite协程27/26/26、FD15/15/15、RSS66850816/66850816/66981888字节；MySQL协程30/31/30、FD18/18/18、RSS59510784/59617280/59617280；PostgreSQL协程26/26/26、FD18/18/18、RSS61779968/63819776/61698048。SQL池断言通过。这里只证明有界场景，没有证明长期零泄漏或生产容量。
+
+最终镜像ID sha256:98542d81ca7d04952d605869f5febe26640a3d5f040ad9533e9d1fd1eba41035，程序SHA256 4e9190105544be124fb88b726c3566fc2bccda400d9e507b80aeed360f6dc65d，实际身份Go1.25.14 / one-api / linux-amd64 / CGO=1；未发布镜像。
+
+合并提交d190a5c45db4ccb81adde454447aa29266e48d5c，候选、GitHub合成、本地计算和实际合并树均047d5f062416c457f27cf3b3a2c7fd137a0a9b71。合并后[main CI 36843424536](https://github.com/dreamvm/one-hub/actions/runs/36843424536)尚待核对。前置PR86 main CI36840850235已成功。受限安全审阅、arm64、生产事实及最终RC验收仍开放。
+
+2026-10-01 补记：PR #87 合并后 main d190a5c45db4ccb81adde454447aa29266e48d5c 的 [CI36843424536](https://github.com/dreamvm/one-hub/actions/runs/36843424536) 已成功，更新此前待核对状态。

@@ -47,7 +47,7 @@ import ListInput from './ListInput';
 import ModelSelectorModal from './ModelSelectorModal';
 import pluginList from '../type/Plugin.json';
 import { Icon } from '@iconify/react';
-import Editor from '@monaco-editor/react';
+import Editor from 'ui-component/JsonEditor';
 
 const icon = <CheckBoxOutlineBlankIcon fontSize="small" />;
 const checkedIcon = <CheckBoxIcon fontSize="small" />;
@@ -974,6 +974,7 @@ const EditModal = ({ open, channelId, onCancel, onOk, groupOptions, isTag, model
                           minimap: { enabled: false },
                           scrollBeyondLastLine: false,
                           automaticLayout: true,
+                          fixedOverflowWidgets: true,
                           fontSize: 14,
                           lineNumbers: 'on',
                           folding: true,

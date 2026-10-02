@@ -19,28 +19,32 @@ import (
 )
 
 type Quota struct {
-	modelName        string
-	promptTokens     int
-	price            model.Price
-	groupName        string
-	isBackupGroup    bool // 新增字段记录是否使用备用分组
-	backupGroupName  string
-	groupRatio       float64
-	inputRatio       float64
-	outputRatio      float64
-	preConsumedQuota int
-	realtimeChunk    int
-	userId           int
-	channelId        int
-	tokenId          int
-	unlimitedQuota   bool
-	HandelStatus     bool
-	requestID        string
-	reservationID    string
-	reservationReady bool
-	terminalMu       sync.Mutex
-	terminal         *model.QuotaTerminal
-	terminalErr      error
+	modelName            string
+	promptTokens         int
+	price                model.Price
+	groupName            string
+	isBackupGroup        bool // 新增字段记录是否使用备用分组
+	backupGroupName      string
+	groupRatio           float64
+	inputRatio           float64
+	outputRatio          float64
+	preConsumedQuota     int
+	realtimeChunk        int
+	realtimeReceipts     map[[32]byte][32]byte
+	realtimeFull         bool
+	realtimeActive       map[[32]byte]struct{}
+	realtimeUnattributed bool
+	userId               int
+	channelId            int
+	tokenId              int
+	unlimitedQuota       bool
+	HandelStatus         bool
+	requestID            string
+	reservationID        string
+	reservationReady     bool
+	terminalMu           sync.Mutex
+	terminal             *model.QuotaTerminal
+	terminalErr          error
 
 	startTime         time.Time
 	firstResponseTime time.Time
@@ -149,11 +153,27 @@ func (q *Quota) PreRealtimeQuotaConsumption() *types.OpenAIErrorWithStatusCode {
 // another reservation window can be funded. A rejected top-up must not erase
 // usage that the provider has already incurred.
 func (q *Quota) UpdateUserRealtimeQuota(usage *types.UsageEvent, nowUsage *types.UsageEvent) error {
+	if q.NeedsRealtimeReconciliation() {
+		return errors.New("realtime usage requires reconciliation")
+	}
 	if nowUsage == nil {
 		return nil
 	}
-	if err := usage.Merge(nowUsage); err != nil {
+	if nowUsage.MissingUsage {
+		return q.recordMissingRealtimeUsage(usage, nowUsage.ResponseID)
+	}
+	if nowUsage.ResponseStarted {
+		return q.startRealtimeResponse(nowUsage.ResponseID)
+	}
+	accepted, err := q.mergeRealtimeReceipt(usage, nowUsage)
+	if accepted {
+		q.completeRealtimeResponse(nowUsage.ResponseID)
+	}
+	if err != nil {
 		return err
+	}
+	if !accepted {
+		return nil
 	}
 	quota := q.GetTotalQuotaByUsage(usage.ToChatUsage())
 	if quota < 0 {
@@ -222,6 +242,9 @@ func (q *Quota) finish(c *gin.Context, build func() (*model.QuotaTerminal, error
 	}
 	if err := model.SubmitQuotaTerminal(q.reservationID, *q.terminal); err != nil {
 		logger.LogError(c.Request.Context(), "failed to persist quota terminal intent")
+		return
+	}
+	if q.terminal.Outcome == model.QuotaOutcomeReconcile {
 		return
 	}
 	if err := model.FinalizeQuotaReservation(q.reservationID); err != nil {

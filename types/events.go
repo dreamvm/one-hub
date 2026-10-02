@@ -10,9 +10,10 @@ import (
 )
 
 const (
-	EventTypeResponseDone   = "response.done"
-	EventTypeSessionCreated = "session.created"
-	EventTypeError          = "error"
+	EventTypeResponseDone    = "response.done"
+	EventTypeResponseCreated = "response.created"
+	EventTypeSessionCreated  = "session.created"
+	EventTypeError           = "error"
 )
 
 type Event struct {
@@ -71,6 +72,10 @@ type ResponseEvent struct {
 }
 
 type UsageEvent struct {
+	// ResponseID is provider-validated metadata, never read from usage JSON.
+	ResponseID         string                  `json:"-"`
+	MissingUsage       bool                    `json:"-"`
+	ResponseStarted    bool                    `json:"-"`
 	InputTokens        int                     `json:"input_tokens"`
 	OutputTokens       int                     `json:"output_tokens"`
 	TotalTokens        int                     `json:"total_tokens"`

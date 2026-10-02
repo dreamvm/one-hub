@@ -57,3 +57,14 @@ Windows 原生路径、其他插件组合、完整浏览器页面与生产端到
 
 回滚本项独立提交并重跑 frozen 安装/前端回归即可恢复旧版本，无 schema 或
 配置迁移；回滚同时恢复旧版公告风险，不视为依赖问题已关闭。
+
+
+## 2026-10-02 continuation (supersedes historical pending statuses above)
+
+Candidate 79316d4c already has draft PR #68 and nine successful exact-candidate CI jobs. Its public dependency metadata audit completed after explicit authorization; see NEXT_RELEASE for those historical results. Earlier pending-authorization and pending-CI statements above describe the earlier stage only.
+
+The delivery branch now incorporates main 1a89e9e28e884ebee417d54e647e012718b4c4e2 while preserving existing commit history. Conflicting ledger content is taken from current main and supplemented here. package.json keeps all main test entries and appends Rollup; the automatically merged lockfile changes only Rollup and native platform packages. Monaco 0.57.0, js-yaml 4.3.2 and current business fixes remain.
+
+Preliminary temporary integration passed 8 normal Rollup leaves (9 including parent), 22 files / 209 Vitest tests, lint and production build, retaining large-chunk warnings. That dependency overlay was not a frozen installation and does not replace final-candidate CI. Independent review remains incomplete; author checks do not replace it. Keep this PR draft and do not merge. No tags, image publication or deployment.
+
+Final integration local verification: Node 22.20.0 / Yarn 1.22.22 frozen offline installation (lifecycle scripts enabled), complete existing yarn test, 22 files / 209 UI tests, lint (zero ESLint warnings) and production build passed. Large-chunk and dependency peer warnings remain. The Rollup test file is byte-identical to candidate 79316d4c. Updated commit CI is pending; independent review remains incomplete.

@@ -203,5 +203,10 @@ jobs:
           test -z "$(gofmt -l model/user.go model/user-response.go controller/user.go controller/user-response_test.go middleware/auth.go middleware/session.go middleware/session-auth_test.go controller/github.go controller/lark.go controller/oauth-session_test.go middleware/logger.go middleware/logger_test.go middleware/recover.go main.go)"
           go test -race -count=1 ./controller ./middleware
           go vet ./controller ./middleware ./model
+      - name: Test metrics request-context lifecycle without external services
+        run: |
+          test -z "$(gofmt -l metrics/main.go metrics/context-lifecycle_test.go)"
+          go test -race -count=1 ./metrics
+          go vet ./metrics
       - name: Vet patched packages
         run: go vet ./types ./providers/gemini ./providers/claude ./common/requester

@@ -48,8 +48,61 @@ Browser plugin 不可用，采用已有 Playwright CLI；未安装新浏览器�
 
 - 当前依赖公告、原生 Windows、Firefox/Safari、真实移动设备、生产端到端均未关闭。
 - `/jump`、配置中的聊天链接/OIDC endpoint 使用其他导航方式，不属于本节 React Router 结论。
-- Monaco/DOMPurify 目前只有源码与配置调查，实际编辑器加载、格式化、保存和 hover 浏览器证据待补。
+- Monaco/DOMPurify 的后续局部浏览器记录已恢复并核验，详见下节；完整键盘、移动端、hover 可见性与依赖修复仍未完成。
   单独升级 Yarn 中的 DOMPurify 不会替换 Monaco 内嵌副本或默认 CDN 加载的副本。
 - PostCSS 的独立 Vite map 加载器、Rollup 候选独立审阅及其余工具链/i18n CLI 依赖继续按各自边界处理。
 
 本批未创建 RC8 标签、发布镜像或部署。其他发布阻断项见 [NEXT_RELEASE.md](NEXT_RELEASE.md)。
+
+## Monaco：恢复的局部编辑器记录与未通过项
+
+接续时发现此前已执行但未进入台账的检查。记录的应用基线仍为 `34d36a13`，
+Chrome 154.0.8037.58、1440×1000、localhost 合成 API。接续核对确认三个编辑器
+源码与 Vite 配置未改变，15 个实际提供给浏览器的 Monaco 资源 SHA256 与本地
+0.55.1 包逐一相符；本节为已有证据恢复，不宣称重新执行了浏览器验收。
+
+默认 CDN URL 的资源请求被夹具用本地安装包字节响应；未验证真实 CDN 内容或生产网络。
+检查覆盖 EditModal 的额外参数、MapInput、ListInput，真实 React/Monaco 组件保持原样。
+
+- 三处 JSON 编辑器加载成功；通过公开 Monaco model API 放入合成 JSON，再用 UI 格式化
+  快捷键得到预期格式。MapInput 的畸形 JSON 和 ListInput 的对象输入保持对话框且未提交；
+  恢复合法数据后可继续。模拟渠道保存恰好产生一次 POST，映射、额外参数和禁用流式列表
+  与输入一致。HTML 形状的普通字符串作为文本保存，不是对全部 DOMPurify 公告的验证。
+- 深浅色截图与正常流程记录保留；记录中 pageerror 和 error/warning console 均为空。
+  Runtime JSON schema 列表为空且 `enableSchemaRequest=false`。没有加入远程 schema 或
+  自定义 Markdown/hover provider 来构造应用不存在的路径。
+- **键盘输入未通过完整验收**：隐藏 EditContext 的点击超时，keyboard.type/insertText
+  曾产生非预期模型内容；原因未确认。上述 model API 夹具不能代替真实用户键盘输入。
+- **诊断 hover 可见性未通过**：JSON 诊断文本已生成，但浮层在编辑器 `overflow:hidden`
+  容器边界外，截图未显示文字，中心点命中外部表单而非 hover。DOM 中存在文本不等于
+  用户能看到或操作浮层；该问题留在页面行为专项。
+
+没有升级 Monaco 或其内嵌 DOMPurify，也没有关闭其公告。仅升级独立传递 DOMPurify
+不会替换默认 CDN/预构建 Monaco 内嵌副本。移动端完整编辑、原生 Windows、Firefox/Safari、
+真实键盘、生产保存与最终端到端仍待完成。恢复的 JSON、请求/保存记录、资源哈希及截图
+已进入私有验收证据集合；公开台账不包含真实凭据或生产数据。
+
+## 接续：Monaco 本地运行版本候选
+
+上述历史记录之后，基于已合并的 `3a74e083` 开始独立候选，详见
+[MONACO_RUNTIME_BOUNDARY.md](MONACO_RUNTIME_BOUNDARY.md)。候选将三个编辑器统一为
+锁定的 Monaco 0.57.0 本地 ESM 与同源 worker，保留表单行为；已重新执行实际浏览器正常
+键入、撤销、格式化、映射/列表错误拒绝及合成保存。旧 CDN 请求为零。
+不将此候选本地证据当成已完成独立审阅、准确 CI、合并或全部 DOMPurify 公告修复。
+
+## 2026-10-01 真实本地后端补充
+
+最新应用另完成部分浏览器到真实 Gin/SQLite 的联合检查，见[真实后端验收](FRONTEND_REAL_BACKEND_ACCEPTANCE.md)。实际登录、令牌增删改、设置保存刷新及空数据页面已有分步证据；夹具达到时限退出、最终汇总失败及未完成退出登录如实保留。它与本文件较早的合成 API 浏览器记录范围不同，不相互替代，也不关闭完整端到端或生产验收。
+
+## 2026-10-01 支付对话框生命周期候选
+
+[独立边界记录](PAYMENT_DIALOG_LIFECYCLE.md)保存旧版1正常通过/4问题失败、新13专项、
+完整209项UI测试、lint/build、复用上下文的独立审阅及浏览器证据。
+实际生产构建充值页配合合成API，验证查询失败恢复、关闭前创建迟到、卸载停止轮询、
+创建失败不重试以及390像素暗色提示/二维码；未触发真实支付。
+这补充前端关键交互验收，不替代服务端支付、真实网关或生产事实，准确候选交付尚待完成。
+
+支付生命周期#114现已完成十项准确候选CI及双架构隔离验收并合并966066fb；
+[最终记录](PAYMENT_DIALOG_LIFECYCLE.md#2026-10-01-合并验收)保留主分支后续检查状态。
+[真实本地结算补充](FRONTEND_REAL_BACKEND_ACCEPTANCE.md#2026-10-01-支付页面与真实本地结算补充)
+通过实际订单/通知/数据层验证单次入账和刷新余额，不替代真实网关或历史处理。
