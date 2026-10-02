@@ -51,10 +51,18 @@ mcp_call_arguments 的 delta/done。事件来源依据官方
 回退恢复原来丢弃进度证据的行为；必须保留已持久化的待核对记录，不自动退款。
 没有新建标签、发布镜像、部署或调用真实付费模型。
 
-## 后续完整性限制
 
-后续无效报告候选的独立审阅发现第一层类型错误早退的残余证据遗漏，
-同样影响带类型错误的进度信封；审阅随后被平台内容检查中断，无最终结论。
-父任务源码确认并在后续独立候选中修正，但未取得完整审阅和该新增变体的父任务动态证据。
-因此 PR #78 保留草稿、不合并；前述无具体发现只覆盖当时完成的审阅，
-不能作为所有解析错误变体完整关闭的依据。详见 [REALTIME_INVALID_USAGE.md](REALTIME_INVALID_USAGE.md)。
+## 2026-10-02 continuation
+
+The branch now incorporates main 1a89e9e28e884ebee417d54e647e012718b4c4e2 without changing the progress parser or its regression file. Earlier pending-CI text is historical: old candidate 11a0e376 already passed its recorded CI. Refreshed candidate checks are separate.
+
+The later #79 review identified a typed-envelope error path that also limits this candidate. Its correction exists only in #79 and lacks completed independent review. Earlier successful progress review does not cover that path. Keep #78 draft and held together with #79; no interrupted review is retried or rerouted. No release or deployment.
+
+Refreshed-source local checks passed with Go1.25.14: existing Realtime regressions, required five-package offline race set, affected-package vet and providers/relay compilation. No new interrupted-review variants were executed. Final-candidate CI remains separate and pending; the delivery hold is unchanged.
+
+
+## 2026-10-02: Invalid-report candidate synchronized with refreshed prerequisite
+
+PR #79 now incorporates #78 candidate 04be2d23b2248579385b24ab14b1d32391e7906b and main 1a89e9e28e884ebee417d54e647e012718b4c4e2. Current ledger and all main fixes are retained; the invalid-report source/test patch is unchanged. Historical CI belongs to candidate 26465acd, not this refreshed revision.
+
+The interrupted independent review still has no final conclusion. The previously corrected typed-envelope path remains without completed independent re-review and without parent dynamic verification of the additional reported variants. Existing regression checks must not be described as those missing checks. Both #78/#79 remain draft and held. No interrupted review is retried, renamed, split or rerouted. No actual account/balance changes, tag, image publication, deployment or paid call.

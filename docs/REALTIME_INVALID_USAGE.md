@@ -48,3 +48,12 @@ Go1.25.14 encoding/json 的源码和本项目早退分支确认，补上已识�
 最终八文件源码/测试补丁 SHA256：
 `a8486131096bb22513fde98ce8057bb6261998ceb59026bd9f02bd918ea30733`。
 未创建标签、发布镜像或部署生产。
+
+
+## 2026-10-02: Invalid-report candidate synchronized with refreshed prerequisite
+
+PR #79 now incorporates #78 candidate 04be2d23b2248579385b24ab14b1d32391e7906b and main 1a89e9e28e884ebee417d54e647e012718b4c4e2. Current ledger and all main fixes are retained; the invalid-report source/test patch is unchanged. Historical CI belongs to candidate 26465acd, not this refreshed revision.
+
+The interrupted independent review still has no final conclusion. The previously corrected typed-envelope path remains without completed independent re-review and without parent dynamic verification of the additional reported variants. Existing regression checks must not be described as those missing checks. Both #78/#79 remain draft and held. No interrupted review is retried, renamed, split or rerouted. No actual account/balance changes, tag, image publication, deployment or paid call.
+
+Refreshed-source checks passed with Go1.25.14: existing Realtime regressions, required five-package offline race tests, affected-package vet and providers/relay compilation. All eight invalid-report source/test files remain byte-identical to old candidate 26465acd. This is not independent review and does not validate the interrupted-review additional variants. New exact-candidate CI is pending.

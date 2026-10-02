@@ -19,6 +19,8 @@ var Names = []string{"read_doc_metadata", "list_doc_sections"}
 type Server struct {
 	mu     sync.Mutex
 	counts map[string]int
+	gate   *responseGate
+	load   *loadWindow
 }
 
 func New() *Server { return &Server{counts: make(map[string]int)} }
@@ -61,6 +63,14 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var request object
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(&request); err != nil {
 		s.reject(w, "invalid JSON")
+		return
+	}
+	if r.URL.Path == "/fixture/load-window" {
+		s.controlLoadWindow(w, r, request)
+		return
+	}
+	if r.URL.Path == "/fixture/response-gate" {
+		s.controlResponseGate(w, r, request)
 		return
 	}
 	if r.URL.Path == "/v1/chat/completions" {
@@ -161,6 +171,12 @@ func (s *Server) openai(w http.ResponseWriter, r *http.Request, request object) 
 		s.reject(w, "unexpected model")
 		return
 	}
+	finish, ok := s.enterLoadWindow(r)
+	if !ok {
+		s.reject(w, "fixture load window cancelled or exceeded")
+		return
+	}
+	defer finish()
 	stream, _ := request["stream"].(bool)
 	s.count(fmt.Sprintf("%s_%t", model, stream))
 	usage := object{"prompt_tokens": 10, "completion_tokens": 4, "total_tokens": 14}
@@ -169,10 +185,16 @@ func (s *Server) openai(w http.ResponseWriter, r *http.Request, request object) 
 		base["object"] = "chat.completion.chunk"
 		base["choices"] = []object{{"index": 0, "delta": object{"role": "assistant", "content": "中文对话成功"}, "finish_reason": nil}}
 		reply(w, base, true)
+		if !s.waitResponseGate(w, r, true) {
+			return
+		}
 		base["choices"] = []object{{"index": 0, "delta": object{}, "finish_reason": "stop"}}
 		base["usage"] = usage
 		reply(w, base, true)
 		fmt.Fprint(w, "data: [DONE]\n\n")
+		return
+	}
+	if !s.waitResponseGate(w, r, false) {
 		return
 	}
 	base["object"] = "chat.completion"

@@ -16,6 +16,7 @@ const StatusProvider = ({ children }) => {
   const loadStatus = useCallback(async () => {
     let system_name = '';
     let analytics_code = '';
+    let refreshed = false;
     try {
       const res = await API.get('/api/status');
       const { success, data } = res.data;
@@ -45,6 +46,7 @@ const StatusProvider = ({ children }) => {
         if (data.analytics_code) {
           analytics_code = data.analytics_code;
         }
+        refreshed = true;
       } else {
         const backupSiteInfo = localStorage.getItem('siteInfo');
         if (backupSiteInfo) {
@@ -78,6 +80,7 @@ const StatusProvider = ({ children }) => {
         }
       }
     }
+    return refreshed;
     // eslint-disable-next-line
   }, [dispatch]);
 

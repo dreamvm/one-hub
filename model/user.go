@@ -28,6 +28,8 @@ type User struct {
 	Email            string         `json:"email" gorm:"index" validate:"max=50"`
 	AvatarUrl        string         `json:"avatar_url" gorm:"type:varchar(500);column:avatar_url;default:''"`
 	OidcId           string         `json:"oidc_id" gorm:"column:oidc_id;index"`
+	OidcIssuer       string         `json:"-" gorm:"column:oidc_issuer;type:text"`
+	OidcIdentityKey  *string        `json:"-" gorm:"column:oidc_identity_key;type:char(64);uniqueIndex"`
 	GitHubId         string         `json:"github_id" gorm:"column:github_id;index"`
 	GitHubIdNew      int            `json:"github_id_new" gorm:"column:github_id_new;index"`
 	WeChatId         string         `json:"wechat_id" gorm:"column:wechat_id;index"`
@@ -135,6 +137,9 @@ func DeleteUserById(id int) (err error) {
 }
 
 func (user *User) Insert(inviterId int) error {
+	if err := user.validateOIDCIdentity(); err != nil {
+		return err
+	}
 	if RecordExists(&User{}, "username", user.Username, nil) {
 		return errors.New("用户名已存在！")
 	}
@@ -171,7 +176,9 @@ func (user *User) Insert(inviterId int) error {
 
 func (user *User) Update(updatePassword bool) error {
 	var err error
-	omitFields := []string{"quota", "used_quota", "request_count", "aff_count", "aff_quota", "aff_history"}
+	// Profile snapshots can predate an explicit OIDC unbind. Only dedicated
+	// identity operations may change the binding, never a generic user update.
+	omitFields := []string{"quota", "used_quota", "request_count", "aff_count", "aff_quota", "aff_history", "oidc_id", "oidc_issuer", "oidc_identity_key"}
 
 	if updatePassword {
 		user.Password, err = common.Password2Hash(user.Password)
@@ -300,17 +307,6 @@ func (user *User) FillUserByLarkId() error {
 		return errors.New("lark id 为空！")
 	}
 	DB.Where(User{LarkId: user.LarkId}).First(user)
-	return nil
-}
-
-func (user *User) FillUserByOidcId() error {
-	if user.OidcId == "" {
-		return errors.New("OIDC ID 为空！")
-	}
-	err := DB.Where(User{OidcId: user.OidcId}).First(user)
-	if err != nil {
-		return err.Error
-	}
 	return nil
 }
 

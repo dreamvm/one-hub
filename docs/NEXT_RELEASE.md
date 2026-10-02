@@ -1,9 +1,12 @@
 # 下一版本计划
 
-更新：2026-09-30。计划基线：`76fc8238e2d187a81239d8e8126289efe9460464`。
+更新：2026-10-01。计划基线：`76fc8238e2d187a81239d8e8126289efe9460464`。
 首批修复集成提交：`e61c155c4ab4f1b3feb996f2aff95555774766a0`（PR #17–#20 已合并）。
 RC7 修复集成提交：`7d7218100ec8db69b8f09c757ff65992c0323dc4`（PR #22–#23 已合并）。
 执行规范见 [RELEASE_PROCESS.md](RELEASE_PROCESS.md)。
+
+当前十二项验收状态见 [RC8 验收索引](RC8_ACCEPTANCE_STATUS.md)。下列批次表与逐次记录保留历史上下文；
+同一项以时间较晚的准确候选、合并和最终验收记录为准。整体仍未获发布验收。
 
 ## 已核实的版本与预留编号
 
@@ -914,15 +917,343 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 - 下一独立分支 `codex/realtime-unfinished-response` 处理供应商已观察开始但未取得对应完整用量的收尾，见 [REALTIME_UNFINISHED_RESPONSES.md](REALTIME_UNFINISHED_RESPONSES.md)。旧版 5 个失败/4 个正常对照；候选 123 个专项叶子、规定回归、vet、编译通过；全新预调查和全新候选独立审阅完成，未发现受检范围内阻断项。快进已合并 main 后十文件源码补丁摘要保持不变。
 - 此候选尚无准确 CI/PR/合并。开始事件缺失的非完整流、客户端已发送但供应商尚未可见的窗口、崩溃前证据和历史核销规则仍开放；不声称 Realtime 异常结束已全部关闭。RC8、正式发布、生产步骤仍未执行。
 
-### Realtime 未完成响应合并与输出进度候选
+### 后续 Realtime 草稿保留与历史核对规则
 
-- [PR #77](https://github.com/dreamvm/one-hub/pull/77) head `236d2b5b2d5f8ee820c7c4a3236019e321c2fed9` 已合并为 `f5c1ad53ef3e2d4b078d55404fc6e4ac4098cca5`；候选、合成、计算、实际合并树均为 `52072836cc8de7d0bd054196c2b41f5f951fa110`。准确候选 [36821487199](https://github.com/dreamvm/one-hub/actions/runs/36821487199) / [36821487446](https://github.com/dreamvm/one-hub/actions/runs/36821487446) 全 9 项成功，48 个隔离业务/升级回滚 PASS 与 4 种 Compose 通过。实际镜像程序身份见 [REALTIME_UNFINISHED_RESPONSES.md](REALTIME_UNFINISHED_RESPONSES.md#合并验收)，未发布。合并后 main [36822827773](https://github.com/dreamvm/one-hub/actions/runs/36822827773) 已成功。
-- 下一独立分支 `codex/realtime-progress-boundary` 处理缺少开始事件但出现输出进度的收尾，见 [REALTIME_PROGRESS_BOUNDARY.md](REALTIME_PROGRESS_BOUNDARY.md)。20 类事件旧版 40 个失败、20 个正常控制；候选专项 147 个叶子/150 个节点通过。全新只读候选审阅无具体发现，规定回归、vet、编译通过；源码/测试补丁摘要见专项文档。准确候选 CI/PR/合并待完成。
-- 非法完成报告、没有响应 ID 的 item 状态、客户端工作可见性、崩溃前持久化和历史核销继续开放。RC8 仍未建标签，正式发布阻断项未全部关闭。
+- [PR #77](https://github.com/dreamvm/one-hub/pull/77) 已以 head `236d2b5b2d5f8ee820c7c4a3236019e321c2fed9` 合并为 `f5c1ad53ef3e2d4b078d55404fc6e4ac4098cca5`，候选/预合并/实际树均为 `52072836cc8de7d0bd054196c2b41f5f951fa110`。候选 [36821487199](https://github.com/dreamvm/one-hub/actions/runs/36821487199) / [36821487446](https://github.com/dreamvm/one-hub/actions/runs/36821487446) 全 9 项及合并后 main [36822827773](https://github.com/dreamvm/one-hub/actions/runs/36822827773) 成功。
+- 输出进度 [PR #78](https://github.com/dreamvm/one-hub/pull/78) head `11a0e3762fc2d8a0b440a30cb7e631414e387616` 已通过 [36823355438](https://github.com/dreamvm/one-hub/actions/runs/36823355438) / [36823355908](https://github.com/dreamvm/one-hub/actions/runs/36823355908) 全 9 项；48 个隔离业务/升级回滚和 4 种 Compose 通过，未合并。后续无效报告审阅发现类型错误早退的残余表示，原进度审阅未覆盖，故 #78 改为草稿。
+- 无效报告 [PR #79](https://github.com/dreamvm/one-hub/pull/79) head `26465acdbdeed55c5d98f2912442ef51fc5543e9` 依赖 #78。旧版 10 个失败/6 个控制，候选 281 个专项叶子及规定回归通过；全新独立审阅被平台内容检查中断，无完整结论。父任务基于源码修正中间报告指出的早退路径，既有回归重跑通过，但未重试受限审阅或新增变体，不能据此关闭审阅缺口。手动候选 CI [36824874581](https://github.com/dreamvm/one-hub/actions/runs/36824874581) / [36824879034](https://github.com/dreamvm/one-hub/actions/runs/36824879034) 已启动；草稿保持未合并。
+- 本分支从已合并 main 独立整理 [HISTORICAL_ACCOUNTING_RECONCILIATION.md](HISTORICAL_ACCOUNTING_RECONCILIATION.md)，明确历史预留、支付、补偿的证据、归属和可处理状态。未读取生产账本，未执行或批准任何历史资金调整；真实逐笔核对仍开放。
+- Rollup/Vite 原有平台审阅限制继续保留；不重复或绕过受限步骤。RC8 仍未建标签，未发布镜像、部署或执行真实付费调用。只暂停依赖缺失证据的交付，继续独立的规则和身份等整改工作。
 
-### Realtime 输出进度草稿与无效报告候选的审阅限制
+### 历史规则交付与 OIDC 共享保存候选
 
-- [PR #78](https://github.com/dreamvm/one-hub/pull/78) head `11a0e3762fc2d8a0b440a30cb7e631414e387616` 的 [36823355438](https://github.com/dreamvm/one-hub/actions/runs/36823355438) / [36823355908](https://github.com/dreamvm/one-hub/actions/runs/36823355908) 已完成全 9 项检查；未合并。后续调查发现第一层类型错误早退仍可能丢弃可识别工作，原独立审阅未覆盖该残余表示，PR 已改草稿，不能以绿色 CI 覆盖完整性缺口。
-- 下一分支 `codex/realtime-invalid-usage` 叠加在 #78，处理解析/负数/溢出报告被拒绝后的错误终局。旧版 10 个失败/6 个控制，修正前候选 281 个专项叶子/299 个节点及规定回归、vet、编译通过。已有同 ID 合法更正、首收据权威及接受报告后的预算错误保留；详见 [REALTIME_INVALID_USAGE.md](REALTIME_INVALID_USAGE.md)。
-- 全新独立审阅先报告上述信封早退问题，随后被平台内容检查中断，没有完整结论。父任务基于项目及 Go 标准库源码修正，但不重试受限审阅或执行其新增变体；原有获授权回归重新核验，不能补足独立审阅和该变体证据。候选保留草稿，不合并，不标记该边界已修复。
-- 无标签、镜像发布、生产部署或真实付费调用。Rollup/Vite 原有审阅限制仍保留。仅暂停缺少审阅的交付步骤，继续其余独立的历史账目规则等工作。
+- [PR #80](https://github.com/dreamvm/one-hub/pull/80) head `c91160a66a1d94a533843262b65bddafc825398f` 已合并为 `5fb760c608a86df0690534ba884279b79744068d`；候选、GitHub 合成、计算及实际树均为 `111dbde99bbc888e9eb43073fd347b81e419a396`。[36825235366](https://github.com/dreamvm/one-hub/actions/runs/36825235366) / [36825235601](https://github.com/dreamvm/one-hub/actions/runs/36825235601) 全 9 项通过；48 个业务/升级回滚 PASS，实际 runner 镜像 `sha256:736476d9c9b062da56cabc72722b356cc8a9a9e0b48666c098eb82d2a852cba7`，程序 Go1.25.14 / one-api / linux/amd64 / CGO1，binary SHA256 `938a6d084a358927daf9d7a5a1f0f5829963dcb0fde576487bccd83b8d66edd0`。合并后 main [36826859753](https://github.com/dreamvm/one-hub/actions/runs/36826859753) 正在运行；未读写生产账本。
+- PR #79 head `26465acd` 的上述两次手动准确候选 CI 均已成功，48 个业务/升级回滚 PASS；镜像 `sha256:63e2b37c183307a628be11fbc768491049b54b4c55df0920ee8956bd5d04bcea`，程序 Go1.25.14 / one-api / linux/amd64 / CGO1，binary SHA256 `16a09b4e86bee6e167fce50f60fc2498dc96abb7f345b950e7b401beb22f674f`。CI 不补足独立审阅结论；#78/#79 继续草稿未合并，未重试平台受限审阅或新增变体。
+- 独立候选 [OIDC_STALE_UPDATE_BOUNDARY.md](OIDC_STALE_UPDATE_BOUNDARY.md) 仅阻止普通 User.Update 旧快照恢复/覆盖已变更的 OIDC 绑定。旧版四个失败/两个正常控制，候选 44 个专项叶子、规定回归/vet/编译和新鲜独立审阅通过；资料/密码、明确解绑及新注册保留。管理员通用资料 JSON 中的 oidc_id 也被忽略；没有新增重新绑定接口。准确候选 CI/PR/合并待完成。
+- 用户已明确选择 OIDC 保守迁移：历史 issuer 未知的记录保留待核实，不自动关联；不以当前配置或首次登录回填，也不任意挑选重复账号。issuer 持久化、subject 唯一性及并发注册仍待独立实现与验证；当前没有修改生产身份数据。RC8 未创建，发布阻断项仍开放。
+
+### OIDC 前置修复交付与 issuer 候选
+
+- PR #80 合并后 main `5fb760c6` 的 [36826859753](https://github.com/dreamvm/one-hub/actions/runs/36826859753) 已成功，取代上节正在运行的历史状态。
+- [PR #81](https://github.com/dreamvm/one-hub/pull/81) head `86e6a6601a1e3076deba0e43c34a10f4c0c818a5` 已合并为 `416a52ea533131d1f64f29efb3764c9c775bb489`，候选/合成/计算/实际树 `b0383f636fb9efb8ec360a84beeac6f7f286628b`。准确候选 [36827130791](https://github.com/dreamvm/one-hub/actions/runs/36827130791) / [36827131193](https://github.com/dreamvm/one-hub/actions/runs/36827131193) 全 9 项及合并后 main [36828389683](https://github.com/dreamvm/one-hub/actions/runs/36828389683) 成功。48 个隔离业务/升级回滚 PASS，镜像与程序身份见 [OIDC_STALE_UPDATE_BOUNDARY.md](OIDC_STALE_UPDATE_BOUNDARY.md#合并验收)；未发布。
+- 后续独立 [OIDC_IDENTITY_BOUNDARY.md](OIDC_IDENTITY_BOUNDARY.md) 候选保存已验证 issuer/精确 subject 和 nullable 唯一身份键，防止跨 issuer 归属混用和重复注册；历史未知归属保持原值，不自动关联。旧版五个失败/四个正常控制；候选本地 59 个专项叶子及完整规定回归/vet/编译通过。真实 MySQL/PostgreSQL 验收仍等待准确候选 CI。
+- 全新只读独立审阅未报告具体问题；父任务之后的完整回归和确定性交错测试发现首轮查询与新注册之间的时序回归，已最小修正并重跑。按单次周期，后续修正未再独立复审，明确保留这一覆盖限制。尚未完成该候选 PR/CI/合并，不把 PR81 的绿色检查替代它。
+- 旧程序回退会恢复 subject-only 登录，并不理解新身份键；即使可读取 schema，也不能宣称 OIDC 回退安全。生产升级/回滚与历史身份恢复仍需独立核实，当前没有生产读写。原目录 Babel 暂存工作继续保留；RC8 未建标签，发布阻断项仍开放。
+
+### OIDC issuer 交付与请求中途 Redis 验收
+
+- [PR #82](https://github.com/dreamvm/one-hub/pull/82) 最终 head `eb625210c639186450c709ac313ed571e67ad940` 已合并为 `4ba29b48f9629512ce7170a509a3383739387b07`，候选/合成/计算/实际树均为 `7c02f9b827c6e308bd5d1eae10339697a687755a`。[36829774827](https://github.com/dreamvm/one-hub/actions/runs/36829774827) / [36829775344](https://github.com/dreamvm/one-hub/actions/runs/36829775344) 全 9 项通过，包含三数据库 OIDC 归属/迁移/并发注册、48 个隔离业务/升级回滚 PASS 和四种 Compose 启动；实际镜像/程序身份见 [OIDC_IDENTITY_BOUNDARY.md](OIDC_IDENTITY_BOUNDARY.md#合并验收)。合并后 main [36831183355](https://github.com/dreamvm/one-hub/actions/runs/36831183355) 尚待核对。
+- 初次 PostgreSQL 夹具失败及修正、独立审阅后的并发查找修正未再次复审，均如实保留；不将初次候选或最终全部补丁写成独立复审通过。保守历史迁移规则已实现，真实身份核实与恢复仍未执行。
+- 下一独立 [请求中途 Redis 验收](REDIS_INFLIGHT_ACCEPTANCE.md) 仅扩展隔离 smoke：在 JSON 返回前或上游首个 SSE 内容块后，停止测试自己的 Redis，检查有限/无限令牌的一次结算与恢复。本地夹具和准确候选 CI 待最终验收；数据库故障、网络分区、并发负载仍开放。
+- Rollup/Vite 及 Realtime 草稿的受限审阅步骤继续暂停，未重试或绕过。RC8 未创建标签，未发布镜像、部署或执行真实付费调用。
+
+### Redis 中途故障交付与数据库恢复候选
+
+- PR #82 合并后 main `4ba29b48` 的 [36831183355](https://github.com/dreamvm/one-hub/actions/runs/36831183355) 已成功，更新前节待核对状态。
+- [PR #83](https://github.com/dreamvm/one-hub/pull/83) head `6ab65ba2ea7f56d5842112fa5714898012137ea9` 已合并为 `53be6eb04942814f812d756dfbd809bd553e1b66`，候选/合成/计算/实际树均为 `74f9bcb63e7731298121daabeb8e78d0f5809ed7`。[36831550015](https://github.com/dreamvm/one-hub/actions/runs/36831550015) / [36831550324](https://github.com/dreamvm/one-hub/actions/runs/36831550324) 全 9 项通过；两个数据库分别验证有限/无限令牌 × JSON/SSE 的 Redis 中途故障及单次结算恢复，共 56 个隔离业务/升级回滚 PASS、四种 Compose 启动通过。实际镜像/程序身份见 [REDIS_INFLIGHT_ACCEPTANCE.md](REDIS_INFLIGHT_ACCEPTANCE.md#合并验收)。合并后 main [36832999472](https://github.com/dreamvm/one-hub/actions/runs/36832999472) 待核对。
+- 下一独立 [数据库中途故障候选](DATABASE_INFLIGHT_ACCEPTANCE.md) 保持网关进程存活，观察确定终局写入失败后恢复本次创建的数据库，核对现有恢复任务的一次结算。只增加验收，不修改应用逻辑；本地 Python/语法/策略通过，准确候选 CI 与真实数据库故障结果尚未完成。
+- 意图尚未落库时同时崩溃、网络分区、并发负载和资源释放、真实历史数据及生产验收仍开放。RC8 未创建标签，没有发布、部署或真实付费调用。
+
+### 数据库中途故障交付与网络分区候选
+
+- PR #83 合并后 main `53be6eb0` 的 [36832999472](https://github.com/dreamvm/one-hub/actions/runs/36832999472) 已成功。
+- [PR #84](https://github.com/dreamvm/one-hub/pull/84) head `29bc8064455d21455670e74edf9a1e1eb8e108ec` 已合并为 `9f0db48c6eb325f14417ae6645e007c0dfc42c92`，候选/合成/计算/实际树均为 `93debe9709620ad6bad54852c63ad990ec912efb`。[36833222590](https://github.com/dreamvm/one-hub/actions/runs/36833222590) / [36833223347](https://github.com/dreamvm/one-hub/actions/runs/36833223347) 全 9 项通过；两个数据库各四个实际终局写入失败与恢复场景通过，共 64 个业务/升级回滚 PASS、四种 Compose 启动通过，程序身份见 [DATABASE_INFLIGHT_ACCEPTANCE.md](DATABASE_INFLIGHT_ACCEPTANCE.md#合并验收)。合并后 main [36834793394](https://github.com/dreamvm/one-hub/actions/runs/36834793394) 待核对。
+- 下一独立 [网络分区候选](NETWORK_PARTITION_ACCEPTANCE.md) 在测试依赖保持存活时断开本次内部网络，验证连接失败、进程连续、账务等待与恢复。目标限定本次随机前缀，恢复原 IP/别名；有限/无限令牌 × JSON/SSE × Redis/数据库矩阵待准确候选 CI。本地 25 项 Python、Go smoke/策略 race 和 vet 通过，不代表真实网络验收完成。
+- 崩溃前未持久化用量、并发负载和资源释放、剩余页面与依赖、arm64 及生产事实仍需各自验收。受限审阅草稿继续未合并；没有 RC8 标签、镜像发布、生产变更或真实付费调用。
+
+### 2026-10-01 PR #84 主分支与 PR #85 首轮失败补记
+
+- PR #84 合并提交 `9f0db48c6eb325f14417ae6645e007c0dfc42c92` 的 [main CI 36834793394](https://github.com/dreamvm/one-hub/actions/runs/36834793394) 成功。
+- PR #85 首轮候选 `647f7ffb` 8 项基础检查成功，真实镜像 smoke 在恢复网络原 IP 时因自动子网不支持显式 IP 失败。已修正为 Docker 选取后显式配置的本次内部子网；准确新候选 CI、实际网络矩阵与合并仍待完成。详见 [网络分区记录](NETWORK_PARTITION_ACCEPTANCE.md)。
+
+### 2026-10-01 网络分区交付与指标上下文修复候选
+
+- PR #85 修正候选 df235557 的九项检查成功，16 项实际网络分区、80 项业务/升级检查与四种 Compose 通过，合并 a95142550659965969b1306c91c4e7cb6aa1f488；候选/合成/计算/实际合并树一致。main CI 待核对，详细镜像身份和首轮失败见 [网络分区验收](NETWORK_PARTITION_ACCEPTANCE.md)。
+- 并发预检确认 HTTP 指标异步闭包读取已回收 Gin Context，旧版 race 与计数失败；最小候选改为同步复制 method/path/status。正常对照、专项和相关回归通过；一次复用上下文的独立审阅发现重复测试累计值问题，已改精确增量并通过 -count=2。候选 CI、PR、合并仍待完成，见 [指标生命周期](METRICS_CONTEXT_LIFECYCLE.md)。
+- 完整并发账务、资源释放和 SQLite 实际负载验收仍开放；临时模拟夹具及本地结果不等于交付。RC8 无标签，发布/部署/付费调用未执行。
+
+### 2026-10-01 指标修复交付与三数据库并发候选
+
+- PR #85 合并后 main CI 36838531843 已成功。
+- PR #86 指标上下文修复候选 91b0e0bb 九项检查、80 项业务/升级与四种 Compose 通过，合并 5712dbb205b1544a130ee02b7ea1063058019296；四种树身份一致，实际程序身份见 [指标生命周期记录](METRICS_CONTEXT_LIFECYCLE.md)。main CI 待核对。
+- 三数据库并发候选继承上述修复，覆盖各三轮32次、4worker、有限/无限 JSON/SSE、精确账务和上游/指标计数、有限资源排空。SQLite 为本次卷的固定只读查询，MySQL/PostgreSQL 增加活动会话核对。一次独立审阅发现失败后队列继续执行，已修正并通过异常/取消控制；本地38项Python和相关Go回归通过。准确候选镜像/CI、PR、合并仍待完成，详见 [并发验收](CONCURRENT_LOAD_ACCEPTANCE.md)。
+- 首页网络失败后持续加载已在独立临时副本建立失败对照，尚未修改或交付；后续继续前端整改。RC8、正式版本、发布、部署及真实付费调用状态未改变。
+
+### 2026-10-01 并发验收交付与首页加载候选
+
+- PR #86 合并后 main CI36840850235成功。
+- [PR #87](https://github.com/dreamvm/one-hub/pull/87) 最终f50b2756九项准确候选检查成功，三数据库九轮并发、89个业务/升级PASS及四种Compose通过，合并d190a5c45db4ccb81adde454447aa29266e48d5c，四种树一致；实际镜像和资源数值见[并发验收](CONCURRENT_LOAD_ACCEPTANCE.md#2026-10-01-合并验收)。main CI36843424536待核对。该有界验收不代表长期压测或生产容量。
+- [首页加载候选](HOME_LOADING_LIFECYCLE.md) 修正已结束的失败请求仍无限加载，以及内容与错误译文混淆，保留正常/空配置。旧新回归、完整前端测试、构建和实际浏览器正常/失败/恢复检查通过；lint由9降到8条警告。独立审阅指出一项测试缺口，已以旧版失败/新版通过修正；未二次复审，准确候选CI/PR/合并尚未完成。
+- 其余八条ESLint警告、异常日期空白路由、加载体积与关键页面端到端继续待办。受限草稿、真实历史数据归属、arm64和生产事实仍开放。RC8未建标签，未发布、部署或执行真实付费调用。
+
+### 2026-10-01 首页交付与统计卡片候选
+
+- PR #87 合并后 main CI36843424536成功。
+- [PR #88](https://github.com/dreamvm/one-hub/pull/88) 首页加载修复fce0129d九项准确候选检查、89个业务/升级PASS和四种Compose通过，合并c784264f6b880aa2e05acceeed67a1368ec42b3a；四种树一致，实际镜像身份见[首页记录](HOME_LOADING_LIFECYCLE.md#2026-10-01-合并验收)。main CI36845885783待核对。
+- 新[统计卡片候选](ANALYTICS_STATISTICS_LIFECYCLE.md) 修正三类失败后持续骨架屏，以新对象汇总成功响应并隔离过期结果。旧版2正常通过/3异常失败；新8项专项、完整78项Vitest及既有依赖回归、lint和构建通过；lint剩7条警告。一次复用上下文的独立审阅无具体发现，实际浏览器明暗/移动、成功/503/恢复、金额和原始配额/空数据已核对；尚未完成本项准确候选CI、PR和合并。
+- 异常账单日期的原24组浏览器证据仍适用，相关源码未改变；新增组件回归2正常通过、6异常失败。账单修复、剩余警告、图表失败路径、移动日期布局和完整前端验收继续待办。RC8、受限草稿、arm64及生产事实等阻断项不变。
+
+### 2026-10-01 统计卡片交付与账单日期候选
+
+- PR #88 合并后 main CI36845885783 已成功。
+- [PR #89](https://github.com/dreamvm/one-hub/pull/89) head1fc58da7九项准确候选检查、89个隔离业务/升级PASS与四种Compose成功，合并e71b1051fce5dd460e3854a6038c871dcee6cc25；候选/合成/计算/实际树一致。镜像及程序身份见[统计卡片记录](ANALYTICS_STATISTICS_LIFECYCLE.md#2026-10-01-合并验收)；main CI36848136097待核对。
+- 独立[账单日期与路由候选](INVOICE_ROUTE_BOUNDARY.md) 对响应日期规范化，禁用无效日期入口，将异常详情路由恢复列表，未知路径显示现有404。旧版组件2正常通过/6异常失败、旧路由1正常通过/7异常失败；新版39项专项和完整117项Vitest、lint、构建通过。一次复用上下文独立审阅无具体问题，实际构建56组浏览器检查通过；本项准确候选CI/PR/合并仍待完成。
+- 其余7条ESLint警告、图表失败/移动布局、详情返回译文、404无可用历史的返回行为、关键页面与加载体积仍待验收。受限草稿、真实历史归属、arm64与生产事实等阻断项不变；RC8未建标签，未发布、部署或真实付费调用。
+
+### PR #90 首轮验收失败与修正
+
+- 账单首轮df852422的117项Vitest断言通过，但Iconify在测试环境销毁后的异步回调产生未处理异常，兼容性frontend失败。已将新增两个账单测试中的装饰图标隔离为本地替身，应用源码不变；完整前端回归重跑通过，无未处理异常。此测试修改发生于独立审阅之后，未二次复审，准确新提交CI待完成。
+- PR #89 合并提交e71b1051的main CI36848136097已成功，更新上节待核对状态。
+
+### 2026-10-01 账单修复交付与模型排序候选
+
+- [PR #90](https://github.com/dreamvm/one-hub/pull/90) 修正后b68c07d0全九项准确候选检查、89个隔离业务/升级PASS和四种Compose成功，合并eb6a46c7a0848d15d892bd91c4c332e48628b1ef；四种树一致。首轮Iconify测试异步回调失败与审阅后修正仍如实保留，镜像身份见[账单记录](INVOICE_ROUTE_BOUNDARY.md#2026-10-01-合并验收)。main CI36851033301待核对。
+- [模型排序候选](SUPPORT_MODELS_ORDERING.md) 修正异步厂商元数据到达后的旧排序，并保留数字厂商名的正确ID顺序。旧版2正常通过/2时序失败；独立审阅发现数字键继承问题，新增正常控制先失败再修正，未二次复审。最终8专项、完整125项Vitest、lint和构建通过，警告剩6条；实际浏览器四组明暗/移动/数字与字母厂商检查通过。本项PR、准确候选CI与合并尚未完成。
+- 用户组异步加载失败已建立1正常通过/1异常失败且有未处理拒绝的独立旧版证据，尚未修复。其余警告、页面行为、加载体积及发布阻断项继续开放；RC8未建标签，未发布、部署或真实付费调用。
+
+### 2026-10-01 模型排序交付与用户分组候选
+
+- PR #90 main CI36851033301成功。[PR #91](https://github.com/dreamvm/one-hub/pull/91) head1d3102eb九项准确候选检查、89个业务/升级PASS及四种Compose成功，合并c8d1ace99278cabc61b4f76ec9e2e2bb3c92a3db，四种树一致，程序身份见[模型排序记录](SUPPORT_MODELS_ORDERING.md#2026-10-01-合并验收)；main CI36853275946待核对。
+- [用户分组候选](USER_GROUP_LOADING.md) 为现有Promise链补充拒绝处理，保持同步返回及登录协议。旧版1正常通过/1异步失败；新5专项、完整130项Vitest与依赖边界、lint、构建通过，警告剩5条。一次复用上下文独立审阅无具体发现，实际浏览器六组正常/503/重新访问恢复与明暗移动检查通过；本项准确候选CI、PR与合并尚未完成。
+- 令牌列表旧请求覆盖新结果、过期错误与卸载后提示已在临时副本复现；正常两主题通过，修复仍未交付。其余警告、页面、加载体积、受限草稿、真实历史数据、arm64及生产事实等阻断项继续开放。RC8未建标签，未发布、部署或真实付费调用。
+
+### 2026-10-01 用户分组交付与令牌列表候选
+
+- PR #91 main CI36853275946已成功。[PR #92](https://github.com/dreamvm/one-hub/pull/92) head ea050744九项准确候选检查、89个业务/升级PASS及四种Compose成功，合并3835f1c67b47126e9de8ecc7b3750939b22b7a5e，四种树一致；程序身份见[用户分组记录](USER_GROUP_LOADING.md#2026-10-01-合并验收)，main CI36855902502待核对。
+- [令牌列表候选](TOKEN_LIST_LIFECYCLE.md) 用effect生命周期隔离旧响应，保留普通/管理员筛选、排序分页参数。旧版2正常通过/3异常失败，新9专项及完整139项Vitest、依赖回归、lint和构建通过，警告剩4条；一次复用上下文独立审阅无具体发现，实际浏览器明暗移动的乱序、业务错误、搜索、分页及管理员筛选通过。本项准确候选CI、PR与合并尚未完成；共享拦截器全局HTTP错误/401副作用不在active保护范围。
+- 运营设置保存失败误报成功、部分写入和刷新失败已在独立临时副本继续整改，尚未交付。其余警告、页面、加载体积、受限草稿、历史归属、arm64与生产事实继续开放；RC8未建标签，未发布、部署或真实付费调用。
+
+### 2026-10-01 令牌列表交付与运营设置候选
+
+- PR #92 main CI36855902502已成功。[PR #93](https://github.com/dreamvm/one-hub/pull/93) head c05d317f九项准确候选检查、89个业务/升级PASS及四种Compose成功，合并0f50ed877c91dd9b645c9005e00f388df1f052ff，四种树一致；程序身份见[令牌列表记录](TOKEN_LIST_LIFECYCLE.md#2026-10-01-合并验收)，main CI36858232247待核对。
+- [运营设置候选](OPERATION_SETTING_SAVE.md) 避免写入失败误报成功，明确部分写入与刷新失败，整次保存管理loading且组JSON先校验。旧版正常控制通过、失败路径先失败；一轮复用上下文独立审阅发现真实刷新吞异常，父任务以真实Provider等六项失败建立证据后修正，新增StatusContext范围与后续修正未二次复审。最终23专项、完整162项Vitest及依赖回归、lint和构建通过，仍有4条警告；实际构建14组明暗移动合成保存检查通过。本项准确候选CI、PR和合并尚未完成。
+- 价格单位多余依赖及ModelInfo选项props警告在独立临时副本处理中，未交付。运营设置初始读取生命周期、其他页面、体积、受限草稿、历史归属、arm64与生产事实继续开放。RC8未建标签，未发布、部署或真实付费调用。
+
+### PR #94 首轮 CI 补记
+
+- PR #93 合并后 main CI36858232247成功。PR #94首轮9c397a6e在隔离frontend中161项通过、多阶段保存测试超出默认5秒；另一套frontend成功，smoke未执行。仅优化该测试控件重复查询并设置15秒有限上限，保留业务断言，应用源码未变。修改未经第二轮独立复审；新提交验收仍待完成，不能记作已交付。
+
+### 2026-10-01 运营设置保存交付与价格单位候选
+
+- [PR #94](https://github.com/dreamvm/one-hub/pull/94) 修正head8e72a05f九项准确候选检查、89个业务/升级PASS、九轮并发及四种Compose成功，合并37f35b4d684bb088cd1c076acb07f2291a326682，四种树一致；程序身份见[运营设置记录](OPERATION_SETTING_SAVE.md#2026-10-01-合并验收)，main CI36861546856待核对。首轮测试超时和审阅后修正限制仍保留。
+
+### 模型信息选项回调警告候选
+
+- PR #94 main CI36861546856已成功。[PR #95](https://github.com/dreamvm/one-hub/pull/95) head cd225ef2九项准确候选检查、89个隔离业务/升级PASS、九轮并发及四种Compose通过，合并ca1b429c64c8fff6a80dc1f9463b434bcc85d143，四种树一致；程序身份见[模型价格记录](MODEL_PRICE_UNIT.md#2026-10-01-合并验收)，main CI36864331311待核对。
+- 本项仅明确两个renderOption回调形参名称，清除两条props/key误判，事件及aria展开保持原样；旧目标lint失败、新目标通过，完整162项Vitest/依赖边界/lint/build通过，剩运营初始读取一条警告。一次复用上下文的独立只读审阅无具体发现，实际构建桌面浅色/手机深色验证鼠标、键盘、自定义输入和取消无写入。详见[模型信息记录](MODEL_INFO_OPTION_PROPS.md)。准确候选CI及合并未完成；其他生命周期/日期布局候选和发布门槛仍开放。
+
+### 运营设置初始化读取候选
+
+- PR #95 合并后main CI36864331311已成功。模型信息候选 [PR #96](https://github.com/dreamvm/one-hub/pull/96) 的e7f30627八项基础检查成功，隔离镜像验收仍运行；本项叠加于该提交，必须先交付#96，合并前核对最新main及树，不能把前置CI当作本项验收。
+- 初始化读取函数稳定化并只合并返回字段，保留未返回的当前编辑和独立保存基线；卸载后忽略旧组件结果/错误并停止后续初始化读取。旧版2正常通过、3异常失败，新9读取/23保存专项与171项全套Vitest、依赖边界、格式/lint/build通过，叠加前置清理后ESLint零警告。一次复用上下文的独立只读审阅无具体发现，实际浏览器明暗主题共10组通过。已发送请求、全局API副作用及主动保存不属于本项guard；同名服务器字段仍覆盖编辑。见[初始读取记录](OPERATION_SETTING_LOAD.md)。尚无本项准确候选CI或合并，发布门槛不变。
+
+### 统计概览图表请求生命周期候选
+
+- [PR #96](https://github.com/dreamvm/one-hub/pull/96) head e7f30627九项准确候选检查、89个业务/升级PASS、九轮并发及四种Compose成功，合并e391ba683928f3958ba666477e39408884996188，四种树一致；镜像/程序身份见[模型信息记录](MODEL_INFO_OPTION_PROPS.md#2026-10-01-合并验收)。main CI36867428349待核对。
+- 运营初始读取 [PR #97](https://github.com/dreamvm/one-hub/pull/97) head2651bd0c先叠加#96再改main；因初始基线不是main，手动运行准确候选[36866226110](https://github.com/dreamvm/one-hub/actions/runs/36866226110)/[36866231207](https://github.com/dreamvm/one-hub/actions/runs/36866231207)，八项基础检查成功、隔离smoke仍运行；不声称自动PR事件已验收。
+- 本项叠加#97，查询序号防止过时结果和卸载副作用，失败/空结果清除旧图表并结束加载，全部数据转换完成后才更新；旧2正常通过/5异常失败，新11专项及182项全套Vitest/依赖边界/格式/零警告lint/build通过。一次复用上下文的独立只读审阅无具体发现，桌面浅色/手机深色真实ApexCharts共14组通过。源码/测试与已验收副本逐字一致，准确候选CI和合并仍待完成，日期/Grid/标题及其他发布门槛仍开放。见[统计图表记录](ANALYTICS_OVERVIEW_LIFECYCLE.md)。
+
+### 日期输入响应式布局候选
+
+- PR #96 main CI36867428349已成功。[PR #97](https://github.com/dreamvm/one-hub/pull/97) head2651bd0c的手动准确候选九项检查、89个业务/升级PASS、九轮并发及四种Compose成功，合并bbca75aacaea59c5e03d7dd156a5b0355a03ccb3；候选、最新main计算及实际树一致，旧叠加合成父节点未刷新但树相同，见[初始读取验收](OPERATION_SETTING_LOAD.md#2026-10-01-合并验收)。main CI36868758519待核对。
+- [PR #98](https://github.com/dreamvm/one-hub/pull/98) head60883302承接统计图表生命周期，准确手动CI36867907042/36867916459运行中；本项叠加该提交，须先交付#98。
+- 日期输入旧390px文字空间不足导致截断；改为小于1200px纵排、宽屏横排。初版600px切换经一次复用上下文独立只读审阅，无具体发现但要求实际断点验收；实测600/900仍截断后改1200，审阅后修正无第二轮复审，限制明确保留。最终182项全套/依赖边界/格式/零警告lint/build及9个宽度、4组明暗主题真实日期交互通过，日期协议不变。详见[日期布局记录](DATE_RANGE_RESPONSIVE.md)。尚无本项准确候选CI或合并；其他候选与发布门槛仍开放。
+- [模型价格单位候选](MODEL_PRICE_UNIT.md) 仅移除筛选memo未读取的unit依赖，换算公式不变。旧目标lint警告、新目标零警告，一次复用上下文独立审阅无具体发现；完整162项Vitest及依赖边界、lint和构建通过，警告剩3条，实际明暗移动的K/M、按次价格、组倍率与搜索通过。本项准确CI、PR、合并仍待完成。
+- ModelInfo选项警告与运营设置读取生命周期在独立临时副本已完成本地回归/审阅/浏览器，尚未交付；叠加后可达到lint零警告，不代表主分支已零警告。统计概览图表读取候选旧2正常通过/5异常失败，最小修正及182项完整回归/独立审阅通过，实际ApexCharts浏览器仍待完成；日期布局、Grid开发期警告等尚未处理。体积、其他页面、受限草稿、历史归属、arm64与生产事实继续开放；RC8未建标签，未发布、部署或真实付费调用。
+
+
+### 统计筛选网格子项候选
+
+- PR #97 合并后 main CI36868758519 已成功。PR #98 九项准确候选检查、89个业务/升级 PASS、九波并发及四种 Compose 成功，已合并 9c4c3cd906e65f2b497904620a0d641b5cae0499，候选/最新 main 计算/实际树一致；旧合成父节点限制及镜像程序身份见 [统计图表验收](ANALYTICS_OVERVIEW_LIFECYCLE.md#2026-10-01-合并验收)。main CI36870649003 已成功。
+- PR #99 head d2a15495 已改基 main，准确手动 CI36869291859/36869300132 的八项基础检查成功，隔离 smoke 仍运行；本项叠加 #99，必须先交付前置，不能复用前置 CI。
+- 本项仅给筛选 Grid 增加 item，旧11项正常通过但出现两条 PropTypes 警告，新182项全套/依赖边界/格式/零警告 lint/build 通过；一次复用上下文、非 fresh 的独立只读审阅无具体发现。九种宽度、四组日期交互及14组统计图表实际浏览器通过，24px间距变化已测量。详见 [Grid 记录](ANALYTICS_GRID_LAYOUT.md)。尚未完成本项准确候选 CI、PR、合并；标题、体积、其他页面及发布门槛仍开放。
+
+
+### 统计图表已查询日期标题候选
+
+- Grid [PR #100](https://github.com/dreamvm/one-hub/pull/100) head018b7b17 手动准确候选 CI36871413655/36871421547 运行中。本项叠加该提交，须先交付前置；本项源码/测试与已验收临时副本逐字一致。
+- 旧版将未提交日期草稿显示为现有图表期间，有效旧回归3正常通过/2失败；新增独立已查询日期状态，发起请求时更新，标题不再随草稿变化。5标题专项及20相关专项、187完整Vitest/依赖边界/格式/零警告lint/build通过；一次复用上下文、非fresh独立只读审阅无具体发现，实际明暗移动浏览器8组通过。见[标题记录](ANALYTICS_PERIOD_HEADING.md)。本项准确CI/PR/合并仍未完成；未改变日期合法性或范围政策。
+
+- 日期布局 [PR #99](https://github.com/dreamvm/one-hub/pull/99) 九项准确候选检查、89业务/升级PASS、九波并发及四种Compose成功，合并aed35474decd106090dc56c0a02719cb8cd58a82；候选/最新main计算/实际树一致，旧合成父节点限制和镜像程序身份见[日期验收](DATE_RANGE_RESPONSIVE.md#2026-10-01-合并验收)。main CI36871762848待核对。PR #100已改基main，head018b7b17不变。
+
+
+### 语言图标入口体积候选
+
+- PR #99 合并后main CI36871762848已成功。Grid PR #100 head018b7b17准确候选八项基础检查成功、镜像smoke运行中；标题[PR #101](https://github.com/dreamvm/one-hub/pull/101) head23292f41准确手动CI36872001960/36872009378运行中。本项叠加#101，须依次交付前置再改main，不能引用它们的CI替代本项。
+- 语言菜单仅需四个国家图标，将全量默认对象改为四个具名导入及映射；同基线入口减少224,291原始/51,116gzip字节，实际统计页请求脚本同样减少224,291未压缩字节。一次复用上下文、非fresh独立只读审阅无具体发现；四语言、明暗移动旧新各8组正常控制通过，SVG完全一致，无页面/控制台错误警告。最新叠加源码重跑187项全套/依赖边界/零警告lint/build及8组浏览器通过。详见[图标体积记录](LANGUAGE_FLAGS_BUNDLE.md)。本项准确CI/PR/合并尚待完成；不代表LCP或所有大chunk优化完成。
+
+
+### 原生 arm64 镜像验收准备
+
+- Grid PR #100 九项准确候选检查及89业务/升级PASS、九波并发、四种Compose通过，合并86fea947506186ce9cf800cc3f19152bce3d508f；候选/最新main计算/实际树一致，旧合成父节点限制和镜像程序身份见[Grid验收](ANALYTICS_GRID_LAYOUT.md#2026-10-01-合并验收)。main CI36874138917待核对。标题PR #101已改基main；图标PR #102仍依赖#101，均保持冻结head。
+- 本项叠加图标PR #102的f33f9706，扩展smoke为原生amd64/arm64两架构，共享同一套三数据库、故障并发、升级回滚和四种模板验收；核对镜像及最终binary架构，不发布镜像。官方固定镜像均含arm64，新增Linux arm64 Compose固定校验资产。旧架构门槛失败、两个原有控制通过；候选19项工作流检查及38项Python离线smoke、actionlint通过。一次复用上下文独立审阅无功能阻断，发现测试导入分组后修正，无第二轮复审。详见[arm64记录](ARM64_IMAGE_ACCEPTANCE.md)。本项准确CI、真实arm64镜像、PR和合并尚未完成；生产和发布门槛仍开放。
+
+### 2026-10-01 双架构交付与真实后端浏览器验收
+
+- PR #100 合并后 main CI36874138917 已成功。标题 [PR #101](https://github.com/dreamvm/one-hub/pull/101) 九项准确候选检查及89业务/升级PASS、九波并发、四种Compose成功，合并c65c53f39e789447b1e7fce08f359a33875cda14，main CI36874831130成功；树及镜像程序证据见[标题记录](ANALYTICS_PERIOD_HEADING.md#2026-10-01-合并验收)。
+- 图标 [PR #102](https://github.com/dreamvm/one-hub/pull/102) 九项准确候选检查及相同专项验收成功，合并7860d0d3db79f7bfdb8b04587df56efe50ff4847，main CI36875419258成功；树及镜像程序证据见[图标记录](LANGUAGE_FLAGS_BUNDLE.md#2026-10-01-合并验收)。ESLint当前零警告，入口同基线减少224,291原始/51,116gzip字节；不代表全部动态chunk或LCP已优化。
+- 原生双架构 [PR #103](https://github.com/dreamvm/one-hub/pull/103) head23b5c263的十项准确候选检查成功；arm64和amd64各自89业务/升级PASS、九波并发、四种Compose成功，并读取最终程序身份。合并0229f0aaf4a6f00720b402467ae317f47248735e，main CI36877499093成功。详见[arm64实际验收](ARM64_IMAGE_ACCEPTANCE.md#2026-10-01-合并验收)，不再将本项列为“实际arm64未执行”。
+- [真实本地后端浏览器](FRONTEND_REAL_BACKEND_ACCEPTANCE.md)已完成实际登录、令牌增删改与持久化、设置保存刷新、空数据页及移动暗色异常日期恢复。15分钟夹具到时FAIL和最终汇总脚本失败保留；退出登录、正常有数据页面及完整端到端继续开放。新增证据不改应用代码，不将部分操作通过写成整体通过。
+- 受限审阅草稿 #68/#71/#78/#79仍未获结论，不重试或绕过；真实历史账目/身份归属、生产版本/配置/历史凭据/备份恢复点以及RC8最终验收继续开放。生产目标信息待用户提供，仅暂停依赖该信息的检查。RC8未建标签，未发布镜像、部署或真实付费调用。
+
+### 账单返回文案与真实数据正常控制
+
+- 前置台账 [PR #104](https://github.com/dreamvm/one-hub/pull/104) head800c2039准确候选八项基础检查成功，两架构smoke仍运行，本项叠加该候选。
+- [真实本地后端补充](FRONTEND_REAL_BACKEND_ACCEPTANCE.md#后续正常用户与有数据页面补充)完成普通用户登录/注销、当前会话清理与受限页恢复；合成月账单列表/详情总数一致且对应当前用户，日统计实际Model分组的三张图金额/token/请求数一致。两个新夹具主动结束PASS，保留早期到时和脚本错误；非全页面、生产、历史核对或月账单生成验收。
+- [返回文案候选](INVOICE_RETURN_LABEL.md)把不存在的back键改为已有common.back，原功能正常控制及旧错误文案已观察。一次复用上下文独立只读审阅无发现，187项全套/依赖边界/零警告lint/build与四语言×明暗移动八组真实后端浏览器通过；准确候选CI/PR/合并仍待完成。
+- 新观察到详情接口行date为空，页面月份暂由合法路由显示；该字段问题另行修复。404无历史返回、剩余关键页面/依赖与生产发布门槛继续开放。未创建RC8、发布、部署或真实付费调用。
+
+### 账单详情日期字段候选
+
+- 返回文案 [PR #105](https://github.com/dreamvm/one-hub/pull/105) head004de218已启动准确手动CI36880932424/36880941651；本项叠加该候选，不能复用其结果。
+- [详情日期候选](INVOICE_DETAIL_DATE.md)将固定日期表达式作为实际Select列，保持用户/月份参数绑定及账务/模型汇总。旧两个控制通过、日期子项失败，新SQLite三个子项及规定离线race/model vet通过。独立审阅发现PostgreSQL测试建表类型问题，修正夹具后重跑SQLite，未二次复审；实际三数据库结果须准确候选CI证明。本项PR/CI/合并尚未完成。
+
+### 404 无应用历史返回候选
+
+- 台账 PR #104 十项准确候选检查及双架构验收成功，合并6ae7e91f44c7009b7aaea1ed5a2a63f5c58458c7，main CI36881922415成功；各架构89业务/升级PASS、九波并发、四种Compose和最终程序身份已核实。
+- 返回文案 [PR #105](https://github.com/dreamvm/one-hub/pull/105) 十项准确候选检查和同等双架构验收成功，合并bd7acd96009ea0ca201893ce07a579801f578158；候选/最新main计算/实际树一致，旧合成父节点限制及镜像身份见PR验收。main CI36891934047仍运行，尚不标为完成。
+- 日期字段 [PR #106](https://github.com/dreamvm/one-hub/pull/106) head58890ef5十项准确候选检查成功，三数据库各日期专项通过，两个架构各89业务/升级PASS、九波并发、四种Compose和最终程序身份已核实；尚待合并及主分支验收。本项叠加该候选，不复用其CI。
+- [404返回候选](NOT_FOUND_RETURN.md)在无应用历史时以replace回首页，有历史保留后退。旧两项正常通过/两项直接进入失败，新四专项及191项完整Vitest/依赖边界/零警告lint/build通过；一次复用上下文、非fresh独立只读审阅无发现，真实本地后端桌面浅色/移动深色四组控制通过。历史正常路径使用受控pushState夹具，未宣称现有生产导航入口；无本项准确CI或合并。
+- 受限安全草稿、生产目标信息及真实历史归属等发布门槛仍开放，未创建RC8、发布镜像、部署或执行真实付费调用。
+
+### 编辑器诊断浮层候选
+
+- 返回文案 PR #105 合并后的 main CI36891934047成功；日期字段 PR #106 十项准确候选及双架构验收成功，合并7914bc375b4871840aabc1ebf7e2c5fbb0ef2c68，候选/最新main计算/实际树一致，main CI36892649096成功。旧合成父节点限制、镜像和二进制身份见各PR最终验收。
+- 404 [PR #107](https://github.com/dreamvm/one-hub/pull/107) head b1fbf28a十项准确候选CI成功，双架构最终日志与合并核对进行中；本项叠加该候选，不能复用其CI。
+- [浮层候选](MONACO_HOVER_LAYOUT.md)仅在三个JSON编辑器启用固定溢出浮层。旧诊断中心命中FORM且不可见；候选六组明暗移动中心命中自身，拖拽缩放/滚动后仍可见。191项完整前端回归、零警告lint、构建及一次复用上下文独立只读审阅通过；真实后端正常保存与刷新读回控制通过。准确候选CI、PR及合并仍待完成。
+- 真实本地后端现已补充三个JSON编辑器持久化和非空模型页正常控制。截图发现渠道空数据null.sort与pricing data not found提示，另行处理；完整焦点/无障碍、其他浏览器和生产验收未关闭。受限安全草稿及其他发布阻断项仍开放，RC8未创建，未发布、部署或执行真实付费调用。
+
+### 渠道空模型集合候选
+
+- 404 PR #107 十项准确候选检查、两架构各89业务/升级PASS、九波并发和四种Compose通过，合并8908a9c183261eff140eb92e8343e775e80441a5；候选/最新main计算/实际树一致，main CI36895380997成功。旧合成父节点限制及镜像程序身份见PR最终验收。
+- 浮层 [PR #108](https://github.com/dreamvm/one-hub/pull/108) head b2c64f6b八项基础检查成功，双架构验收仍运行；本项叠加该候选，须先交付前置。
+- [空模型候选](CHANNEL_MODEL_OPTIONS.md)兼容真实object:list协议的null集合，并保留明确业务失败提示。旧版三个控制通过/两个异常失败；候选五专项、196项完整前端/依赖边界、零警告lint/build及一次复用上下文独立只读审阅通过。真实后端明暗移动null响应和自定义模型保存刷新通过，空定价提示另行保留。本项准确CI、PR、合并待完成。
+- 受限安全草稿、真实历史归属及生产版本/配置/凭据/备份事实仍开放，生产目标待用户提供；未创建RC8、发布镜像、部署或真实付费调用。
+
+### 固定 JSON 翻译维护范围及后续验收
+
+- 浮层 PR #108 十项准确候选检查、两架构各89项业务/升级PASS、九波并发和四种Compose成功，合并e60ed46c0c718ee15f16e69196abaa95e0507097；实际树与受检树一致，main CI36898087509成功。详细镜像和程序身份见[浮层验收](MONACO_HOVER_LAYOUT.md#2026-10-01-合并验收)。
+- 空模型 PR #109 head abd750d4 十项准确候选检查、两架构各89项业务/升级PASS、九波并发和四种Compose成功，合并e7dc28f7d28d6b14283b3355822cc719a7385e74；实际合并树一致，main CI36899618190成功。[详细证据及旧合成父节点限制](CHANNEL_MODEL_OPTIONS.md#2026-10-01-合并核对)继续保留。
+- 维护者委托选择方案后，确定[单文件 JSON 维护范围](I18N_MAINTENANCE_SCOPE.md)。原20条可选路径按此范围分别不适用，依赖本身未修复，历史用途仍未知；[逐项分流及 YAML 源码补充](I18N_TOOLCHAIN_TRIAGE.md#2026-10-01-固定-json-维护范围)保留原编号与证据，未执行真实翻译或升级。
+- 受限审阅草稿 #68/#71/#78/#79、真实历史归属、生产事实及RC8最终验收仍开放，未改变标签、发布、部署或付费调用的授权边界。
+
+### 月账单 PostgreSQL 迁移候选
+
+- JSON 维护范围 PR #110 十项准确候选 CI 和双架构隔离验收通过，合并 `da936380c20e89e82006d69e4d69e10279d5c4f3`；候选、合成、最新 main 计算和实际合并树一致。[完整证据](I18N_MAINTENANCE_SCOPE.md#2026-10-01-合并验收)保留镜像及程序身份，main CI36902867961 尚待核对。
+- [月账单迁移](INVOICE_MONTH_MIGRATION.md)修复启用月账单时 PostgreSQL 不接受固定 datetime 类型的问题。旧实际模型建表失败，SQLite 正常；候选 SQLite 7 子例、PostgreSQL 6 子例 race、五包离线回归、vet、编译及19项固定工具策略检查通过。一次复用上下文、非 fresh 的独立审阅无具体发现。
+- 本项以已合并 #110 为基线，三份 Go 文件与已验收临时副本逐字一致。MySQL 实际旧表迁移、准确候选 CI、PR 与合并仍待完成；完整启动和消费日志到月账单端到端、历史真实数据、生产及最终发布门槛继续开放。
+
+### 月账单提交错误候选与迁移交付
+
+- PR #110 合并后的 main CI36902867961 已通过。迁移 PR #111 十项准确候选检查及双架构89业务/升级PASS、九轮并发、四种Compose通过；MySQL旧表保留与三数据库实际生成均通过。合并 `0ec84ed60d93e8cbf8ecd74413eae74f1c1cc0a9`，候选/合成/最新main计算/实际树一致，详见[最终迁移验收](INVOICE_MONTH_MIGRATION.md#2026-10-01-合并验收)。合并后main CI仍待核对。
+- 补充真实合成日志→日统计→月账单→普通用户页面及刷新链路，重复生成不翻倍，临时夹具主动结束PASS；不证明真实资金来源、全部时区或生产事实。
+- [提交错误候选](INVOICE_COMMIT_ERROR.md)单独修复 COMMIT 失败仍返回成功的问题。旧正常控制通过/错误断言失败，新九个相关子例及五包race、固定工具策略、vet、编译通过；一次复用上下文、非fresh独立只读审阅无发现。以已合并#111为基线，准确候选CI、PR和合并仍待完成。网络提交结果不确定、启动错误观察、历史归属和受限草稿等仍开放，未改变发布及生产授权边界。
+
+### 月末自动账单月份选择候选
+
+- 迁移 PR #111 合并后main CI36905699246已通过。提交错误 [PR #112](https://github.com/dreamvm/one-hub/pull/112) head34a83500 的八项基础检查成功，双架构smoke仍运行；回归实际检出该提交并执行完整model包，新提交失败测试在此范围内。
+- [上月选择候选](INVOICE_PREVIOUS_MONTH.md)叠加#112，修复月末减一月归一化回本月的问题。旧逻辑经行为保持的固定时钟入口运行真实临时数据库：4正常通过/8月末失败；新12日期与重复历史控制、SQLite21相关子例、PostgreSQL18相关子例、五包race、固定工具策略、vet、编译通过。一次复用上下文、非fresh独立只读审阅无发现。
+- 新候选须独立准确CI、前置合并后改基及树核对，尚未合并；不纠正真实历史账单、不改变每日调度或新的时区政策。受限草稿、历史归属、生产事实和最终发布门槛仍开放。
+
+### 月账单交付与支付对话框候选
+
+- [提交错误#112](INVOICE_COMMIT_ERROR.md#2026-10-01-合并验收)全部10项候选检查及双架构隔离验收通过，合并0c31ae2a，main CI36908725607成功；树与已验收候选一致。
+- [月末月份#113](INVOICE_PREVIOUS_MONTH.md#2026-10-01-合并验收)全部10项准确head检查、三数据库36日期子例与双架构验收通过；先交付#112再改基main，合并8d7d6833，实际合并树一致。main CI36909775467仍待核对。
+- [支付对话框生命周期候选](PAYMENT_DIALOG_LIFECYCLE.md)旧正常1通过、4问题失败；新13专项及完整209项UI回归、lint/build、独立只读审阅和实际构建配合模拟API的浏览器验收通过。修复重绘重复创建、迟到响应、关闭/卸载轮询和网络失败处理；不把多余订单请求推断为重复扣款。候选CI、PR及合并仍待完成。
+- 受限审阅草稿#68/#71/#78/#79未重试；真实历史归属、生产配置/凭据/备份事实及RC8最终门槛仍开放。没有新增发布、部署或真实付费调用。
+
+
+### 十二项验收对齐与真实本地支付补充
+
+- #113 合并后main CI36909775467已成功，更新此前待核对状态。
+- [RC8验收索引](RC8_ACCEPTANCE_STATUS.md)逐项列出已交付、局部证明与仍缺证据；受限审阅、历史归属、生产事实和最终发布门槛继续开放，不按早期待执行段落重复调查。
+- [Go两条模块匹配](GO_MODULE_FOLLOWUP.md)经官方公告与当前维护构建静态核对，GO-2026-5942/6443在受检范围内not_actionable；库版本仍受影响，不宣称依赖清零或生产已验证。
+- [真实本地支付页面](FRONTEND_REAL_BACKEND_ACCEPTANCE.md#2026-10-01-支付页面与真实本地结算补充)完成真实登录、订单创建、Epay表单、模拟网关通知、实际SQLite结算、重复通知和刷新余额：一订单/一入账/一日志，合成余额$1变$11，夹具182.13秒主动结束PASS。没有真实网关或生产调用。
+
+- [支付#114最终候选验收](PAYMENT_DIALOG_LIFECYCLE.md#2026-10-01-合并验收)十项检查和双架构隔离通过，合并966066fb，候选/合成/最新main计算/实际树一致。main CI36913002027已成功且head为上述合并提交；未发布或部署。
+
+### 剩余 Go 模块级记录的静态分流
+
+- [29条剩余输入](GO_RESIDUAL_DEPENDENCIES.md)各自保留原始记录并核对官方公告：25条受影响包未编入Linux双架构主程序，4条已编入库的特定API没有交付消费者。本批结论为受检维护构建not_actionable，高静态置信度；依赖版本未改，不能称库已修补或审计清零。
+- 与此前八项一起覆盖当前37个Go模块级公告的处置索引，61条原始匹配保留；最终候选Go/JS审计、受限审阅、历史归属、生产事实和发布门槛继续开放。静态阶段没有运行测试、探针、程序或真实服务。
+
+- 本次文档交付尚待独立审阅、准确候选CI与合并；不由#115台账候选CI替代。
+
+- #115十二项台账候选已完成十项准确检查及双架构89/9/4验收，合并08bc01e2，候选/合成/最新main计算/实际树一致；[main CI36916512156](https://github.com/dreamvm/one-hub/actions/runs/36916512156)仍待核对。未创建标签、发布镜像、部署或真实付费调用。
+
+### #116 Go台账交付
+
+- [Go剩余记录#116](GO_RESIDUAL_DEPENDENCIES.md#2026-10-01-合并验收)十项准确候选检查和双架构89/9/4验收成功，实际合并f2476a68，候选/合成/最新main计算/实际树一致；[main CI36920018105](https://github.com/dreamvm/one-hub/actions/runs/36920018105)已成功且head准确。ESLint零警告，build成功但chunk体积警告保留。
+- 上述补录不改变Go库仍受影响、最终候选审计及其他发布门槛开放的范围。
+
+### 当前前端审计与六条工具链范围补充
+
+- #115合并后[main CI36916512156](https://github.com/dreamvm/one-hub/actions/runs/36916512156)已成功，准确head08bc01e2；后续记录不改写先前“仍运行”的历史状态。
+- [当前审计记录](FRONTEND_AUDIT_FOLLOWUP.md)使用c193edc1/main同树f2476a68的锁文件，执行前核实官方接收端及字段；实际发送哈希与无网络预检一致，只向官方Yarn发送公开依赖元数据，未改依赖文件。结果205路径/98Yarn ID/72GHSA，退出码30表示仍匹配公告，不宣称审计清零。
+- 205个输入完整保留，103条有既有范围索引，不能统称关闭；另六条Ajv/esbuild/Vitest/SystemJS路径静态not_actionable，仅限当前维护入口，库仍受影响。其余96条尚待逐路径核对；没有运行新的安全探针、翻译或模型。
+- 受限#68/#71/#78/#79、真实历史归属、生产事实及最终RC8仍开放；未创建标签、发布镜像、部署或真实付费调用。
+
+### #117前端审计台账交付与后续路径
+
+- [#117最终验收](FRONTEND_AUDIT_FOLLOWUP.md#2026-10-01-117合并验收)十项准确候选检查及双架构89/9/4成功，候选/合成/最新main计算/实际树一致，合并2cb47018；[main CI36924792593](https://github.com/dreamvm/one-hub/actions/runs/36924792593)已成功，准确head为实际合并提交2cb47018。
+- [Immutable与可选工具路径](FRONTEND_OPTIONAL_TOOL_PATHS.md)新增21条逐输入静态范围结论：实际SCSS/Sass编译路径、ESLint缓存与配置优先级、glob CLI、Flowtype的lodash API及旧Browserslist调用方已核对。库仍受影响，只限受检入口；独立审阅、准确候选CI与合并尚待完成。
+- 未处理队列由96变75；全部205条审计匹配保留，103条已有索引不等于关闭。四个受限审阅、真实历史归属、生产事实和最终RC8继续开放，没有新发布或部署。
+
+### #118交付与最后75条静态核对
+
+- [#118验收](FRONTEND_OPTIONAL_TOOL_PATHS.md#2026-10-01-118合并验收)十项准确候选检查及双架构89/9/4成功，候选/合成/最新main计算/实际树一致；实际合并e84d12c1。准确head的[main CI36929440139](https://github.com/dreamvm/one-hub/actions/runs/36929440139)已成功，四项真实checkout均为该合并提交。
+- [最后75条匹配器/YAML路径](FRONTEND_MATCHER_YAML_BOUNDARIES.md)已结束静态初筛：53条受检入口不适用、22条待核实、零条确认项目漏洞。js-yaml实际完整配置解析10条和Vite matcher来源12条继续核实；未初筛队列归零不等于依赖或发布阻断项关闭，库版本仍受影响。
+- 本次只新增文档，自己的独立证据审阅、准确候选CI与合并待完成。四个受限审阅没有重试或改道；真实历史归属、生产事实及最终RC8继续开放，未发布或部署。
+
+### #119与共享YAML候选
+
+- [#119实际验收](FRONTEND_MATCHER_YAML_BOUNDARIES.md#2026-10-01-119合并验收)十项准确候选检查和双架构89/9/4成功，合并dac105ff；候选/合成/最新main计算/实际树一致。[自身main CI36934262113](https://github.com/dreamvm/one-hub/actions/runs/36934262113)已成功，准确head为dac105ff，四项真实checkout均已核对。
+- [共享js-yaml v4](JS_YAML_CONFIG_BOUNDARY.md)候选4.3.2只更新一个锁条目，新增实际ESLint边界回归，纳入test:deps；旧版13个安全断言失败、7个正常对照通过，候选20叶子/Node21全通过，完整前端回归、lint、build及一次fresh独立审阅通过。本地记录不是交付；自身准确CI、合并及main验收仍待完成。
+- 精确复查由205变195路径/93Yarn ID/72GHSA，无新增，独立v3仍有五个公告匹配；Vite十二条、此前范围缺口、受限#68/#71/#78/#79、历史归属、生产事实和最终RC8继续开放。没有标签、发布镜像、部署或真实付费调用。
+
+### #120交付与Vite候选保留
+
+- [共享YAML #120](JS_YAML_CONFIG_BOUNDARY.md#2026-10-01-120合并验收)候选b7677242十项准确检查、双架构89/9/4及Go1.25.14最终程序身份通过，候选/合成/最新main计算/实际树相等；实际合并6b1b3283。[自身main CI36937929600](https://github.com/dreamvm/one-hub/actions/runs/36937929600)已成功，四项真实checkout均为实际合并。
+- [Vite matcher候选](VITE_MATCHER_CANDIDATE_REVIEW.md)在TEMP完成旧新固定对照、前端回归与一次fresh审阅，审阅的重复表示残留和空格匹配回归已核实；没有应用、提交、运行时PR、候选CI或合并，原十二条保持开放。
+- 当前main依赖快照195条；未合并候选185条消失十二个Vite key并新增两条Sass/readdirp key，新增两条各自静态保留，不能冒称无新增或main已修补。独立v3、四个受限草稿、历史归属、生产事实、最终RC8及专项发布授权继续开放。
+
+### 独立v3候选保留
+
+- [gray-matter / js-yaml v3候选](JS_YAML_V3_CANDIDATE_REVIEW.md)27叶子/Node28、完整209项UI及依赖回归、lint/build本地通过；一次fresh审阅后确认兼容和后续拷贝/错误缓存边界，omap未有复杂度失败判据。仅保留TEMP，没有运行时提交、PR、准确CI或合并。
+- 其审计190路径/88Yarn ID/67GHSA，五条原v3 key消失、零新增；main仍195快照。共享v4同类覆盖缺陷假设已由源码和真实ESLint旧新控制反证；固定JSON范围、历史缺口及受限四项继续保留。
+- 本文叠加台账#121，须先交付前置并完成自身文档审阅、准确CI与合并；不把文档交付写成v3修补或RC8批准。没有标签、发布、部署或真实付费调用。
+
+### #121前置台账交付
+
+- [#121验收](JS_YAML_V3_CANDIDATE_REVIEW.md#2026-10-01-前置台账121交付)准确b56d0917十项候选CI、双架构89/9/4及Go1.25.14程序身份成功；候选/合成/最新main计算/实际合并树一致，实际合并df9b650d。[自身main CI36942692779](https://github.com/dreamvm/one-hub/actions/runs/36942692779)已成功，四项实际完整checkout均为该合并提交。
+- v3候选和Vite候选仍保留TEMP、未交付运行时修补；本文证据整理仍须自己的准确候选CI与合并，发布阻断及专项授权边界不变。
+
+### #122交付与Vite输入来源补充
+
+- [#122](https://github.com/dreamvm/one-hub/pull/122)候选79e9e9b1十项自身检查及双架构89/9/4通过，实际合并0e0acea7；[自身main CI36945717764](https://github.com/dreamvm/one-hub/actions/runs/36945717764)已成功，四项真实checkout均为该完整合并SHA，内容树一致。
+- [Vite模式输入](VITE_PATTERN_INPUT_INVENTORY.md)新增安装字段完整清单、实际build元数据/模块及编译观察，补齐highlight.js sideEffects来源、Vitest固定run覆盖与core支持模式的证据层级；首次观察器空记录缺口保留，十二条继续needs_review。
+- 本批从上述实际main开始，只更新来源文档；自己的独立事实审阅、准确候选CI及合并尚待完成。没有应用保留候选或升级依赖，不关闭受限四项、历史归属、生产事实及最终RC8，不发布或部署。
+
+### 2026-10-02 实际测试站点和历史数据盘点
+
+- [站点升级准备](SITE_UPGRADE_READINESS.md)记录维护者确认的仅自用测试范围及只读核对：公开版本为 RC5 + Gemini 修复，实际 image ID 与历史部署一致，配置与保存的部署候选相同，旧备份七项哈希匹配。原有测试数据未修改。
+- 同一只读快照的支付订单、异步任务和旧 OIDC 绑定均为空，相应历史逐笔处理在该快照没有对象；旧版尚无新预留账本，不能据此认定旧请求全部结算或补建记录。升级前重新核对，未知历史 issuer 的保守规则保持。
+- 现有 CI 的上游 v0.14.27 升级夹具不替代实际 RC5 补丁镜像到最终候选的验收；新恢复点、准确升级与回退、四项受限审阅、保留依赖候选和最终 RC8 仍未完成。本批仅交付盘点文档，无独立事实审阅结论；自身候选 CI 和合并结果另在对应 PR 记录，未完成前不记为通过，没有发布或部署。
+
+
+### 2026-10-02: Realtime progress candidate synchronized with current main
+
+PR #78 retains original candidate history and incorporates main 1a89e9e28e884ebee417d54e647e012718b4c4e2. Current main ledger and all delivered fixes are preserved. The progress source/test patch is unchanged; updated local checks and exact candidate CI must be recorded separately from historical results.
+
+Keep this draft held: its earlier review covered successfully decoded events only. The later typed-envelope error path is corrected only in stacked #79, whose complete independent review is missing. Do not merge #78 alone or treat prior CI as closing this known gap. No review retry/rerouting, tag, publication, deployment or paid call.
+
+Refreshed-source local checks passed with Go1.25.14: existing Realtime regressions, required five-package offline race set, affected-package vet and providers/relay compilation. No new interrupted-review variants were executed. Final-candidate CI remains separate and pending; the delivery hold is unchanged.
+
+
+## 2026-10-02: Invalid-report candidate synchronized with refreshed prerequisite
+
+PR #79 now incorporates #78 candidate 04be2d23b2248579385b24ab14b1d32391e7906b and main 1a89e9e28e884ebee417d54e647e012718b4c4e2. Current ledger and all main fixes are retained; the invalid-report source/test patch is unchanged. Historical CI belongs to candidate 26465acd, not this refreshed revision.
+
+The interrupted independent review still has no final conclusion. The previously corrected typed-envelope path remains without completed independent re-review and without parent dynamic verification of the additional reported variants. Existing regression checks must not be described as those missing checks. Both #78/#79 remain draft and held. No interrupted review is retried, renamed, split or rerouted. No actual account/balance changes, tag, image publication, deployment or paid call.
+
+Refreshed-source checks passed with Go1.25.14: existing Realtime regressions, required five-package offline race tests, affected-package vet and providers/relay compilation. All eight invalid-report source/test files remain byte-identical to old candidate 26465acd. This is not independent review and does not validate the interrupted-review additional variants. New exact-candidate CI is pending.
