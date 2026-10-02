@@ -1227,3 +1227,9 @@ CI/镜像验收链接、剩余限制、兼容性影响与回滚方式。未执�
 
 - [#121验收](JS_YAML_V3_CANDIDATE_REVIEW.md#2026-10-01-前置台账121交付)准确b56d0917十项候选CI、双架构89/9/4及Go1.25.14程序身份成功；候选/合成/最新main计算/实际合并树一致，实际合并df9b650d。[自身main CI36942692779](https://github.com/dreamvm/one-hub/actions/runs/36942692779)已成功，四项实际完整checkout均为该合并提交。
 - v3候选和Vite候选仍保留TEMP、未交付运行时修补；本文证据整理仍须自己的准确候选CI与合并，发布阻断及专项授权边界不变。
+
+### #122交付与Vite输入来源补充
+
+- [#122](https://github.com/dreamvm/one-hub/pull/122)候选79e9e9b1十项自身检查及双架构89/9/4通过，实际合并0e0acea7；[自身main CI36945717764](https://github.com/dreamvm/one-hub/actions/runs/36945717764)已成功，四项真实checkout均为该完整合并SHA，内容树一致。
+- [Vite模式输入](VITE_PATTERN_INPUT_INVENTORY.md)新增安装字段完整清单、实际build元数据/模块及编译观察，补齐highlight.js sideEffects来源、Vitest固定run覆盖与core支持模式的证据层级；首次观察器空记录缺口保留，十二条继续needs_review。
+- 本批从上述实际main开始，只更新来源文档；自己的独立事实审阅、准确候选CI及合并尚待完成。没有应用保留候选或升级依赖，不关闭受限四项、历史归属、生产事实及最终RC8，不发布或部署。
