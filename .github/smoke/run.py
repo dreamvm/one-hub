@@ -668,6 +668,25 @@ def concurrent_load_checks(backend, user, unlimited_token, user_id, mock, gatewa
         stats = json.loads(raw)
         return tuple(stats.get("openai-smoke_" + str(stream).lower(), 0) for stream in (False, True))
 
+    def realtime_release_check():
+        def upstream_snapshot():
+            code, _, raw = upstream.request("/stats")
+            require(code == 200, "synthetic stats unavailable")
+            return json.loads(raw)
+
+        # Include rejected GET requests, not just successful chat counters.
+        before, before_calls = snapshot(), upstream_snapshot()
+        for request_token in (None, finite_token, unlimited_token):
+            code, headers, raw = user.request("/v1/realtime?model=openai-smoke", token=request_token)
+            require(code == 501, "Realtime was not excluded from the release")
+            require(json.loads(raw).get("error", {}).get("message") == "realtime_disabled_for_release",
+                    "unexpected Realtime release error")
+            require(not headers.get("Upgrade") and not headers.get("Sec-Websocket-Accept"),
+                    "disabled Realtime upgraded a connection")
+        require(snapshot() == before, "disabled Realtime changed quota, ledger, logs or channel accounting")
+        require(upstream_snapshot() == before_calls, "disabled Realtime contacted the mock upstream")
+        passed("Realtime release exclusion: anonymous/finite/unlimited requests, accounting and upstream unchanged")
+
     def process():
         return command("docker", "inspect", "--format", "{{.State.Running}} {{.State.Pid}} {{.State.OOMKilled}}", gateway).stdout.strip()
 
@@ -694,6 +713,7 @@ def concurrent_load_checks(backend, user, unlimited_token, user_id, mock, gatewa
     require(re.fullmatch(r"true [1-9][0-9]* false", before_process), "gateway is not a healthy running process")
     try:
         before, control_metrics = snapshot(), metrics()
+        realtime_release_check()
         require(chat(user, finite_token, "openai-smoke", False)["content"] == "中文对话成功", "load normal control failed")
         cost = settle(before)
         deadline = time.monotonic() + 10
