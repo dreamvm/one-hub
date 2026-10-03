@@ -1281,3 +1281,14 @@ Local verification of this integration: clean temporary frozen offline install w
 - 调查发现独立的[渠道检测进度兼容问题](CHANNEL_CHECK_PROGRESS.md)：旧页面错误读取Axios包装事件，
   且HTTP错误分支未释放加载状态。六项组件旧新对照已建立；自身完整回归、准确CI及合并记录另行补齐。
   本候选不升级依赖、不执行真实渠道检测，也不是RC8、发布或部署批准。
+
+### 2026-10-03：渠道检测交付与个人抽屉候选
+
+- #128 已合并 `9480a9d4dcaa35a5be6028df5cdbd38f6f7da0d7`；候选十项检查及
+  [main四项CI](https://github.com/dreamvm/one-hub/actions/runs/37096795590)通过，checkout与相同树已核对。
+  此记录更新前文及专项文档的“未交付”状态，最终证据见#128验收记录。
+- 该候选实际旧RC5本机升级/回退七项通过；双架构程序SHA与候选CI一致。程序审计两架构
+  各37个公告ID，较既有快照无新增；不代表依赖清零或每个符号均可被业务触发。
+- 本地普通用户账单及注销验收发现个人抽屉焦点警告，独立[修复候选](PROFILE_DRAWER_FOCUS.md)
+  已有旧新对照、完整本地回归及真实浏览器复测。尚需自身准确候选CI及合并核对。
+  令牌与管理员页面等剩余验收继续保留；未创建RC8标签，未发布或部署。
