@@ -87,6 +87,34 @@ export function ChannelCheck({ item, open, onClose }) {
   const handleCheck = async () => {
     setCheckLoad(true);
     setCheckResults([]);
+    const updateResults = (text) => {
+      if (typeof text !== 'string') return;
+      const lines = text.split('\n');
+
+      lines.forEach((line) => {
+        if (line.trim() === '' || !line.startsWith('data:')) return;
+
+        const jsonStr = line.slice(5);
+        try {
+          const eventData = JSON.parse(jsonStr);
+          if (eventData.type === 'result') {
+            setCheckResults((prev) => {
+              const existingIndex = prev.findIndex((item2) => item2.model === eventData.data.model);
+
+              if (existingIndex !== -1) {
+                const newResults = [...prev];
+                newResults[existingIndex] = eventData.data;
+                return newResults;
+              }
+
+              return [...prev, eventData.data];
+            });
+          }
+        } catch (e) {
+          // 忽略解析错误
+        }
+      });
+    };
     try {
       const response = await API.post(
         `/api/sse/channel/check`,
@@ -97,32 +125,7 @@ export function ChannelCheck({ item, open, onClose }) {
         {
           responseType: 'text',
           onDownloadProgress: (progressEvent) => {
-            const text = progressEvent.currentTarget.response;
-            const lines = text.split('\n');
-
-            lines.forEach((line) => {
-              if (line.trim() === '' || !line.startsWith('data:')) return;
-
-              const jsonStr = line.slice(5);
-              try {
-                const eventData = JSON.parse(jsonStr);
-                if (eventData.type === 'result') {
-                  setCheckResults((prev) => {
-                    const existingIndex = prev.findIndex((item2) => item2.model === eventData.data.model);
-
-                    if (existingIndex !== -1) {
-                      const newResults = [...prev];
-                      newResults[existingIndex] = eventData.data;
-                      return newResults;
-                    }
-
-                    return [...prev, eventData.data];
-                  });
-                }
-              } catch (e) {
-                // 忽略解析错误
-              }
-            });
+            updateResults(progressEvent.event?.target?.response);
           }
         }
       );
@@ -131,10 +134,13 @@ export function ChannelCheck({ item, open, onClose }) {
         showError(response.data?.message || '检测失败');
         return;
       }
+      // The last chunk may arrive without another progress notification.
+      updateResults(response.data);
     } catch (error) {
       showError(error.message);
+    } finally {
+      setCheckLoad(false);
     }
-    setCheckLoad(false);
   };
 
   const toggleResponse = (modelIndex, processIndex) => {
