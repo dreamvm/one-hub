@@ -1,29 +1,30 @@
-import { useRef } from 'react';
 import PropTypes from 'prop-types';
 import { useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 // material-ui
 import { useTheme } from '@mui/material/styles';
-import { Avatar, Box } from '@mui/material';
+import { Avatar, IconButton } from '@mui/material';
 import User1 from 'assets/images/users/user-round.svg';
 
 // ==============================|| PROFILE MENU ||============================== //
 
 const Profile = ({ toggleProfileDrawer }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const account = useSelector((state) => state.account);
-  const anchorRef = useRef(null);
 
   return (
     <>
       {/* 用户头像按钮 */}
-      <Box
-        component="div"
+      <IconButton
+        aria-label={t('profile')}
         onClick={toggleProfileDrawer}
         sx={{
           cursor: 'pointer',
           position: 'relative',
           width: '48px',
           height: '48px',
+          padding: 0,
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
@@ -51,9 +52,8 @@ const Profile = ({ toggleProfileDrawer }) => {
               transform: 'scale(1.03)'
             }
           }}
-          ref={anchorRef}
         />
-      </Box>
+      </IconButton>
     </>
   );
 };
