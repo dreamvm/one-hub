@@ -238,7 +238,7 @@ export default function UsersTableRow({ item, manageUser, handleOpenModal, setMo
         <DialogTitle>{t('userPage.del')}</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            {t('userPage.delTip')} {item.name}？
+            {t('userPage.delTip')} {item.username}？
           </DialogContentText>
         </DialogContent>
         <DialogActions>
