@@ -1307,3 +1307,16 @@ Local verification of this integration: clean temporary frozen offline install w
 - 同时点官方审计main185条、候选173条，移除12条Axios且零新增；相较旧快照共同新增
   四条braces路径，保留待核对。YAML v3/matcher原结论与Realtime底层缺口继续保留；
   最终候选、arm64二进制审计、新恢复点和发布授权未由本候选关闭。
+
+### 2026-10-04：#130交付与同源码产物补验
+
+- [Axios #130](AXIOS_120_MAINTENANCE.md#2026-10-04-合并验收)获批合并为
+  `557103c95f2dd0acffb26000c2d4cbc62dd2c524`，实际树与准确候选相同；候选十项检查及
+  [main四项CI](https://github.com/dreamvm/one-hub/actions/runs/37185891315)均通过，全部实际checkout已核对。
+- [本机产物补验](POST_130_ARTIFACT_ACCEPTANCE.md)双架构程序SHA与候选CI一致；各37个公告ID，
+  对比#128零新增。实际RC5到本候选的升级、镜像回退、备份恢复及清理七项通过。
+  amd64首次空间不足失败和缓存回收后成功均保留，不把旧提交证据代入当前候选。
+- 四条新增braces记录各自静态核对为当前维护入口not_actionable；受影响库及173条审计匹配仍保留。
+  #127首版Realtime入口限制已交付，底层#78/#79缺口未关闭；最新状态表更新此前历史待办表述。
+- 本批只整理已执行证据，没有新的独立事实审阅结论；自身文档准确CI/合并另记。
+  未创建RC8标签、发布镜像、部署或真实付费调用；最终产物、新恢复点及其他发布门槛继续开放。
