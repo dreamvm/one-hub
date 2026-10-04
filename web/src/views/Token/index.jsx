@@ -173,10 +173,13 @@ export default function Token() {
           res = await API.delete(url + id);
           break;
         case 'status':
-          res = await API.put(url + `?status_only=true`, {
-            ...data,
-            status: value
-          });
+          res = await API.put(
+            url + (adminSearchEnabled && (adminSearchUserId || adminSearchTokenId) ? 'admin' : '') + '?status_only=true',
+            {
+              ...data,
+              status: value
+            }
+          );
           break;
       }
       const { success, message } = res.data;
@@ -192,6 +195,7 @@ export default function Token() {
       return res.data;
     } catch (error) {
       showError(error);
+      return { success: false };
     }
   };
 

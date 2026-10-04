@@ -1307,3 +1307,12 @@ Local verification of this integration: clean temporary frozen offline install w
 - 同时点官方审计main185条、候选173条，移除12条Axios且零新增；相较旧快照共同新增
   四条braces路径，保留待核对。YAML v3/matcher原结论与Realtime底层缺口继续保留；
   最终候选、arm64二进制审计、新恢复点和发布授权未由本候选关闭。
+
+### 2026-10-04：令牌管理员操作界面候选
+
+PR130 合并后关键页面验收发现：管理员搜索他人令牌时，启停误用本人接口，
+删除菜单提供了后端不支持的操作。已从 main `557103c9` 独立修复，保留后端所有权限制；
+旧版失败/正常对照、225 项组件回归及既有 Node 回归、lint/build、独立只读审阅和
+本机真实浏览器操作通过。详见 [TOKEN_ADMIN_ACTIONS.md](TOKEN_ADMIN_ACTIONS.md)。
+当前为本地候选，准确候选 CI 与合并尚待完成，不复用 PR130/PR131 的绿色检查。
+PR131 是独立的 PR130 制品验收文档候选，本修复不依赖其合并。

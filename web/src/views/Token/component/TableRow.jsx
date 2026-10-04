@@ -32,12 +32,14 @@ import { useTheme } from '@mui/material/styles';
 function createMenu(menuItems) {
   return (
     <>
-      {menuItems.map((menuItem, index) => (
-        <MenuItem key={index} onClick={menuItem.onClick} sx={{ color: menuItem.color }}>
-          {menuItem.icon}
-          {menuItem.text}
-        </MenuItem>
-      ))}
+      {menuItems
+        .filter((menuItem) => !menuItem.hidden)
+        .map((menuItem, index) => (
+          <MenuItem key={index} onClick={menuItem.onClick} sx={{ color: menuItem.color }}>
+            {menuItem.icon}
+            {menuItem.text}
+          </MenuItem>
+        ))}
     </>
   );
 }
@@ -64,6 +66,7 @@ export default function TokensTableRow({ item, manageToken, handleOpenModal, set
   const [openDelete, setOpenDelete] = useState(false);
   const [statusSwitch, setStatusSwitch] = useState(item.status);
   const siteInfo = useSelector((state) => state.siteInfo);
+  const userId = useSelector((state) => state.account.user?.id);
   const chatLinks = getChatLinks();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -123,6 +126,8 @@ export default function TokensTableRow({ item, manageToken, handleOpenModal, set
       text: t('common.delete'),
       icon: <Icon icon="solar:trash-bin-trash-bold-duotone" style={{ marginRight: '16px' }} />,
       onClick: handleDeleteOpen,
+      // The delete endpoint intentionally accepts only the token owner.
+      hidden: isAdminSearch && item.user_id !== userId,
       color: 'error.main'
     }
   ]);
