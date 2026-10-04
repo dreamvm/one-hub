@@ -49,3 +49,28 @@
 版本匹配消失不证明十二条均已在产品中复现或动态关闭，也不关闭 YAML v3、匹配器或其他依赖门槛。
 
 当前未提交、未创建 PR、无准确候选 CI、未合并。发布与部署仍需分别授权。
+
+## 2026-10-04 合并验收
+
+上节为本地阶段的历史检查点，现由 [PR #130](https://github.com/dreamvm/one-hub/pull/130)
+最终验收更新。准确 head `dde3a597430bce01b0ab786f0b3b9c6012e82b38` 的
+[Compatibility](https://github.com/dreamvm/one-hub/actions/runs/37182951836) 四项和
+[Isolated](https://github.com/dreamvm/one-hub/actions/runs/37182952080) 六项均成功。
+前者实际 checkout 为合成 `ef50ed15ec050aaaf6622205e62f2baca6dff41f`，后者六项均为准确 head；
+合成父节点为当时 main `02116294c88db924e322eb8ebe6dca10009aecf8` 与该 head。
+候选、合成和实际合并树均为 `d82a7da2467a524f59a2b282ea8ea627184879cb`。
+
+维护者批准后实际合并为 `557103c95f2dd0acffb26000c2d4cbc62dd2c524`。
+[合并后 main CI](https://github.com/dreamvm/one-hub/actions/runs/37185891315) 四项成功，
+下载日志核对四项真实 checkout 均为该完整合并 SHA。
+每个原生架构各 92 项业务/升级 PASS、九轮并发、四种 Compose 成功。
+最终程序 Go1.25.14、Linux、对应架构、CGO=1 已核对。
+
+| 架构 | CI 本地 image ID（SHA256） | 最终程序 SHA256 |
+| --- | --- | --- |
+| amd64 | d5e239eff1fef3f3ede09f7416d337f553e924f1c2f505af781c57fcbe6b2736 | ca82c10c65340cccd3fd331a5fb66254014b8a5d6faac94cd85029d770b996c8 |
+| arm64 | 416a0bc6634424876ff5d33dd5d27d8414d4ac8d704cc957496c77353bb0e3db | 104d6c6144d4ac2e58c87b92fae9cb10169df4770285aa15850594dd80ae3b63 |
+
+上述是未发布 CI 镜像身份，不是 registry digest。镜像内程序身份不替代最终二进制审计，
+CI 的固定上游旧版夹具也不替代实际 RC5 到最终候选的演练；这些后续证据分别记录。
+合并不授权创建标签、发布镜像、部署或真实付费调用。
