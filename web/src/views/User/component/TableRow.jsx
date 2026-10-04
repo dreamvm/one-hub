@@ -234,7 +234,7 @@ export default function UsersTableRow({ item, manageUser, handleOpenModal, setMo
         </MenuItem>
       </Popover>
 
-      <Dialog open={openDelete} onClose={handleDeleteClose}>
+      <Dialog closeAfterTransition={false} open={openDelete} onClose={handleDeleteClose}>
         <DialogTitle>{t('userPage.del')}</DialogTitle>
         <DialogContent>
           <DialogContentText>
@@ -250,6 +250,7 @@ export default function UsersTableRow({ item, manageUser, handleOpenModal, setMo
       </Dialog>
 
       <ConfirmDialog
+        closeAfterTransition={false}
         open={openChangeQuota}
         onClose={() => setOpenChangeQuota(false)}
         title={t('userPage.changeQuota')}
