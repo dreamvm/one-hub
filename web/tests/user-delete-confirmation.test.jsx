@@ -21,7 +21,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   manageUser.mockResolvedValue({ success: true });
 });
-function open(mode = 'light') {
+function open(mode = 'light', action = '删除') {
   render(
     <table>
       <tbody>
@@ -30,8 +30,9 @@ function open(mode = 'light') {
     </table>,
     { wrapper: ({ children }) => <Wrapper mode={mode}>{children}</Wrapper> }
   );
+  within(screen.getByRole('row')).getByRole('button').focus();
   fireEvent.click(within(screen.getByRole('row')).getByRole('button'));
-  fireEvent.click(screen.getByRole('menuitem', { name: '删除', exact: true }));
+  fireEvent.click(screen.getByRole('menuitem', { name: action, exact: true }));
 }
 describe('user deletion identifies the same account that will be submitted', () => {
   it.each(['light', 'dark'])('shows the selected username before confirmation in %s mode', (mode) => {
@@ -49,5 +50,24 @@ describe('user deletion identifies the same account that will be submitted', () 
     fireEvent.click(screen.getByRole('menuitem', { name: '删除', exact: true }));
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: '删除', exact: true }));
     await waitFor(() => expect(manageUser).toHaveBeenCalledExactlyOnceWith('synthcheck', 'delete', ''));
+  });
+});
+
+// Closing must not leave restored focus in a hidden page during the exit animation.
+describe('user dialog focus restoration', () => {
+  it.each([
+    ['light', '删除', '关闭'],
+    ['dark', '删除', '关闭'],
+    ['light', '增减额度', '取消'],
+    ['dark', '增减额度', '取消']
+  ])('restores visible page focus in %s mode after %s', async (mode, action, cancel) => {
+    open(mode, action);
+    await waitFor(() => expect(screen.queryByRole('menuitem', { name: '删除', exact: true })).toBeNull());
+    const trigger = within(screen.getByRole('row', { hidden: true })).getByRole('button', { hidden: true });
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: cancel }));
+    expect(document.activeElement).toBe(trigger);
+    expect(trigger.closest('[aria-hidden="true"]')).toBeNull();
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(manageUser).not.toHaveBeenCalled();
   });
 });

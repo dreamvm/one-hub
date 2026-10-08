@@ -136,7 +136,7 @@ const EditModal = ({ open, userId, onCancel, onOk }) => {
   }, [userId]);
 
   return (
-    <Dialog open={open} onClose={onCancel} fullWidth maxWidth={'md'}>
+    <Dialog closeAfterTransition={false} open={open} onClose={onCancel} fullWidth maxWidth={'md'}>
       <DialogTitle sx={{ margin: '0px', fontWeight: 700, lineHeight: '1.55556', padding: '24px', fontSize: '1.125rem' }}>
         {userId ? t('userPage.editUser') : t('userPage.createUser')}
       </DialogTitle>
