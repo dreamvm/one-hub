@@ -1,9 +1,9 @@
 # 下一版本计划
 
-2026-10-14 新云端整改与独立验收更新：已合并 main 仍为 `b783f95a0a96fd1301dd0713231763193c6c83f0`（PR136），main CI38516829968四项已重核成功。新运行时候选 `76c5657a9ef1eec9cf677b921eca17a90067567a`（[PR141](https://github.com/dreamvm/one-hub/pull/141)）包含独立PR138/139/140修复，尚未合并。正式网络策略已enforced；Go/Dropbox/GitHub完整下载和身份校验恢复。新候选十项CI、双原生架构各92PASS/9waves/4Compose与Go1.26.9实际程序身份完成；本地准确候选实际RC5升级/仅镜像回退/备份恢复/读回7项完成。Go仍有19模块/10包/5调用静态匹配，19输入逐项分流并独立审阅；前端仍175路径。整体发布门槛没有自动关闭，详见[CLOUD_POST_135_ACCEPTANCE.md](CLOUD_POST_135_ACCEPTANCE.md)。下方较早记录保留历史，不能替代本段最新候选与状态。
+2026-10-14 PR141合并验收更新：获专项批准的运行时候选 `76c5657a9ef1eec9cf677b921eca17a90067567a` 已通过 [PR141](https://github.com/dreamvm/one-hub/pull/141) 合并为当前 main `4cecf90c86ca0ab5ce0a5d43e57f79c04153a5e7`。实际合并、候选和受测合成提交的树均为 `ad7866b8f9916279c21bf180ebcafa2b95df672f`；[main CI38591239167](https://github.com/dreamvm/one-hub/actions/runs/38591239167)四项均成功，逐任务日志实际checkout为合并提交。PR138/139/140的修复已由集成提交覆盖，没有逐个重复合并。正式网络策略enforced，三路完整下载及身份校验、准确候选十项CI、双原生架构各92PASS/9waves/4Compose、Go1.26.9实际程序身份和实际RC5升级/回退/恢复七项已有独立证据。Go仍有19模块/10包/5调用静态匹配，前端仍175路径；整体发布门槛保留。PR137仅更新三份文档，保持未合并，等待其自身专项批准。详见[CLOUD_POST_135_ACCEPTANCE.md](CLOUD_POST_135_ACCEPTANCE.md)；下方较早记录保留当时状态。
 
 
-当前云端接续源码基线（2026-10-14）：main `b783f95a0a96fd1301dd0713231763193c6c83f0`。
+历史接续记录（PR141合并前，已由上段更新）：当时main `b783f95a0a96fd1301dd0713231763193c6c83f0`。
 PR135和PR136分别获专项批准合并，实际树均与准确候选相同；PR135 main四项CI通过，
 PR136 main CI38516829968四项成功且实际checkout已核对。source-map-js三条依赖路径已交付1.2.2。
 下方较早的基线和候选表保留历史，不替代最新交付记录。
@@ -1404,3 +1404,13 @@ PR136准确候选 `4bf131868ae8d4431ddff2f508a453e7e615fa31` 经独立非作者�
 [CLOUD_POST_135_ACCEPTANCE.md](CLOUD_POST_135_ACCEPTANCE.md)。
 本台账纠正属于合并后的独立文档候选，不改写PR136获批候选，也未获其合并批准。
 RC8/正式标签仍预留，本批未创建标签、发布镜像、部署或真实付费调用。
+
+### 2026-10-14：PR141专项合并与发布准备
+
+合并前再次核对head、main及6提交/21文件范围未变；独立只读审阅复核无阻断，GitHub正式review为空，两者分别记录。候选[Compatibility38544767525](https://github.com/dreamvm/one-hub/actions/runs/38544767525)四项和[Smoke38544774325](https://github.com/dreamvm/one-hub/actions/runs/38544774325)六项均成功，被替代cancelled运行38544767567不计通过。
+
+实际合并 `4cecf90c86ca0ab5ce0a5d43e57f79c04153a5e7` 的两个父提交为原main `b783f95a0a96fd1301dd0713231763193c6c83f0` 和批准候选 `76c5657a9ef1eec9cf677b921eca17a90067567a`，树与候选及合成192e3c94完全相同。[main CI38591239167](https://github.com/dreamvm/one-hub/actions/runs/38591239167)四项均成功，逐任务日志实际checkout已重核为4cecf90c；它不重构候选原生镜像。原产物manifest继续绑定76c5657a，不改称合并提交重新构建或已发布digest。
+
+PR139/140的head已是集成提交祖先，GitHub在PR141合并后自动标记两者closed/merged；未另外调用其合并接口。PR138经相同内容cherry-pick `0ed40a50ff215dda151692ac826526d0b6bb63bb` 纳入，原PR保持open/draft及历史提交。PR137合入最新main作为文档基线，比较main只改变三份台账；旧文档候选a823bcd0及其十项CI保留历史，新候选审阅和CI另记在PR中，尚未获合并批准。
+
+远端标签重读：RC7仍指向d0f180451f770a7b01f41e52b4e14aeeb64dd924，RC8及正式标签均不存在，继续仅预留。手动GHCR入口要求main上既有不可变标签、先测试该SHA、publish默认false；双架构须显式选择，未执行本次手动构建或发布。发布前仍需关闭适用阻断项，专项批准标签与发布，重新核对正式版本/实际程序/digest；生产新恢复点、最新只读账务与OIDC盘点、凭据完整性、维护窗口和部署授权独立保留。

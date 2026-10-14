@@ -1,6 +1,22 @@
 # PR135后的云端接续验收
 
-2026-10-14，当前main `b783f95a0a96fd1301dd0713231763193c6c83f0`（PR136）。
+## 2026-10-14 PR141实际合并与main验收
+
+维护者已专项批准PR141准确候选 `76c5657a9ef1eec9cf677b921eca17a90067567a`。合并前重核head、base/main、6提交/21文件范围未变；十项有效CI均成功，被替代cancelled运行38544767567排除。独立只读复核无阻断，沿用此前各修复及最终候选独立审阅；GitHub正式review列表为空，未将只读审阅称为GitHub审批。
+
+2026-10-14T15:39:26Z实际合并为当前main `4cecf90c86ca0ab5ce0a5d43e57f79c04153a5e7`；父提交是原main `b783f95a0a96fd1301dd0713231763193c6c83f0` 和批准候选 `76c5657a9ef1eec9cf677b921eca17a90067567a`。实际合并/候选/受测合成 `192e3c94963f897aac2527faa0ef45966ff4a707` 的树均为 `ad7866b8f9916279c21bf180ebcafa2b95df672f`，Git逐字节diff为空。[main CI38591239167](https://github.com/dreamvm/one-hub/actions/runs/38591239167)四项均成功，逐任务日志实际checkout重核为4cecf90c。main工作流不重建原生镜像；现有ZIP、manifest和实际RC5演练仍绑定原76c5657a源码，不更换其来源SHA或冒称发布digest。
+
+| 原独立PR | 集成覆盖与当前GitHub状态 |
+| --- | --- |
+| PR138 / 2e987a35644567bfa846e211ea387087113a970c | Range修复cherry-pick为0ed40a50ff215dda151692ac826526d0b6bb63bb；两个受影响文件内容相同；原PR仍open/draft，保留历史 |
+| PR139 / c6813c647275a431f20b9b36c3856fe457fa083b | head为集成候选祖先；GitHub在PR141合并后自动标记closed/merged，非独立再次合并 |
+| PR140 / 0843087f96d6befadce912b7bd70e8ababbcce52 | head为集成候选祖先并含PR139；同样自动标记closed/merged，非独立再次合并 |
+
+本次只调用PR141合并接口。PR137同步最新main以保留历史文档提交，与当前main比较仅NEXT_RELEASE、RC8_ACCEPTANCE_STATUS和本文件；保持未合并，其专项合并批准尚未取得。旧文档候选a823bcd0及CI38548485708/38548485745保留历史，新文档候选审阅和十项CI在PR137另记。标签、镜像发布、生产部署、凭据轮换、真实付费和生产写入无本次授权。
+
+## 历史：PR136合并后、网络恢复前
+
+当时main `b783f95a0a96fd1301dd0713231763193c6c83f0`（PR136）。
 PR135和PR136分别获得专项合并批准，实际合并树均与各自准确候选一致。
 PR135 main CI38511264078四项成功；PR136 [main CI38516829968](https://github.com/dreamvm/one-hub/actions/runs/38516829968)
 四项成功，逐任务实际checkout均核对为该合并提交。没有标签、镜像发布或部署。
@@ -115,7 +131,7 @@ Go官方db.json35bytes，Git远端查询成功；重新通过GitHub连接器取�
 - [PR140](https://github.com/dreamvm/one-hub/pull/140)，0843087f：依赖PR139，x/net0.60及必要crypto0.57/sys0.48/text0.42/sync0.23；sync由text要求。本地原始H2响应重复/冲突CL和Connection旧失败、新通过；维持原网关uppercase-first代理环境契约，explicit、lowercase fallback、NO_PROXY、CGI零dial与redirect回归通过。独立只读审阅无阻断；自身Smoke38545021742含四项可复用前置检查及双原生架构成功。其base为main以运行所需CI，不能越过依赖合并批准。
 - 集成[PR141](https://github.com/dreamvm/one-hub/pull/141)，冻结运行时候选 `76c5657a9ef1eec9cf677b921eca17a90067567a`。十项CI成功：[Compatibility38544767525](https://github.com/dreamvm/one-hub/actions/runs/38544767525)、[Smoke38544774325](https://github.com/dreamvm/one-hub/actions/runs/38544774325)。四个Compatibility任务真实checkout合成192e3c94，六个Smoke任务checkout76c5657a；两树相同 `ad7866b8f9916279c21bf180ebcafa2b95df672f`，逐任务日志已重读。初始164运行被opt-in label触发的165替代而cancelled，不记为失败或通过。
 
-独立修复各保留提交及依赖；所有上述PR和PR137仍未合并。此台账文档提交不是新运行时候选，不替换76c5657a的程序与演练身份。
+独立修复各保留提交及依赖；PR141已按顶部记录合并，PR138–140修复均被覆盖，PR137仍未合并。此台账文档提交不替换76c5657a的程序与演练身份。
 
 ### 双架构实际程序和官方审计
 
@@ -146,4 +162,13 @@ Chromium以仅loopback透明转发连接拥有的内部Docker真实程序，业�
 
 ### 仍开放的发布/生产边界
 
-本轮普通云端整改、官方源码和真实程序审计、准确候选隔离演练及CI证据已补齐；不据此宣布整体RC8可发布。前端残留范围、四项历史受限审阅与单项例外、生产新恢复点/凭据轮换完整性、升级前最新历史账务和OIDC快照、实际生产digest与维护窗口、真实付费/跨浏览器及默认前端容量未由上述合成证据关闭。PR137及138–141合并、标签、镜像发布、生产部署、真实付费继续分别待专项批准；主分支仍b783f95a。
+本轮普通云端整改、官方源码和真实程序审计、准确候选隔离演练及CI证据已补齐，PR141已专项获批合并；不据此宣布整体RC8可发布。前端残留范围、四项历史受限审阅与单项例外、生产新恢复点/凭据轮换完整性、升级前最新历史账务和OIDC快照、实际生产digest与维护窗口、真实付费/跨浏览器及默认前端容量未由上述合成证据关闭。PR137合并、标签、镜像发布、生产部署、凭据轮换、真实付费与生产写入仍须各自授权。
+
+### 本轮可独立完成的发布准备核实
+
+- 当前网络observations_current=true、spec/observed_revision20、restricted/enforced；八条额外规则及源配置版本不变。历史revision5完整下载核验继续有效，没有禁用平台代理或TLS。
+- 远端标签重新读取：维护标签仍以RC7为最新，指向d0f180451f770a7b01f41e52b4e14aeeb64dd924；RC8和正式标签均未创建。计划号继续预留，不因main合并自动发布。
+- `.github/workflows/docker-image.yml`仅workflow_dispatch，从默认分支解析已存在且为main祖先的不可变标签；publish默认false，登录仅publish=true，镜像标签仅完整版本和源码SHA、不推latest。手动镜像任务具有packages:write能力，但本轮未调用；isolated smoke仍contents:read/push:false。双架构手动构建需显式选择linux/amd64,linux/arm64，默认仅amd64。
+- 正式版本注入VERSION后是新的程序/镜像身份，必须核对实际版本、Go1.26.9/Linux/架构/CGO1、来源SHA、程序和最终registry digest，并验收实际生成镜像。main四项CI及候选本地image ID不代替这一证据；publish=false也不会导出可供运行的整镜像。
+- PR141两个原生产物元数据已重核未过期：arm64于2026-10-21T10:07:01Z、amd64于2026-10-21T10:08:32Z到期；本任务已有完整下载并独立校验的副本。七天保留不是持久发布或跨任务迁移；若更换环境，须重新取得完整材料或获授权私有接续，不能假称旧工作目录继承。
+- 生产只读证据仍是2026-10-02快照，本轮未连接或写入站点。候选合成恢复点不能代替新生产备份；升级前需要按已有规则重核最新历史账务/OIDC、凭据完整性、新备份与恢复校验、镜像digest、停写决定、恢复点后数据损失边界及维护窗口。旧镜像回退会重新开放Realtime，须另行决策。
