@@ -15,6 +15,10 @@ import (
 )
 
 func TestMediaRawPublicContractAndCancellation(t *testing.T) {
+	// The injected dialer only reaches the local fixture; select its direct
+	// protocol regardless of proxy variables inherited from the test runner.
+	t.Setenv("NO_PROXY", "example.com")
+	t.Setenv("no_proxy", "example.com")
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { _, _ = io.WriteString(w, "raw fixture") }))
 	defer server.Close()
 	client := img.MediaClientForTest(publicLookup, func(ctx context.Context, network, _ string) (net.Conn, error) {
