@@ -10,7 +10,7 @@ import shutil
 
 MAX_BINARY_BYTES = 256 * 1024 * 1024
 BUILD_INFO = re.compile(
-    r"CANDIDATE_BUILD_INFO Go=(go1\.25\.14) main=one-api GOOS=linux "
+    r"CANDIDATE_BUILD_INFO Go=(go1\.26\.9) main=one-api GOOS=linux "
     r"GOARCH=(amd64|arm64) CGO_ENABLED=1 SHA256=([0-9a-f]{64})"
 )
 

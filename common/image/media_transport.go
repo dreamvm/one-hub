@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/netip"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -144,7 +145,19 @@ func mediaProxy(req *http.Request) (*url.URL, error) {
 	}
 	if address == "" {
 		if enabled, _ := ctx.Value(mediaEnvironmentProxyKey{}).(bool); enabled {
-			p, err := httpproxy.FromEnvironment().ProxyFunc()(req.URL)
+			proxyConfig := httpproxy.FromEnvironment()
+			// Preserve net/http and the gateway's existing uppercase-first
+			// environment contract after x/net changed its default precedence.
+			if value := os.Getenv("HTTP_PROXY"); value != "" {
+				proxyConfig.HTTPProxy = value
+			}
+			if value := os.Getenv("HTTPS_PROXY"); value != "" {
+				proxyConfig.HTTPSProxy = value
+			}
+			if value := os.Getenv("NO_PROXY"); value != "" {
+				proxyConfig.NoProxy = value
+			}
+			p, err := proxyConfig.ProxyFunc()(req.URL)
 			if err != nil {
 				return nil, errors.New("invalid media proxy configuration")
 			}

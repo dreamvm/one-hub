@@ -15,6 +15,10 @@ import (
 )
 
 func TestMediaRawPublicContractAndCancellation(t *testing.T) {
+	// The injected dialer only reaches the local fixture; select its direct
+	// protocol regardless of proxy variables inherited from the test runner.
+	t.Setenv("NO_PROXY", "example.com")
+	t.Setenv("no_proxy", "example.com")
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { _, _ = io.WriteString(w, "raw fixture") }))
 	defer server.Close()
 	client := img.MediaClientForTest(publicLookup, func(ctx context.Context, network, _ string) (net.Conn, error) {
@@ -46,12 +50,17 @@ func TestMediaRawPublicContractAndCancellation(t *testing.T) {
 }
 
 func TestMediaRawEnvironmentProxyPolicy(t *testing.T) {
-	for _, mode := range []string{"environment", "explicit", "no proxy"} {
+	for _, mode := range []string{"environment", "lowercase fallback", "explicit", "no proxy"} {
 		t.Run(mode, func(t *testing.T) {
 			t.Setenv("HTTPS_PROXY", "http://environment-proxy.invalid:8080")
+			t.Setenv("https_proxy", "http://lowercase-proxy.invalid:8080")
 			t.Setenv("NO_PROXY", "")
-			t.Setenv("no_proxy", "")
+			t.Setenv("no_proxy", "unrelated.invalid")
 			explicit, expected := "", "environment-proxy.invalid:8080"
+			if mode == "lowercase fallback" {
+				t.Setenv("HTTPS_PROXY", "")
+				expected = "lowercase-proxy.invalid:8080"
+			}
 			if mode == "explicit" {
 				explicit = "http://configured-proxy.invalid:8080"
 				expected = "configured-proxy.invalid:8080"
@@ -78,6 +87,28 @@ func TestMediaRawEnvironmentProxyPolicy(t *testing.T) {
 	}
 }
 
+func TestMediaRawCGIHTTPProxyRejected(t *testing.T) {
+	t.Setenv("HTTP_PROXY", "http://uppercase-proxy.invalid:8080")
+	t.Setenv("http_proxy", "http://lowercase-proxy.invalid:8080")
+	t.Setenv("NO_PROXY", "")
+	t.Setenv("no_proxy", "")
+	t.Setenv("REQUEST_METHOD", "GET")
+	dialed := false
+	client := img.MediaClientForTest(publicLookup, func(context.Context, string, string) (net.Conn, error) {
+		dialed = true
+		return nil, errors.New("fixture stops before network")
+	}, nil)
+	setMediaFixture(t, client, "")
+	response, err := img.RequestPublicFile(context.Background(), "http://example.com/image")
+	if err == nil {
+		response.Body.Close()
+		t.Fatal("CGI environment proxy was accepted")
+	}
+	if dialed {
+		t.Fatal("CGI rejection must precede proxy dial")
+	}
+}
+
 func TestMediaRawEnvironmentProxyReevaluatedOnRedirect(t *testing.T) {
 	for _, tc := range []struct{ name, start, target, noProxy, expected string }{
 		{"scheme changes", "http://first.example/start", "https://second.example/final", "", "https-proxy.invalid:8443"},
@@ -87,6 +118,8 @@ func TestMediaRawEnvironmentProxyReevaluatedOnRedirect(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Setenv("HTTP_PROXY", "http://http-proxy.invalid:8080")
 			t.Setenv("HTTPS_PROXY", "http://https-proxy.invalid:8443")
+			t.Setenv("http_proxy", "http://lowercase-proxy.invalid:8080")
+			t.Setenv("https_proxy", "http://lowercase-proxy.invalid:8443")
 			t.Setenv("NO_PROXY", tc.noProxy)
 			t.Setenv("no_proxy", "")
 			t.Setenv("REQUEST_METHOD", "")
