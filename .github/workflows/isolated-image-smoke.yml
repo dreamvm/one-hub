@@ -55,7 +55,7 @@ jobs:
       - name: Set up Go for the offline mock upstream
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: '1.25.14'
+          go-version: '1.26.9'
           cache: true
       - name: Compile the synthetic mock upstream
         env:
@@ -105,7 +105,7 @@ jobs:
           docker cp "$container_id:/one-api" "$RUNNER_TEMP/onehub-candidate"
           go run ./.github/smoke/buildinfo \
             -binary "$RUNNER_TEMP/onehub-candidate" \
-            -go-version go1.25.14 -goarch "$TARGET_ARCH" \
+            -go-version go1.26.9 -goarch "$TARGET_ARCH" \
             | tee "$RUNNER_TEMP/candidate-build-info.txt"
 
       - name: Run isolated SQLite checks

@@ -14,6 +14,8 @@ Forked from songquanpeng/one-api. Multi-provider proxy for OpenAI, Claude, Gemin
 
 ## Build / Run / Test Commands
 
+Current maintained compiler: Go 1.26.9; final image binaries must match the pinned CI toolchain.
+
 ### Backend (Go)
 
 ```bash
