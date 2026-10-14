@@ -237,6 +237,9 @@ func TestSmokeRunsAllBackendsAndRollbackWithImmutableFixtures(t *testing.T) {
 	steps := make(map[string]step)
 	var order []string
 	for _, item := range smoke.Steps {
+		if item.ID == "binary-evidence" || item.ID == "binary-upload" {
+			continue // Optional evidence transport has its own gates below; test paths stay unconditional.
+		}
 		require.Empty(t, item.If, "smoke steps must not skip a test path")
 		require.Nil(t, item.ContinueOnError, "test failures must fail the job")
 		if item.ID != "" {

@@ -3,7 +3,13 @@ name: Isolated image smoke
 on:
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened, labeled]
   workflow_dispatch:
+    inputs:
+      export_binary:
+        description: 'Retain verified native programs for seven-day offline audit (not an image publication)'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -99,7 +105,8 @@ jobs:
           docker cp "$container_id:/one-api" "$RUNNER_TEMP/onehub-candidate"
           go run ./.github/smoke/buildinfo \
             -binary "$RUNNER_TEMP/onehub-candidate" \
-            -go-version go1.25.14 -goarch "$TARGET_ARCH"
+            -go-version go1.25.14 -goarch "$TARGET_ARCH" \
+            | tee "$RUNNER_TEMP/candidate-build-info.txt"
 
       - name: Run isolated SQLite checks
         id: sqlite
@@ -156,3 +163,33 @@ jobs:
             --compose "$RUNNER_TEMP/onehub-compose/docker-compose" \
             --image "$CANDIDATE_IMAGE_ID" \
             --version "v0.0.0-smoke-$SOURCE_SHA"
+
+      - name: Prepare verified native binary evidence
+        id: binary-evidence
+        if: success() && (github.event_name == 'workflow_dispatch' && inputs.export_binary || github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'binary-audit-export'))
+        timeout-minutes: 2
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$(git rev-parse HEAD)" == "$SOURCE_SHA" ]]
+          python3 .github/smoke/export_binary.py \
+            --binary "$RUNNER_TEMP/onehub-candidate" \
+            --build-info "$RUNNER_TEMP/candidate-build-info.txt" \
+            --source-sha "$SOURCE_SHA" --image-id "$CANDIDATE_IMAGE_ID" \
+            --output "$RUNNER_TEMP/candidate-evidence"
+
+      - name: Retain verified native binary evidence
+        id: binary-upload
+        if: success() && (github.event_name == 'workflow_dispatch' && inputs.export_binary || github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'binary-audit-export'))
+        timeout-minutes: 3
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: onehub-candidate-${{ env.SOURCE_SHA }}-${{ matrix.arch }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/candidate-evidence/one-api
+            ${{ runner.temp }}/candidate-evidence/manifest.json
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+          overwrite: false
+          include-hidden-files: false

@@ -89,3 +89,23 @@ Yarn1源码的审计树仅包含公开包名、版本、完整性及依赖关系
 YAML v3/matcher 已记录的候选残留、受限审阅与单项例外、Realtime #78/#79、历史账务、
 生产事实、新恢复点及最终候选双架构/页面/升级验收继续保留。RC8仍预留，未创建标签、
 发布镜像、部署或调用真实付费服务。新PR合并须维护者明确批准。
+
+
+## 2026-10-14合并验收
+
+[PR135](https://github.com/dreamvm/one-hub/pull/135)准确候选为
+`d18af000876398acef6fcd1807d65b155814cfba`。独立审阅及十项CI通过后获维护者专项批准，
+合并为 `3d256b3cd135e46ee7dfea471f3ac624c57b60a8`，两者树均为
+`1d59b8ba55ce13311b173d316c02e144b9de04e3`，实际父提交为原main和准确候选。
+[Compatibility38446455322](https://github.com/dreamvm/one-hub/actions/runs/38446455322)
+四项checkout为同树合成合并提交；
+[Isolated38446455179](https://github.com/dreamvm/one-hub/actions/runs/38446455179)
+六项checkout为准确候选，原生amd64/arm64各92项PASS及四种Compose通过。
+[合并提交main CI38511264078](https://github.com/dreamvm/one-hub/actions/runs/38511264078)
+四项成功，逐任务checkout核对为实际合并提交。合并后main工作流不包含原生镜像任务，
+不得把候选原生验收改记为合并提交重新构建。
+
+上述仅关闭本项依赖维护交付，不关闭其余175条公告匹配、最终程序审计或RC8。
+DOMPurify/sprintf-js后续静态核对保留当前配置/固定JSON入口不触发的范围结论；
+未运行新的利用测试，也没有以此声明库漏洞已修复。云端后续缺口另见
+[CLOUD_POST_135_ACCEPTANCE.md](CLOUD_POST_135_ACCEPTANCE.md)。
