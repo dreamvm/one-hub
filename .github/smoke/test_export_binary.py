@@ -22,7 +22,7 @@ class BinaryEvidenceTest(unittest.TestCase):
         self.output = self.root / "evidence"
         digest = hashlib.sha256(self.binary.read_bytes()).hexdigest()
         self.info.write_text(
-            "CANDIDATE_BUILD_INFO Go=go1.25.14 main=one-api GOOS=linux "
+            "CANDIDATE_BUILD_INFO Go=go1.26.9 main=one-api GOOS=linux "
             f"GOARCH=amd64 CGO_ENABLED=1 SHA256={digest}\n"
         )
 
@@ -55,7 +55,7 @@ class BinaryEvidenceTest(unittest.TestCase):
     def test_ref_or_unverified_identity_does_not_create_output(self):
         with self.assertRaisesRegex(ValueError, "exact commit"):
             self.export("main")
-        self.info.write_text(self.info.read_text().replace("go1.25.14", "go1.25.0"))
+        self.info.write_text(self.info.read_text().replace("go1.26.9", "go1.25.0"))
         with self.assertRaisesRegex(ValueError, "build identity"):
             self.export()
         self.assertFalse(self.output.exists())

@@ -10,7 +10,7 @@ import (
 func TestContainerUsesVerifiedGoToolchain(t *testing.T) {
 	raw, err := os.ReadFile("../../Dockerfile")
 	require.NoError(t, err)
-	require.Contains(t, string(raw), "FROM golang:1.25.14@sha256:699337d620559a59b4a2bb298ad59611e535d2ee755a34cf2d2a98f37578dc80 AS builder2")
+	require.Contains(t, string(raw), "FROM golang:1.26.9@sha256:37cfcca63222ec499bec5e8ad7aad52dbf7529db36d5812b8eae2f0621aa92d6 AS builder2")
 	require.Contains(t, string(raw), "GOTOOLCHAIN=local")
 }
 
@@ -28,7 +28,7 @@ func TestSmokeVerifiesCandidateBinaryToolchain(t *testing.T) {
 			require.Contains(t, item.Run, `"$CANDIDATE_IMAGE_ID"`)
 			require.Contains(t, item.Run, "docker cp")
 			require.Contains(t, item.Run, "go run ./.github/smoke/buildinfo")
-			require.Contains(t, item.Run, "-go-version go1.25.14")
+			require.Contains(t, item.Run, "-go-version go1.26.9")
 			verified = true
 		}
 		if item.ID == "sqlite" {

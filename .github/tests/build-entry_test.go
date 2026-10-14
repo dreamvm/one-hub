@@ -39,7 +39,7 @@ func TestBuildEntryPreservesInputsAndPropagatesFailure(t *testing.T) {
 			require.NoError(t, os.WriteFile(filepath.Join(root, "web/build/index.html"), []byte("stale output"), 0600))
 			for name, body := range map[string]string{
 				"git":    "#!/bin/sh\ncase \"$1\" in describe) echo v0.0.0-fixture;; show) echo 20260930;; rev-parse) echo fixturecommit;; esac\n",
-				"go":     "#!/bin/sh\nprintf 'go %s\\n' \"$*\" >> \"$FIXTURE_LOG\"\ncase \"$1 $2\" in 'mod tidy') echo mutated >> go.mod;; 'build '*) [ \"$FIXTURE_STAGE\" != 'backend failure' ] || exit 9;; 'env GOOS') echo linux;; 'env GOARCH') echo amd64;; 'version ') echo 'go version go1.25.14 linux/amd64';; esac\n",
+				"go":     "#!/bin/sh\nprintf 'go %s\\n' \"$*\" >> \"$FIXTURE_LOG\"\ncase \"$1 $2\" in 'mod tidy') echo mutated >> go.mod;; 'build '*) [ \"$FIXTURE_STAGE\" != 'backend failure' ] || exit 9;; 'env GOOS') echo linux;; 'env GOARCH') echo amd64;; 'version ') echo 'go version go1.26.9 linux/amd64';; esac\n",
 				"yarn":   "#!/bin/sh\nprintf 'yarn %s version=%s\\n' \"$*\" \"$VITE_APP_VERSION\" >> \"$FIXTURE_LOG\"\ncase \"$1\" in install) [ \"$FIXTURE_STAGE\" != 'install failure' ] || exit 7;; build) [ \"$FIXTURE_STAGE\" != 'frontend failure' ] || exit 8; printf fresh > build/index.html;; esac\n",
 				"npm":    "#!/bin/sh\necho npm-unexpected >> \"$FIXTURE_LOG\"\nexit 1\n",
 				"jq":     "#!/bin/sh\nprintf '{}'\n",
