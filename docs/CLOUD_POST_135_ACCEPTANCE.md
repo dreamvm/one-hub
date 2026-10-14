@@ -100,3 +100,50 @@ GitHub工具另提供官方整文件临时地址，通过现行代理GET实测HT
 历史Babel/Rollup等不重新从头整改，YAML v3/matcher残留、受限审阅和单项例外继续保留。
 生产新恢复点、凭据完整性、未知issuer及历史账务不以合成数据猜测。
 新PR合并、标签、镜像发布、生产部署及真实付费调用各自保留专项审批。
+
+
+## 2026-10-14 新环境独立恢复与准确候选验收
+
+本轮是新的one-hub实例，未继承旧任务/workspace/work。源配置版本cecfgver_6acf472f842c8195986faccc68280df2、observed_revision5/spec_revision5、observations_current=true、restricted/enforced；包管理器预设及八条额外规则保留，含vuln.go.dev、*.oaiusercontent.com及Dropbox两条。启动revision3/unknown不冒充enforced。正式命令网络授权，平台代理与TLS未禁用，没有分片、公开私有材料或镜像替代官方漏洞库。
+
+Go官方db.json35bytes，Git远端查询成功；重新通过GitHub连接器取临时地址，centralus/westus两个区域的实际ZIP完整下载。PR136两ZIP与用户固定大小/SHA256、CRC、程序SHA、manifest、实际buildinfo全部吻合，源码4bf13186、Go1.25.14、Linux/对应架构、CGO1。四份Dropbox恢复及三归档固定大小/哈希核对通过；旧RC5全部7blob、5layer尺寸/diff_ids、config a50cc418、manifest60ed6a6c及linux/amd64独立核对并加载。未复制生产数据库、配置或挂载，未假称旧559266bytes私有快照已迁移。当前工具无read_thread能力，两条历史任务未发消息；使用用户交接与授权远端恢复、独立重验。
+
+### 独立整改及冻结运行时候选
+
+- [PR138](https://github.com/dreamvm/one-hub/pull/138)，2e987a35：web/fallback静态Range解析前单头/1024bytes/16范围限制。旧实现失败、正常完整/单/多范围及API控制、边界/race/vet与两轮独立只读审阅通过。自身Compatibility38542326791和Smoke38542326711成功。
+- [PR139](https://github.com/dreamvm/one-hub/pull/139)，c6813c64：Go1.26.9官方归档/固定builder摘要、go.mod最低版本、CI、实际程序身份/export约束同步。标准库有界201范围旧失败、新通过；原go.mod兼容默认被正常双范围控制检出。新编译器重建govulncheck1.7.0；旧扫描器失败保留。注入localhost媒体测试隔离runner环境变量，未变更平台代理。自身Compatibility38543629362/Smoke38543629340成功。
+- [PR140](https://github.com/dreamvm/one-hub/pull/140)，0843087f：依赖PR139，x/net0.60及必要crypto0.57/sys0.48/text0.42/sync0.23；sync由text要求。本地原始H2响应重复/冲突CL和Connection旧失败、新通过；维持原网关uppercase-first代理环境契约，explicit、lowercase fallback、NO_PROXY、CGI零dial与redirect回归通过。独立只读审阅无阻断；自身Smoke38545021742含四项可复用前置检查及双原生架构成功。其base为main以运行所需CI，不能越过依赖合并批准。
+- 集成[PR141](https://github.com/dreamvm/one-hub/pull/141)，冻结运行时候选 `76c5657a9ef1eec9cf677b921eca17a90067567a`。十项CI成功：[Compatibility38544767525](https://github.com/dreamvm/one-hub/actions/runs/38544767525)、[Smoke38544774325](https://github.com/dreamvm/one-hub/actions/runs/38544774325)。四个Compatibility任务真实checkout合成192e3c94，六个Smoke任务checkout76c5657a；两树相同 `ad7866b8f9916279c21bf180ebcafa2b95df672f`，逐任务日志已重读。初始164运行被opt-in label触发的165替代而cancelled，不记为失败或通过。
+
+独立修复各保留提交及依赖；所有上述PR和PR137仍未合并。此台账文档提交不是新运行时候选，不替换76c5657a的程序与演练身份。
+
+### 双架构实际程序和官方审计
+
+两个原生架构各92项业务/升级PASS、三后端共九轮32并发和四种Compose成功；没有镜像推送。按opt-in现有路径从同一最终CI本地镜像提取程序，完整下载、ZIP digest/大小/CRC、固定两个文件、manifest、日志程序SHA和实际buildinfo逐个吻合：Go1.26.9、one-api、Linux/对应架构、CGO1。
+
+| 架构 | artifact | ZIP bytes / SHA256 | 实际程序 SHA256 / CI本地image ID |
+| --- | --- | --- | --- |
+| amd64 | 11884828058 | 74425964 / 934660d329fe62f80bddc941eda1ae17c39c8431ad203da045266e1594e1a722 | 2525e9e83a49b4daa9d3ca2896173a3fd9ffd73734684f32da9bb73e4937a011 / a3ab0f2bede84a67c2d3249e2b2e0a581369f5b5b58dc2b155c4638ec88707cd |
+| arm64 | 11884678341 | 70473132 / c11dbcad0f1d1b8b9d6a7113cb4817208ee7ad88dc6537a768d67003b265ee63 | d38058c5e73033534fc4850c3f18e82b5a304cac9e2f714cdff27ee1ecbb8957 / 5f181e0dadbd8919f0034c7360911232069e3b38e06137ca8fb052e6c07c4262 |
+
+官方DB更新时间2026-10-08T22:31:09Z。基线源码51模块/25包/19调用、PR136程序各50公告全部原始输入保留。新源码19模块/10包/5调用，两个实际新程序各19符号公告、集合相同；新程序JSON SHA分别2fc27e73ac01eae73fe62c2b18e56e3c053d6977fb95d72535f30dad7080ffdb、f4a57b5d975363dca15ea3ef6619d5ee2a7260e5f88f3cc8f16e0ced5e7e6559。正常JSON退出不代表审计通过。
+
+19输入在当前Linux amd64/arm64主程序范围静态not_actionable，经独立证据审阅；五个调用反证分别为32位限制、固定SQL无dollar-quoted literal（项目确实SimpleProtocol）、WebP configOnly早返回和Markdown原始Title为空/未启用CompletePage且文本转义。不是库已修补或零匹配；改变架构/入口/SQL/renderer/gRPC服务器须重评。详细输入与反证见[固定候选分流表](https://github.com/dreamvm/one-hub/blob/76c5657a9ef1eec9cf677b921eca17a90067567a/docs/CLOUD_GO_20261014_TRIAGE.md)。
+
+### 本地真实RC5与页面联合检查
+
+以冻结提交git archive、新前端、Go1.26.9/CGO1静态编译，在本任务独立构造运行镜像，提取程序SHA f0e2b93f974518b49623f119f3cc8902dc9b19e8e7da6bac5fdbc80b8c3316f4。最终本地image ID95728e0705c23acf6de144305e433e4e790d382fd9215d27a00126f0852e746b。此程序与CI产物编译路径/参数不同，不能写成同一整镜像或registry digest；源码SHA相同并独立核对程序身份。
+
+启动命令在每次运行前验证精确SHA标签对应上述不可变ID；三个数据库后端分别13/36/36PASS，共九轮32并发，覆盖JSON/SSE、权限、故障前拒绝/中途结算、网络分区、Redis缓存权威和恢复、资源释放。不是三架构或生产HA。实际旧RC5到该同一候选的7项全部PASS/exit0：停写合成备份及SHA、原记录/新写入、仅镜像回退保留迁移后数据、全schema/data备份恢复、恢复后旧版读回、临时备份及资源清理。真实模型调用0、production_data_copied=false；另行Docker盘点本轮前缀容器/卷/网络均空。恢复会丢弃恢复点后写入，旧RC5会重新开放Realtime，不能自动降级或猜测生产账务。
+
+本地首次运行镜像缺tzdata导致PostgreSQL Asia/Shanghai失败，补齐运行夹具并重新执行全部三个后端和RC5，失败保留。归档源码初次VCS stamping失败后显式buildvcs=false；不是把失败当通过。实际发布仍使用原Dockerfile/官方CI路线，未发布这一本地运行镜像。
+
+新前端dev/dependency边界、26文件234UI、lint/build通过。初次全并发一项5秒超时，maxWorkers2后完整通过；两次结果保留。官方前端审计175路径/80个Yarn公告ID，低13/中57/高103/严重2，不清零；YAML v3/matcher及原受限审阅继续保留。最终构建279files/18395053原始bytes/5320768逐文件gzip，非首次页面下载量，不从总量推断LCP；前端代码/锁文件未被本批改变。
+
+Chromium以仅loopback透明转发连接拥有的内部Docker真实程序，业务API无替身，外部浏览器请求拒绝。实际表单登录、有限令牌新建与刷新读回、analytics/invoice/model_price/setting/playground受限页面main存在、390px令牌页无全页溢出、UI注销清空用户/self401及受限页重定向共10检查通过，pageerror0。不是各页全部交互、普通用户/有数据图表/真实付款/完整编辑器/暗色或跨浏览器验收。桌面与移动截图已目视核对，表格自身横向滚动保留。
+
+原浏览器直接内部地址403、首次loopback环境请求变化、后续资源429均保留。Playwright拦截禁用缓存并反复全页加载，实际默认180静态资源限额被消耗；仅临时夹具设置GLOBAL_WEB_RATE_LIMIT=5000后功能检查通过，不修改应用或生产设置，也不证明默认容量。保留被拒外部图标和匿名/注销self401控制台错误，不宣称全程零错误。夹具浏览器/监听器/容器/临时数据库已清理；临时请求中断后的forwarder BrokenPipe不冒充应用错误。
+
+### 仍开放的发布/生产边界
+
+本轮普通云端整改、官方源码和真实程序审计、准确候选隔离演练及CI证据已补齐；不据此宣布整体RC8可发布。前端残留范围、四项历史受限审阅与单项例外、生产新恢复点/凭据轮换完整性、升级前最新历史账务和OIDC快照、实际生产digest与维护窗口、真实付费/跨浏览器及默认前端容量未由上述合成证据关闭。PR137及138–141合并、标签、镜像发布、生产部署、真实付费继续分别待专项批准；主分支仍b783f95a。
