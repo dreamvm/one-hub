@@ -1,10 +1,16 @@
 # PR135后的云端接续验收
 
-## 2026-10-14 PR141实际合并与main验收
+## 2026-10-14 PR137真实合并与发布前后续整改
+
+2026-10-14最新状态：PR137准确候选a4d9aeba已获专项批准并合并为main `4c2f31844c5a992879b9ffd83d21cb3cd0d04907`；实际树与受测候选相同，[合并后main CI38598613933](https://github.com/dreamvm/one-hub/actions/runs/38598613933)四项成功且逐任务checkout核对。PR141覆盖PR138/139/140的关系不变，没有重复合并。后续三个独立依赖维护PR142/143/144保持待合并；组合锁树实际审计113路径/53 Yarn ID/41 GHSA，原175输入逐项保留、零新增。三项本地回归与fresh独立审阅完成，组合候选自身CI另核。四项历史范围已补手工独立审阅和限定动态对照，不把原中断/单项例外改写成原专项扫描通过。flatted、Lodash、Immutable等不安全候选没有应用。详见[本轮整改](RELEASE_REMAINING_20261014.md)与[生产只读复核方案](PRODUCTION_READONLY_RECHECK.md)。后续PR合并仍需专项批准；标签、镜像发布、部署、凭据轮换、生产写入及真实付费未获批准；整体发布门槛仍开放。
+
+批准head为 `a4d9aeba90015b642b5eb4e3d03a130d94268728`，实际merge `4c2f31844c5a992879b9ffd83d21cb3cd0d04907` 的parents为 `4cecf90c86ca0ab5ce0a5d43e57f79c04153a5e7` 与批准head；tree `7faac64fba5d95b0dc54ca6bff80c3d15d7f5784` 与候选及受测合成d0659bbf一致。合并前的38592635505/38592635520十项CI和合并后的38598613933四项main CI分别核对。旧程序/实际RC5演练仍绑定76c5657a；新的组合产物与隔离补验另记，不改写旧证据的来源SHA。下方是各阶段当时状态。
+
+## 历史：2026-10-14 PR141实际合并与main验收
 
 维护者已专项批准PR141准确候选 `76c5657a9ef1eec9cf677b921eca17a90067567a`。合并前重核head、base/main、6提交/21文件范围未变；十项有效CI均成功，被替代cancelled运行38544767567排除。独立只读复核无阻断，沿用此前各修复及最终候选独立审阅；GitHub正式review列表为空，未将只读审阅称为GitHub审批。
 
-2026-10-14T15:39:26Z实际合并为当前main `4cecf90c86ca0ab5ce0a5d43e57f79c04153a5e7`；父提交是原main `b783f95a0a96fd1301dd0713231763193c6c83f0` 和批准候选 `76c5657a9ef1eec9cf677b921eca17a90067567a`。实际合并/候选/受测合成 `192e3c94963f897aac2527faa0ef45966ff4a707` 的树均为 `ad7866b8f9916279c21bf180ebcafa2b95df672f`，Git逐字节diff为空。[main CI38591239167](https://github.com/dreamvm/one-hub/actions/runs/38591239167)四项均成功，逐任务日志实际checkout重核为4cecf90c。main工作流不重建原生镜像；现有ZIP、manifest和实际RC5演练仍绑定原76c5657a源码，不更换其来源SHA或冒称发布digest。
+2026-10-14T15:39:26Z实际合并为当时main `4cecf90c86ca0ab5ce0a5d43e57f79c04153a5e7`；父提交是原main `b783f95a0a96fd1301dd0713231763193c6c83f0` 和批准候选 `76c5657a9ef1eec9cf677b921eca17a90067567a`。实际合并/候选/受测合成 `192e3c94963f897aac2527faa0ef45966ff4a707` 的树均为 `ad7866b8f9916279c21bf180ebcafa2b95df672f`，Git逐字节diff为空。[main CI38591239167](https://github.com/dreamvm/one-hub/actions/runs/38591239167)四项均成功，逐任务日志实际checkout重核为4cecf90c。main工作流不重建原生镜像；现有ZIP、manifest和实际RC5演练仍绑定原76c5657a源码，不更换其来源SHA或冒称发布digest。
 
 | 原独立PR | 集成覆盖与当前GitHub状态 |
 | --- | --- |
@@ -12,7 +18,7 @@
 | PR139 / c6813c647275a431f20b9b36c3856fe457fa083b | head为集成候选祖先；GitHub在PR141合并后自动标记closed/merged，非独立再次合并 |
 | PR140 / 0843087f96d6befadce912b7bd70e8ababbcce52 | head为集成候选祖先并含PR139；同样自动标记closed/merged，非独立再次合并 |
 
-本次只调用PR141合并接口。PR137同步最新main以保留历史文档提交，与当前main比较仅NEXT_RELEASE、RC8_ACCEPTANCE_STATUS和本文件；保持未合并，其专项合并批准尚未取得。旧文档候选a823bcd0及CI38548485708/38548485745保留历史，新文档候选审阅和十项CI在PR137另记。标签、镜像发布、生产部署、凭据轮换、真实付费和生产写入无本次授权。
+该阶段只调用PR141合并接口。PR137当时同步最新main以保留历史文档提交，与当前main比较仅NEXT_RELEASE、RC8_ACCEPTANCE_STATUS和本文件；保持未合并，其专项合并批准尚未取得。旧文档候选a823bcd0及CI38548485708/38548485745保留历史，新文档候选审阅和十项CI在PR137另记。标签、镜像发布、生产部署、凭据轮换、真实付费和生产写入无本次授权。
 
 ## 历史：PR136合并后、网络恢复前
 
