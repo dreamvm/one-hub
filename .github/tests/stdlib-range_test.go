@@ -16,6 +16,7 @@ func TestMaintainedStdlibBoundsRangeCount(t *testing.T) {
 		name, header string
 		want         int
 	}{
+		{"full", "", http.StatusOK},
 		{"single", "bytes=0-9", http.StatusPartialContent},
 		{"two", "bytes=0-3,8-11", http.StatusPartialContent},
 		{"over default limit", "bytes=" + strings.Repeat("0-0,", 200) + "0-0", http.StatusOK},
