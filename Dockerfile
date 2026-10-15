@@ -1,4 +1,4 @@
-FROM node:22.20 as builder
+FROM --platform=$BUILDPLATFORM node:22.20 as builder
 
 WORKDIR /build
 
