@@ -25,6 +25,9 @@ type workflow struct {
 
 type job struct {
 	RunsOn   string `yaml:"runs-on"`
+	Services map[string]struct {
+		Ports []string `yaml:"ports"`
+	} `yaml:"services"`
 	Strategy struct {
 		FailFast *bool `yaml:"fail-fast"`
 		Matrix   struct {
@@ -103,6 +106,31 @@ func TestQuotaDatabaseGateUsesExactSource(t *testing.T) {
 		require.Nil(t, item.ContinueOnError)
 	}
 	require.True(t, checkout && databases)
+}
+
+func TestQuotaDatabaseServicesUseAllocatedLoopbackPorts(t *testing.T) {
+	wf := readWorkflow(t, "gemini-compatibility.yml")
+	task := wf.Jobs["quota-databases"]
+	for _, engine := range []struct {
+		service, port, variable string
+	}{
+		{"mysql", "3306", "ONEHUB_QUOTA_TEST_MYSQL_PORT"},
+		{"postgres", "5432", "ONEHUB_QUOTA_TEST_POSTGRES_PORT"},
+	} {
+		t.Run(engine.service, func(t *testing.T) {
+			require.Equal(t, []string{"127.0.0.1::" + engine.port}, task.Services[engine.service].Ports,
+				"quota fixtures must allocate a free loopback host port")
+			var connected bool
+			for _, item := range task.Steps {
+				if strings.Contains(item.Run, "^TestQuotaTransaction") {
+					require.Equal(t, "${{ job.services."+engine.service+".ports['"+engine.port+"'] }}", item.Env[engine.variable],
+						"quota regressions must use the service's actual assigned port")
+					connected = true
+				}
+			}
+			require.True(t, connected)
+		})
+	}
 }
 
 func TestPrivacyGateScansExactSourceAndBlocksRelease(t *testing.T) {
