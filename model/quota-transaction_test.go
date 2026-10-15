@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -27,6 +28,23 @@ import (
 
 var quotaFixtureSequence atomic.Int64
 
+func quotaTransactionPort(variable string, fallback uint16) (uint16, error) {
+	raw, present := os.LookupEnv(variable)
+	if !present {
+		return fallback, nil
+	}
+	for _, digit := range raw {
+		if digit < '0' || digit > '9' {
+			return 0, fmt.Errorf("invalid isolated quota test port in %s", variable)
+		}
+	}
+	port, err := strconv.ParseUint(raw, 10, 16)
+	if err != nil || port == 0 {
+		return 0, fmt.Errorf("invalid isolated quota test port in %s", variable)
+	}
+	return uint16(port), nil
+}
+
 // External engines are opt-in disposable loopback services, never application DSNs.
 func quotaTransactionFixture(t *testing.T, batch, unlimited bool) (*gorm.DB, model.Token) {
 	t.Helper()
@@ -35,9 +53,13 @@ func quotaTransactionFixture(t *testing.T, batch, unlimited bool) (*gorm.DB, mod
 	case "", "sqlite":
 		dialect = sqlite.Open(filepath.Join(t.TempDir(), "quota.db") + "?_busy_timeout=10000&_journal_mode=WAL")
 	case "mysql":
-		dialect = mysql.Open("onehub_quota_test:quota-fixture-password@tcp(127.0.0.1:33306)/onehub_quota_test?charset=utf8mb4&parseTime=True&loc=UTC")
+		port, err := quotaTransactionPort("ONEHUB_QUOTA_TEST_MYSQL_PORT", 33306)
+		require.NoError(t, err)
+		dialect = mysql.Open(fmt.Sprintf("onehub_quota_test:quota-fixture-password@tcp(127.0.0.1:%d)/onehub_quota_test?charset=utf8mb4&parseTime=True&loc=UTC", port))
 	case "postgres":
-		dialect = postgres.Open("host=127.0.0.1 port=35432 user=onehub_quota_test password=quota-fixture-password dbname=onehub_quota_test sslmode=disable")
+		port, err := quotaTransactionPort("ONEHUB_QUOTA_TEST_POSTGRES_PORT", 35432)
+		require.NoError(t, err)
+		dialect = postgres.Open(fmt.Sprintf("host=127.0.0.1 port=%d user=onehub_quota_test password=quota-fixture-password dbname=onehub_quota_test sslmode=disable", port))
 	default:
 		t.Fatalf("unsupported isolated quota test engine %q", engine)
 	}
