@@ -1,12 +1,14 @@
 # RC8 剩余验收状态
 
-2026-10-14 PR141合并验收更新：获专项批准的运行时候选 `76c5657a9ef1eec9cf677b921eca17a90067567a` 已通过 [PR141](https://github.com/dreamvm/one-hub/pull/141) 合并为当前 main `4cecf90c86ca0ab5ce0a5d43e57f79c04153a5e7`。实际合并、候选和受测合成提交的树均为 `ad7866b8f9916279c21bf180ebcafa2b95df672f`；[main CI38591239167](https://github.com/dreamvm/one-hub/actions/runs/38591239167)四项均成功，逐任务日志实际checkout为合并提交。PR138/139/140的修复已由集成提交覆盖，没有逐个重复合并。正式网络策略enforced，三路完整下载及身份校验、准确候选十项CI、双原生架构各92PASS/9waves/4Compose、Go1.26.9实际程序身份和实际RC5升级/回退/恢复七项已有独立证据。Go仍有19模块/10包/5调用静态匹配，前端仍175路径；整体发布门槛保留。PR137仅更新三份文档，保持未合并，等待其自身专项批准。详见[CLOUD_POST_135_ACCEPTANCE.md](CLOUD_POST_135_ACCEPTANCE.md)；下方逐次记录保留当时状态。
+2026-10-14最新状态：PR137准确候选a4d9aeba已获专项批准并合并为main `4c2f31844c5a992879b9ffd83d21cb3cd0d04907`；实际树与受测候选相同，[合并后main CI38598613933](https://github.com/dreamvm/one-hub/actions/runs/38598613933)四项成功且逐任务checkout核对。PR141覆盖PR138/139/140的关系不变，没有重复合并。后续三个独立依赖维护PR142/143/144保持待合并；组合锁树实际审计113路径/53 Yarn ID/41 GHSA，原175输入逐项保留、零新增。三项本地回归与fresh独立审阅完成，组合候选自身CI另核。四项历史范围已补手工独立审阅和限定动态对照，不把原中断/单项例外改写成原专项扫描通过。flatted、Lodash、Immutable等不安全候选没有应用。详见[本轮整改](RELEASE_REMAINING_20261014.md)与[生产只读复核方案](PRODUCTION_READONLY_RECHECK.md)。后续PR合并仍需专项批准；标签、镜像发布、部署、凭据轮换、生产写入及真实付费未获批准；整体发布门槛仍开放。
+
+历史：2026-10-14 PR141合并验收更新：获专项批准的运行时候选 `76c5657a9ef1eec9cf677b921eca17a90067567a` 已通过 [PR141](https://github.com/dreamvm/one-hub/pull/141) 合并为当时 main `4cecf90c86ca0ab5ce0a5d43e57f79c04153a5e7`。实际合并、候选和受测合成提交的树均为 `ad7866b8f9916279c21bf180ebcafa2b95df672f`；[main CI38591239167](https://github.com/dreamvm/one-hub/actions/runs/38591239167)四项均成功，逐任务日志实际checkout为合并提交。PR138/139/140的修复已由集成提交覆盖，没有逐个重复合并。正式网络策略enforced，三路完整下载及身份校验、准确候选十项CI、双原生架构各92PASS/9waves/4Compose、Go1.26.9实际程序身份和实际RC5升级/回退/恢复七项已有独立证据。Go仍有19模块/10包/5调用静态匹配，前端仍175路径；整体发布门槛保留。当时PR137仅更新三份文档、等待自身专项批准；随后合并见本页最新记录。详见[CLOUD_POST_135_ACCEPTANCE.md](CLOUD_POST_135_ACCEPTANCE.md)；下方逐次记录保留当时状态。
 
 
 2026-10-14云端接续更新，按维护者的十二项顺序核对。**整体尚未通过，不批准发布。**
 历史“待执行”由后续合并及验收记录更新；本表不把局部测试、候选CI、合并、镜像发布和生产混为一体。
 
-当前源码基线为main `4cecf90c86ca0ab5ce0a5d43e57f79c04153a5e7`（#141），源码树与准确运行时候选76c5657a相同；合并后四项main CI成功，实际checkout逐项重核。以下PR135/136材料状态为恢复前历史，后续结果由最新十二项表及云端验收更新。
+PR141验收时源码基线为main `4cecf90c86ca0ab5ce0a5d43e57f79c04153a5e7`（#141），源码树与准确运行时候选76c5657a相同；合并后四项main CI成功，实际checkout逐项重核。以下PR135/136材料状态为恢复前历史，后续结果由最新十二项表及云端验收更新。
 PR135及PR136分别获批合并，合并树均与各自准确候选一致；PR135 main CI38511264078四项通过。
 PR136 [main CI38516829968](https://github.com/dreamvm/one-hub/actions/runs/38516829968)四项成功，
 逐任务实际checkout核对为上述合并提交；该main工作流不重构原生镜像。
