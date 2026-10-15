@@ -1,8 +1,10 @@
 # PR135后的云端接续验收
 
+2026-10-15最新状态：PR145获准确候选专项批准后实际合并为main `2771c876d8e09f7123cb83c4aca9174b6784c73c`；parents为原main `4c2f31844c5a992879b9ffd83d21cb3cd0d04907` 和批准head `f27d71327a559a6b9bb5b73ea62dae327a419e81`，tree `3a95958741308dbc73a838e4aa314bba26a5f167` 与候选及受测合成97d8d362相同。[实际main CI38684549031](https://github.com/dreamvm/one-hub/actions/runs/38684549031)四项成功，逐任务checkout均核对为真实merge。仅调用PR145合并接口，PR142自动标记merged、143/144仍为已覆盖的历史叠加草稿，没有重复合并。新的Browserslist维护与历史/浏览器补验见[本轮接续](POST145_ACCEPTANCE_20261015.md)，新PR等待独立合并批准；未发布、部署、轮换、导出或真实付费。生产具体证据仅在私有验收记录维护。下方保留各阶段当时状态。
+
 ## 2026-10-14 PR137真实合并与发布前后续整改
 
-2026-10-14最新状态：PR137准确候选a4d9aeba已获专项批准并合并为main `4c2f31844c5a992879b9ffd83d21cb3cd0d04907`；实际树与受测候选相同，[合并后main CI38598613933](https://github.com/dreamvm/one-hub/actions/runs/38598613933)四项成功且逐任务checkout核对。PR141覆盖PR138/139/140的关系不变，没有重复合并。后续三个独立依赖维护PR142/143/144保持待合并；组合锁树实际审计113路径/53 Yarn ID/41 GHSA，原175输入逐项保留、零新增。三项本地回归与fresh独立审阅完成，组合候选自身CI另核。四项历史范围已补手工独立审阅和限定动态对照，不把原中断/单项例外改写成原专项扫描通过。flatted、Lodash、Immutable等不安全候选没有应用。详见[本轮整改](RELEASE_REMAINING_20261014.md)与[生产只读复核方案](PRODUCTION_READONLY_RECHECK.md)。后续PR合并仍需专项批准；标签、镜像发布、部署、凭据轮换、生产写入及真实付费未获批准；整体发布门槛仍开放。
+历史：2026-10-14最新状态：PR137准确候选a4d9aeba已获专项批准并合并为main `4c2f31844c5a992879b9ffd83d21cb3cd0d04907`；实际树与受测候选相同，[合并后main CI38598613933](https://github.com/dreamvm/one-hub/actions/runs/38598613933)四项成功且逐任务checkout核对。PR141覆盖PR138/139/140的关系不变，没有重复合并。后续三个独立依赖维护PR142/143/144保持待合并；组合锁树实际审计113路径/53 Yarn ID/41 GHSA，原175输入逐项保留、零新增。三项本地回归与fresh独立审阅完成，组合候选自身CI另核。四项历史范围已补手工独立审阅和限定动态对照，不把原中断/单项例外改写成原专项扫描通过。flatted、Lodash、Immutable等不安全候选没有应用。详见[本轮整改](RELEASE_REMAINING_20261014.md)与[生产只读复核方案](PRODUCTION_READONLY_RECHECK.md)。后续PR合并仍需专项批准；标签、镜像发布、部署、凭据轮换、生产写入及真实付费未获批准；整体发布门槛仍开放。
 
 批准head为 `a4d9aeba90015b642b5eb4e3d03a130d94268728`，实际merge `4c2f31844c5a992879b9ffd83d21cb3cd0d04907` 的parents为 `4cecf90c86ca0ab5ce0a5d43e57f79c04153a5e7` 与批准head；tree `7faac64fba5d95b0dc54ca6bff80c3d15d7f5784` 与候选及受测合成d0659bbf一致。合并前的38592635505/38592635520十项CI和合并后的38598613933四项main CI分别核对。旧程序/实际RC5演练仍绑定76c5657a；新的组合产物与隔离补验另记，不改写旧证据的来源SHA。下方是各阶段当时状态。
 
