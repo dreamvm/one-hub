@@ -1,5 +1,25 @@
 # 额度数据库 CI 服务端口维护
 
+## 2026-10-15 已合并与实际 main CI
+
+获准确 head `95a001d7d9289b8c8de5afd7bd7a67df6562c9dd` 专项批准后，
+[PR147](https://github.com/dreamvm/one-hub/pull/147) 已合并为
+`96a83b68d53eb9c43017dabad91a019870953e23`。实际 parents 为原 main
+`d83f6f0ba0f80a1b3acf11789f2a954e35b51b16` 和批准 head；tree
+`093007904d424f6dfe0caaa67e837b870a7c3816` 与候选及受测合成提交
+`47cf6af0026be0a5831e07a79d7990af81f638fb` 一致，7 文件范围未变。
+合并前两组准确候选运行 38700556571 / 38700556480 共十项成功，均为 attempt 1；
+独立非作者对最终候选及文档补审无范围内阻断，不冒称另一 GitHub 账号批准。
+
+[实际 main CI38708363722](https://github.com/dreamvm/one-hub/actions/runs/38708363722)
+attempt 1 四项全部成功；四份原始日志均核对 checkout 为实际 merge。
+额度任务 968 个 PASS 节点、零失败/跳过；前端 26 组/234 项成功，既有警告保留。
+main CI 不重建原生镜像，PR147 的双架构镜像证据仍绑定其准确候选。
+安全验证继续暂停，整体发布门槛开放；其余普通检查及边界见
+[本轮发布准备](POST147_RELEASE_READINESS.md)。
+
+## 历史：合并前候选与环境恢复
+
 2026-10-15，基线为 PR146 的实际 main 合并提交
 `d83f6f0ba0f80a1b3acf11789f2a954e35b51b16`。本候选只调整 CI 和测试夹具，
 不修改应用代码、数据库迁移、依赖版本或发布入口。
