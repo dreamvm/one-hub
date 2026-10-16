@@ -6,9 +6,48 @@ import (
 	"io"
 	"strings"
 
+	"one-api/common"
+	"one-api/common/requester"
 	"one-api/common/utils"
 	"one-api/types"
 )
+
+// Finalize the accepted attempt before handing its terminal status to the
+// relay. This also covers interrupted streams, which bypass EndError. Waiting
+// on the terminal channel orders usage updates after the stream parser.
+type geminiUsageStream struct {
+	requester.StreamReaderInterface[string]
+	handler *GeminiStreamHandler
+}
+
+func (s *geminiUsageStream) Recv() (<-chan string, <-chan error) {
+	data, upstreamErrors := s.StreamReaderInterface.Recv()
+	terminal := make(chan error, 1)
+	go func() {
+		err := <-upstreamErrors
+		if usageErr := s.handler.finalizeAcceptedUsage(); usageErr != nil {
+			err = &requester.ProtocolError{Message: "Gemini stream: invalid combined usage", Cause: usageErr}
+		}
+		terminal <- err
+	}()
+	return data, terminal
+}
+
+func (h *GeminiStreamHandler) finalizeAcceptedUsage() error {
+	if h.acceptedCompletionTokens != 0 || h.Usage.TextBuilder.Len() == 0 {
+		return nil
+	}
+	// The relay normally estimates missing completion usage. Discarded thought
+	// tokens must not suppress that fallback for the accepted attempt. Estimate
+	// once, after all text, then add the discarded completion exactly once.
+	estimate := &types.Usage{PromptTokens: h.Usage.PromptTokens, CompletionTokens: h.priorUsage.CompletionTokens}
+	if err := mergeGeminiUsage(estimate, &types.Usage{CompletionTokens: common.CountTokenText(h.Usage.TextBuilder.String(), h.billingModel)}); err != nil {
+		return err
+	}
+	h.Usage.CompletionTokens = estimate.CompletionTokens
+	h.Usage.TotalTokens = estimate.PromptTokens + estimate.CompletionTokens
+	return nil
+}
 
 type geminiStreamState struct {
 	id        string
@@ -60,6 +99,7 @@ func (h *GeminiStreamHandler) convertToOpenaiStream(response *GeminiChatResponse
 		if err != nil {
 			return err
 		}
+		h.acceptedCompletionTokens = usage.CompletionTokens
 		if err := mergeGeminiUsage(&usage, h.priorUsage); err != nil {
 			return err
 		}

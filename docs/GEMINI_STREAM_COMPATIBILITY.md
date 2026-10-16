@@ -34,7 +34,9 @@ streams receive completion validation but do not gain preflight or retries.
 
 Each attempt's native usage is cumulative: keep its last snapshot and add the
 discarded attempt once to each final-attempt snapshot. Reject negative/overflowing
-counts. Preserve the existing estimate when the final attempt has no usage snapshot.
+counts. Read trailing usage-only events after an empty terminal event within the
+same preflight bounds. Preserve the existing text estimate when the final attempt
+has no completion usage, even if a discarded attempt reported thought tokens.
 There is still one client request, one reservation and one terminal settlement.
 Preflight failures use the existing refund path; committed-stream errors preserve
 the current settlement policy and report failure on the wire. No database schema,

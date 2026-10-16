@@ -170,6 +170,7 @@ func readGeminiPrelude(body io.Reader, limit int) ([]byte, io.Reader, *types.Usa
 	prefix := make([]byte, 0, min(limit, 4096))
 	usage := &types.Usage{}
 	lineStart := 0
+	var terminalErr error
 	for {
 		fragment, readErr := reader.ReadSlice('\n')
 		prefix = append(prefix, fragment...)
@@ -199,6 +200,11 @@ func readGeminiPrelude(body io.Reader, limit int) ([]byte, io.Reader, *types.Usa
 			if response.PromptFeedback != nil && response.PromptFeedback.BlockReason != "" {
 				return prefix, reader, usage, nil
 			}
+			if terminalErr != nil && len(response.Candidates) > 0 {
+				// Only usage-only events may follow an empty terminal event. An
+				// unexpected later candidate must be validated without replay.
+				return prefix, reader, usage, nil
+			}
 			for _, candidate := range response.Candidates {
 				if hasCandidateDeliverable(candidate.Content.Parts) || candidate.GroundingMetadata != nil {
 					return prefix, reader, usage, nil
@@ -211,12 +217,22 @@ func readGeminiPrelude(body io.Reader, limit int) ([]byte, io.Reader, *types.Usa
 			}
 			if len(response.Candidates) == 1 && response.Candidates[0].FinishReason != nil {
 				if err := validateCandidateCompletion(response.Candidates[0], false, false); err != nil {
-					return nil, nil, usage, err
+					var candidateErr *CandidateResponseError
+					if !errors.As(err, &candidateErr) || !candidateErr.Retryable() {
+						return nil, nil, usage, err
+					}
+					terminalErr = err
+				} else {
+					return prefix, reader, usage, nil
 				}
-				return prefix, reader, usage, nil
 			}
 		}
 		if readErr != nil {
+			if readErr == io.EOF && terminalErr != nil {
+				// The final cumulative snapshot can arrive after STOP. Keep the
+				// same memory/deadline bounds while reading it before discarding.
+				return nil, nil, usage, terminalErr
+			}
 			return nil, nil, usage, readErr
 		}
 	}

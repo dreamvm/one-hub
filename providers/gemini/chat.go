@@ -20,9 +20,11 @@ const (
 )
 
 type GeminiStreamHandler struct {
-	Usage      *types.Usage
-	Request    *types.ChatCompletionRequest
-	priorUsage *types.Usage
+	Usage                    *types.Usage
+	Request                  *types.ChatCompletionRequest
+	priorUsage               *types.Usage
+	acceptedCompletionTokens int
+	billingModel             string
 
 	key   string
 	state *geminiStreamState
@@ -117,8 +119,18 @@ func (p *GeminiProvider) CreateChatCompletionStream(request *types.ChatCompletio
 
 		key: channel.Key,
 	}
-
-	return requester.RequestStream(p.Requester, resp, chatHandler.HandlerStream, chatHandler.EndError)
+	chatHandler.billingModel = request.Model
+	if p.Context != nil && p.Context.GetBool("billing_original_model") && p.GetOriginalModel() != "" {
+		chatHandler.billingModel = p.GetOriginalModel()
+	}
+	stream, streamErr := requester.RequestStream(p.Requester, resp, chatHandler.HandlerStream, chatHandler.EndError)
+	if streamErr != nil {
+		return nil, streamErr
+	}
+	if priorUsage != nil && priorUsage.CompletionTokens > 0 {
+		return &geminiUsageStream{StreamReaderInterface: stream, handler: chatHandler}, nil
+	}
+	return stream, nil
 }
 
 func (p *GeminiProvider) getChatRequest(geminiRequest *GeminiChatRequest, isRelay bool) (*http.Request, *types.OpenAIErrorWithStatusCode) {

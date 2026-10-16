@@ -156,6 +156,36 @@ func TestGeminiPreflightNoRetryBoundaries(t *testing.T) {
 	}
 }
 
+func TestGeminiPreflightTrailingUsageBoundaries(t *testing.T) {
+	empty := preflightEvent(nil, "STOP", nil)
+	for name, tail := range map[string]string{
+		"text":         preflightSuccess(),
+		"builtin":      preflightEvent([]GeminiPart{{ExecutableCode: &GeminiPartExecutableCode{Language: "PYTHON", Code: "print(1)"}}}, "", nil),
+		"invalid-json": "data: {invalid\n\n",
+		"cap":          ":" + strings.Repeat("x", 1<<20),
+	} {
+		t.Run(name, func(t *testing.T) {
+			first := empty + tail
+			output, calls, _, err := preflightHTTPTest(t, first, true)
+			if err != nil || calls != 1 || output != first {
+				t.Fatalf("unexpected replay after terminal: calls=%d err=%v", calls, err)
+			}
+		})
+	}
+	t.Run("transport-error", func(t *testing.T) {
+		body := io.MultiReader(strings.NewReader(empty), preflightFailureReader{})
+		_, _, _, err := readGeminiPrelude(body, 1<<20)
+		var candidateErr *CandidateResponseError
+		if err == nil || errors.As(err, &candidateErr) {
+			t.Fatalf("transport failure must not become a retryable completion: %v", err)
+		}
+	})
+}
+
+type preflightFailureReader struct{}
+
+func (preflightFailureReader) Read([]byte) (int, error) { return 0, io.ErrUnexpectedEOF }
+
 type preflightCountingBody struct {
 	io.Reader
 	closed atomic.Int32
