@@ -9,6 +9,7 @@ import (
 	"one-api/common/config"
 	"one-api/common/requester"
 	"one-api/common/utils"
+	"one-api/model"
 	"one-api/providers/base"
 	"one-api/types"
 	"strings"
@@ -19,8 +20,9 @@ const (
 )
 
 type GeminiStreamHandler struct {
-	Usage   *types.Usage
-	Request *types.ChatCompletionRequest
+	Usage      *types.Usage
+	Request    *types.ChatCompletionRequest
+	priorUsage *types.Usage
 
 	key   string
 	state *geminiStreamState
@@ -75,15 +77,43 @@ func (p *GeminiProvider) CreateChatCompletionStream(request *types.ChatCompletio
 	}
 	defer req.Body.Close()
 
-	// 发送请求
-	resp, errWithCode := p.Requester.SendRequestRaw(req)
+	// Opt-in only, after plugin injection and serialization. Never replay built-in
+	// tools, multi-candidate requests, or a request whose heartbeat may commit SSE.
+	var resp *http.Response
+	var priorUsage *types.Usage
+	if geminiEmptyRetryEnabled(channel.Id) {
+		clientCtx := req.Context()
+		allowRetry := !geminiRequestHasBuiltins(geminiRequest) && (request.N == nil || *request.N <= 1)
+		if p.Context != nil {
+			if p.Context.Request != nil {
+				clientCtx = p.Context.Request.Context()
+			}
+			if setting, ok := p.Context.Get("token_setting"); ok {
+				if tokenSetting, ok := setting.(*model.TokenSetting); ok && tokenSetting.Heartbeat.Enabled {
+					allowRetry = false
+				}
+			}
+		}
+		resp, priorUsage, errWithCode = preflightGeminiStream(req, clientCtx, p.Requester.SendRequestRaw, allowRetry, defaultGeminiPreflightOptions())
+	} else {
+		resp, errWithCode = p.Requester.SendRequestRaw(req)
+	}
 	if errWithCode != nil {
+		// The existing relay error path refunds its reservation. Do not turn this
+		// compatibility fix into a different policy for billing failed requests.
 		return nil, errWithCode
+	}
+	// Keep known discarded usage if the accepted attempt has no usage snapshot;
+	// the existing prompt estimate remains its fallback. Snapshots replace it.
+	if err := mergeGeminiUsage(p.Usage, priorUsage); err != nil {
+		resp.Body.Close()
+		return nil, geminiPreflightError(err)
 	}
 
 	chatHandler := &GeminiStreamHandler{
-		Usage:   p.Usage,
-		Request: request,
+		Usage:      p.Usage,
+		Request:    request,
+		priorUsage: priorUsage,
 
 		key: channel.Key,
 	}
