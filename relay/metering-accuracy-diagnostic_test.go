@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/pkoukk/tiktoken-go"
 	"github.com/spf13/viper"
@@ -40,6 +41,44 @@ func (meteringByteRanks) LoadTiktokenBpe(string) (map[string]int, error) {
 type meteringRoundTrip func(*http.Request) (*http.Response, error)
 
 func (f meteringRoundTrip) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+
+// A malformed SSE handler sends its parse error and then the real reader sends
+// EOF. Drain that EOF before restoring shared fixture globals; otherwise the
+// reader's undelivered-error timeout may log during the next test fixture.
+type meteringErrorDrainProvider struct {
+	*openai.OpenAIProvider
+	t *testing.T
+}
+
+func (p *meteringErrorDrainProvider) CreateChatCompletionStream(request *types.ChatCompletionRequest) (requester.StreamReaderInterface[string], *types.OpenAIErrorWithStatusCode) {
+	stream, err := p.OpenAIProvider.CreateChatCompletionStream(request)
+	if err != nil {
+		return stream, err
+	}
+	return &meteringErrorDrainStream{StreamReaderInterface: stream, t: p.t}, nil
+}
+
+type meteringErrorDrainStream struct {
+	requester.StreamReaderInterface[string]
+	t      *testing.T
+	errors <-chan error
+}
+
+func (s *meteringErrorDrainStream) Recv() (<-chan string, <-chan error) {
+	data, errors := s.StreamReaderInterface.Recv()
+	s.errors = errors
+	return data, errors
+}
+
+func (s *meteringErrorDrainStream) Close() {
+	defer s.StreamReaderInterface.Close()
+	select {
+	case err := <-s.errors:
+		require.ErrorIs(s.t, err, io.EOF, "drain the actual reader's terminal EOF")
+	case <-time.After(2 * time.Second):
+		s.t.Fatal("malformed-stream fixture did not finish")
+	}
+}
 
 var meteringEncoderOnce sync.Once
 
@@ -253,7 +292,9 @@ func TestRC10MeteringStreamFailureAfterTextUsesExistingPartialSettlement(t *test
 	want := common.CountTokenMessages(request.Messages, request.Model, 0) + 2*common.CountTokenText(answer, request.Model)
 	// RC10 responseStreamClient reports the stream error downstream but returns
 	// nil to the quota layer, which bills accepted partial work. Preserve policy.
-	require.Nil(t, relay.ExecuteChatForTest(p.(*openai.OpenAIProvider).Context, p, request))
+	actual := p.(*openai.OpenAIProvider)
+	observed := &meteringErrorDrainProvider{OpenAIProvider: actual, t: t}
+	require.Nil(t, relay.ExecuteChatForTest(actual.Context, observed, request))
 	require.Equal(t, 1, *calls)
 	check(want, 1)
 }
