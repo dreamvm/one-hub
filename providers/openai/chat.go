@@ -56,7 +56,7 @@ func (p *OpenAIProvider) CreateChatCompletion(request *types.ChatCompletionReque
 		return nil, errWithCode
 	}
 
-	if response.Usage == nil || response.Usage.CompletionTokens == 0 {
+	if response.Usage == nil || (response.Usage.CompletionTokens == 0 && response.Usage.PromptTokens == 0) {
 		response.Usage = &types.Usage{
 			PromptTokens:     p.Usage.PromptTokens,
 			CompletionTokens: 0,
@@ -154,7 +154,7 @@ func (h *OpenAIStreamHandler) HandlerChatStream(rawLine *[]byte, dataChan chan s
 	}
 
 	if openaiResponse.Usage != nil {
-		if openaiResponse.Usage.CompletionTokens > 0 {
+		if openaiResponse.Usage.CompletionTokens != 0 || openaiResponse.Usage.PromptTokens != 0 {
 			if h.UsageHandler != nil && h.UsageHandler(openaiResponse.Usage) {
 				h.EscapeJSON = true
 			}
@@ -171,7 +171,7 @@ func (h *OpenAIStreamHandler) HandlerChatStream(rawLine *[]byte, dataChan chan s
 		}
 	} else {
 		if len(openaiResponse.Choices) > 0 && openaiResponse.Choices[0].Usage != nil {
-			if openaiResponse.Choices[0].Usage.CompletionTokens > 0 {
+			if openaiResponse.Choices[0].Usage.CompletionTokens != 0 || openaiResponse.Choices[0].Usage.PromptTokens != 0 {
 				if h.UsageHandler != nil && h.UsageHandler(openaiResponse.Choices[0].Usage) {
 					h.EscapeJSON = true
 				}

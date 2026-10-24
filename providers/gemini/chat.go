@@ -359,7 +359,14 @@ func ConvertToChatOpenai(provider base.ProviderInterface, response *GeminiChatRe
 	}
 
 	usage := provider.GetUsage()
-	*usage = ConvertOpenAIUsage(response.UsageMetadata)
+	if response.UsageMetadata == nil {
+		// Keep the relay's prompt estimate when this successful non-stream
+		// response has no upstream usage, as the chat stream path does.
+		usage.CompletionTokens = common.CountTokenText(openaiResponse.GetContent(), request.Model)
+		usage.TotalTokens = usage.PromptTokens + usage.CompletionTokens
+	} else {
+		*usage = ConvertOpenAIUsage(response.UsageMetadata)
+	}
 	openaiResponse.Usage = usage
 
 	return
@@ -411,6 +418,10 @@ func ConvertOpenAIUsage(geminiUsage *GeminiUsageMetadata) types.Usage {
 		PromptTokens:     geminiUsage.PromptTokenCount,
 		CompletionTokens: geminiUsage.CandidatesTokenCount + geminiUsage.ThoughtsTokenCount,
 		TotalTokens:      geminiUsage.TotalTokenCount,
+
+		PromptTokensDetails: types.PromptTokensDetails{
+			CachedTokens: geminiUsage.CachedContentTokenCount,
+		},
 
 		CompletionTokensDetails: types.CompletionTokensDetails{
 			ReasoningTokens: geminiUsage.ThoughtsTokenCount,
