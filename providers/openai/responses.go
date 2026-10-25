@@ -35,7 +35,7 @@ func (p *OpenAIProvider) CreateResponses(request *types.OpenAIResponsesRequest) 
 		return nil, errWithCode
 	}
 
-	if response.Usage == nil || response.Usage.OutputTokens == 0 {
+	if response.Usage == nil || (response.Usage.OutputTokens == 0 && response.Usage.InputTokens == 0) {
 		response.Usage = &types.ResponsesUsage{
 			InputTokens:  p.Usage.PromptTokens,
 			OutputTokens: 0,
