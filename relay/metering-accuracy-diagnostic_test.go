@@ -341,3 +341,53 @@ func TestRC10MeteringResponsesPositiveAndMissingControls(t *testing.T) {
 		})
 	}
 }
+
+func TestMeteringInputOnlyUsageRetainsStreamText(t *testing.T) {
+	for _, placement := range []string{"top", "choice"} {
+		for _, mode := range []string{"input-only-after-text", "positive-after-text", "input-only-empty", "input-only-mid-text"} {
+			t.Run(fmt.Sprintf("%s/%s", placement, mode), func(t *testing.T) {
+				answer := "synthetic answer"
+				completion := 0
+				if mode == "positive-after-text" {
+					completion = 10
+				}
+				if mode == "input-only-empty" {
+					answer = ""
+				}
+				usage := &types.Usage{
+					PromptTokens:        100,
+					CompletionTokens:    completion,
+					TotalTokens:         100 + completion,
+					PromptTokensDetails: types.PromptTokensDetails{CachedTokens: 80},
+				}
+				body := meteringOpenAIBody(answer, usage, true)
+				if placement == "choice" {
+					prefix := strings.TrimSuffix(meteringOpenAIBody(answer, nil, true), "data: [DONE]\n\n")
+					chunk, err := json.Marshal(map[string]any{
+						"choices": []any{map[string]any{"index": 0, "delta": map[string]any{}, "usage": usage}},
+					})
+					require.NoError(t, err)
+					body = prefix + "data: " + string(chunk) + "\n\ndata: [DONE]\n\n"
+				}
+				if mode == "input-only-mid-text" {
+					body = strings.TrimSuffix(body, "data: [DONE]\n\n")
+					// A later content frame must remain writable after usage updates.
+					body += meteringOpenAIBody(" tail", nil, true)
+					answer += " tail"
+				}
+				provider, request, check, calls := meteringProvider(t, "gpt-6-luna", false, body, 200)
+				request.Stream = true
+				output := completion
+				if output == 0 && answer != "" {
+					output = common.CountTokenText(answer, request.Model)
+				}
+				actual := provider.(*openai.OpenAIProvider)
+				require.Nil(t, relay.ExecuteChatForTest(actual.Context, provider, request))
+				require.Equal(t, 1, *calls)
+				t.Logf("reported input=100 cached=80 completion=%d; fixture text bytes=%d; expected quota=%d; actual completion=%d accumulated bytes=%d",
+					completion, len(answer), 40+2*output, actual.Usage.CompletionTokens, actual.Usage.TextBuilder.Len())
+				check(40+2*output, 1)
+			})
+		}
+	}
+}

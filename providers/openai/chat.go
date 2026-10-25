@@ -158,7 +158,10 @@ func (h *OpenAIStreamHandler) HandlerChatStream(rawLine *[]byte, dataChan chan s
 			if h.UsageHandler != nil && h.UsageHandler(openaiResponse.Usage) {
 				h.EscapeJSON = true
 			}
+			text := h.Usage.TextBuilder.String()
 			*h.Usage = *openaiResponse.Usage
+			h.Usage.TextBuilder.Reset()
+			h.Usage.TextBuilder.WriteString(text)
 
 			if h.ExtraBilling != nil {
 				h.Usage.ExtraBilling = h.ExtraBilling
@@ -175,7 +178,10 @@ func (h *OpenAIStreamHandler) HandlerChatStream(rawLine *[]byte, dataChan chan s
 				if h.UsageHandler != nil && h.UsageHandler(openaiResponse.Choices[0].Usage) {
 					h.EscapeJSON = true
 				}
+				text := h.Usage.TextBuilder.String()
 				*h.Usage = *openaiResponse.Choices[0].Usage
+				h.Usage.TextBuilder.Reset()
+				h.Usage.TextBuilder.WriteString(text)
 				if h.ExtraBilling != nil {
 					h.Usage.ExtraBilling = h.ExtraBilling
 				}
