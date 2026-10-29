@@ -2,6 +2,7 @@ package model
 
 import (
 	"encoding/json"
+	"one-api/common"
 	"one-api/common/config"
 	"one-api/common/logger"
 	"strconv"
@@ -106,7 +107,7 @@ func addStatistics() *gormigrate.Migration {
 	return &gormigrate.Migration{
 		ID: "202408100001",
 		Migrate: func(tx *gorm.DB) error {
-			go UpdateStatistics(StatisticsUpdateTypeALL)
+			common.SafeGoroutine(func() { UpdateStatistics(StatisticsUpdateTypeALL) })
 			return nil
 		},
 		Rollback: func(tx *gorm.DB) error {

@@ -19,6 +19,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"one-api/common"
+	"one-api/common/lifecycle"
 	"one-api/common/logger"
 	"one-api/common/requester"
 	"one-api/common/utils"
@@ -41,12 +42,17 @@ func InitMidjourneyTask() {
 }
 
 func midjourneyTask() {
+	stop := context.AfterFunc(lifecycle.Background.Context(), func() { lock.Lock(); cond.Broadcast(); lock.Unlock() })
+	defer stop()
 	for {
 		lock.Lock()
-		for atomic.LoadInt32(&taskActive) == 0 {
+		for atomic.LoadInt32(&taskActive) == 0 && !lifecycle.Background.Stopping() {
 			cond.Wait() // 等待激活信号
 		}
 		lock.Unlock()
+		if lifecycle.Background.Stopping() {
+			return
+		}
 		UpdateMidjourneyTaskBulk()
 	}
 }
@@ -74,7 +80,7 @@ func DeactivateMidjourneyTaskBulk() {
 
 func UpdateMidjourneyTaskBulk() {
 	ctx := context.WithValue(context.Background(), logger.RequestIdKey, "MidjourneyTask")
-	for {
+	for !lifecycle.Background.Stopping() {
 		logger.LogInfo(ctx, "running")
 
 		tasks := model.GetAllUnFinishTasks()
@@ -132,7 +138,9 @@ func UpdateMidjourneyTaskBulk() {
 				logger.LogError(ctx, fmt.Sprintf("MjTaskHandler error: %v", err))
 			}
 		}
-		time.Sleep(time.Duration(15) * time.Second)
+		if !lifecycle.Background.Sleep(15 * time.Second) {
+			return
+		}
 	}
 }
 

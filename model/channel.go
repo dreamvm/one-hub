@@ -3,6 +3,7 @@ package model
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"one-api/common"
 	"one-api/common/config"
 	"one-api/common/logger"
 	"one-api/common/utils"
@@ -359,7 +360,7 @@ func UpdateChannelStatusById(id int, status int) {
 
 	tx.Commit()
 
-	go ChannelGroup.ChangeStatus(id, status == config.ChannelStatusEnabled)
+	common.SafeGoroutine(func() { ChannelGroup.ChangeStatus(id, status == config.ChannelStatusEnabled) })
 }
 
 func UpdateChannelUsedQuota(id int, quota int) {

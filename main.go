@@ -3,19 +3,26 @@ package main
 import (
 	"context"
 	"embed"
+	"errors"
 	"fmt"
+	"net"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"one-api/cli"
 	"one-api/common"
 	"one-api/common/cache"
 	"one-api/common/config"
+	"one-api/common/lifecycle"
 	"one-api/common/logger"
 	"one-api/common/notify"
 	"one-api/common/oidc"
 	"one-api/common/redis"
 	"one-api/common/requester"
+	"one-api/common/scheduler"
 	"one-api/common/search"
 	"one-api/common/storage"
 	"one-api/common/telegram"
@@ -41,6 +48,17 @@ var buildFS embed.FS
 var indexPage []byte
 
 func main() {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	if err := run(ctx); err != nil {
+		logger.SysError(err.Error())
+		// Incomplete work is not joined by os.Exit. Do not defer CloseDB or emit
+		// shutdown_complete on this path; the maintenance gate must reject it.
+		os.Exit(1)
+	}
+}
+
+func run(ctx context.Context) error {
 	cli.InitCli()
 	config.InitConf()
 	if viper.GetString("log_level") == "debug" {
@@ -58,7 +76,6 @@ func main() {
 
 	// Initialize SQL Database
 	model.SetupDB()
-	defer model.CloseDB()
 	// Initialize Redis
 	redis.InitRedisClient()
 	cache.InitCacheManager()
@@ -70,7 +87,7 @@ func main() {
 	webauthn.InitWebAuthn()
 	model.NewPricing()
 	model.HandleOldTokenMaxId()
-	go model.RunQuotaReservationRecovery(context.Background())
+	common.SafeGoroutine(func() { model.RunQuotaReservationRecovery(lifecycle.Background.Context()) })
 
 	initMemoryCache()
 	initSync()
@@ -91,9 +108,13 @@ func main() {
 	// 初始化账单数据
 	if config.UserInvoiceMonth {
 		logger.SysLog("Enable User Invoice Monthly Data")
-		go model.InsertStatisticsMonth()
+		common.SafeGoroutine(func() {
+			if model.InsertStatisticsMonth() != nil {
+				lifecycle.Background.Fail()
+			}
+		})
 	}
-	initHttpServer()
+	return initHttpServer(ctx)
 }
 
 func initMemoryCache() {
@@ -110,16 +131,16 @@ func initMemoryCache() {
 
 	logger.SysLog("memory cache enabled")
 	logger.SysLog(fmt.Sprintf("sync frequency: %d seconds", syncFrequency))
-	go model.SyncOptions(syncFrequency)
-	go SyncChannelCache(syncFrequency)
+	common.SafeGoroutine(func() { model.SyncOptions(syncFrequency) })
+	common.SafeGoroutine(func() { SyncChannelCache(syncFrequency) })
 }
 
 func initSync() {
 	// go controller.AutomaticallyUpdateChannels(viper.GetInt("channel.update_frequency"))
-	go controller.AutomaticallyTestChannels(viper.GetInt("channel.test_frequency"))
+	common.SafeGoroutine(func() { controller.AutomaticallyTestChannels(viper.GetInt("channel.test_frequency")) })
 }
 
-func initHttpServer() {
+func initHttpServer(ctx context.Context) error {
 	if viper.GetString("gin_mode") != "debug" {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -146,10 +167,35 @@ func initHttpServer() {
 	router.SetRouter(server, buildFS, indexPage)
 	port := viper.GetString("port")
 
-	err := server.Run(":" + port)
-	if err != nil {
-		logger.FatalLog("failed to start HTTP server: " + err.Error())
+	timeout := viper.GetDuration("shutdown_timeout")
+	if timeout <= 0 || timeout > 2*time.Minute {
+		return errors.New("shutdown_invalid_timeout")
 	}
+	listener, err := net.Listen("tcp", ":"+port)
+	if err != nil {
+		return errors.New("http_listen_failed")
+	}
+	err = lifecycle.Serve(ctx, listener, server, timeout, stopBackgroundWriters,
+		model.ShutdownAccounting, model.CloseDB)
+	if err == nil {
+		logger.SysLog("shutdown_complete: requests_drained workers_joined accounting_settled database_closed")
+	}
+	return err
+}
+
+func stopBackgroundWriters(ctx context.Context) error {
+	// These optional profiles have no trustworthy join/error contract yet.
+	// Refuse a success marker; do not silently skip buffered or external work.
+	if config.BatchUpdateEnabled || config.MCP_ENABLE || viper.GetString("tg.bot_api_key") != "" {
+		return errors.New("shutdown_unsupported_background_profile")
+	}
+	if scheduler.Manager == nil {
+		return errors.New("shutdown_scheduler_unavailable")
+	}
+	if err := scheduler.Manager.Shutdown(ctx); err != nil {
+		return err
+	}
+	return lifecycle.Background.Stop(ctx)
 }
 
 func SyncChannelCache(frequency int) {
@@ -158,8 +204,7 @@ func SyncChannelCache(frequency int) {
 		logger.SysLog("master node does't synchronize the channel")
 		return
 	}
-	for {
-		time.Sleep(time.Duration(frequency) * time.Second)
+	for lifecycle.Background.Sleep(time.Duration(frequency) * time.Second) {
 		logger.SysLog("syncing channels from database")
 		model.ChannelGroup.Load()
 		model.GlobalUserGroupRatio.Load()

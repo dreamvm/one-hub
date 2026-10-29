@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"one-api/common"
 	"one-api/common/config"
+	"one-api/common/lifecycle"
 	"one-api/common/logger"
 	"one-api/common/notify"
 	"one-api/common/utils"
@@ -211,7 +213,7 @@ func TestChannel(c *gin.Context) {
 	} else {
 		success = true
 		msg = "测速成功"
-		go channel.UpdateResponseTime(milliseconds)
+		common.SafeGoroutine(func() { channel.UpdateResponseTime(milliseconds) })
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -240,7 +242,7 @@ func testAllChannels(isNotify bool) error {
 	if disableThreshold == 0 {
 		disableThreshold = 10000000 // a impossible value
 	}
-	go func() {
+	common.SafeGoroutine(func() {
 		var sendMessage string
 		for _, channel := range channels {
 			time.Sleep(config.RequestInterval)
@@ -300,7 +302,7 @@ func testAllChannels(isNotify bool) error {
 		if isNotify {
 			notify.Send("通道测试完成", sendMessage)
 		}
-	}()
+	})
 	return nil
 }
 
@@ -324,8 +326,7 @@ func AutomaticallyTestChannels(frequency int) {
 		return
 	}
 
-	for {
-		time.Sleep(time.Duration(frequency) * time.Minute)
+	for lifecycle.Background.Sleep(time.Duration(frequency) * time.Minute) {
 		logger.SysLog("testing all channels")
 		_ = testAllChannels(false)
 		logger.SysLog("channel test finished")

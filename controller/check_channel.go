@@ -55,7 +55,7 @@ func CheckChannel(c *gin.Context) {
 	doneChan := make(chan bool)
 
 	// 启动检查过程
-	go ck.RunStream(resultChan, doneChan)
+	common.SafeGoroutine(func() { ck.RunStream(resultChan, doneChan) })
 
 	// 启动心跳协程
 	go func() {

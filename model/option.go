@@ -3,6 +3,7 @@ package model
 import (
 	"one-api/common"
 	"one-api/common/config"
+	"one-api/common/lifecycle"
 	"one-api/common/logger"
 	"strings"
 	"time"
@@ -143,8 +144,7 @@ func loadOptionsFromDatabase() {
 }
 
 func SyncOptions(frequency int) {
-	for {
-		time.Sleep(time.Duration(frequency) * time.Second)
+	for lifecycle.Background.Sleep(time.Duration(frequency) * time.Second) {
 		logger.SysLog("syncing options from database")
 		loadOptionsFromDatabase()
 	}

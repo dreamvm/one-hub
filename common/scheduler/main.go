@@ -1,7 +1,10 @@
 package scheduler
 
 import (
+	"context"
+	"errors"
 	"fmt"
+	"one-api/common/lifecycle"
 	"one-api/common/logger"
 	"sync"
 
@@ -12,6 +15,7 @@ type TaskManager struct {
 	scheduler gocron.Scheduler
 	jobs      map[string]*JobInfo
 	mu        sync.RWMutex
+	stopping  bool
 }
 
 type JobInfo struct {
@@ -44,6 +48,9 @@ func init() {
 func (tm *TaskManager) AddJob(name string, definition gocron.JobDefinition, task gocron.Task, options ...gocron.JobOption) error {
 	tm.mu.Lock()
 	defer tm.mu.Unlock()
+	if tm.stopping {
+		return errors.New("scheduler_stopping")
+	}
 
 	// 如果任务已存在，先移除
 	if oldJob, exists := tm.jobs[name]; exists {
@@ -69,6 +76,15 @@ func (tm *TaskManager) AddJob(name string, definition gocron.JobDefinition, task
 	}
 
 	return nil
+}
+
+// Shutdown seals new jobs and propagates gocron's join/timeout result. A
+// deadline only bounds this caller; it never proves an unfinished job stopped.
+func (tm *TaskManager) Shutdown(ctx context.Context) error {
+	tm.mu.Lock()
+	tm.stopping = true
+	tm.mu.Unlock()
+	return lifecycle.Within(ctx, tm.scheduler.Shutdown)
 }
 
 // 获取所有任务信息
