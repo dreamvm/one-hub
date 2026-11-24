@@ -160,6 +160,11 @@ jobs:
           test -z "$(gofmt -l router/web-router.go web_range_test.go)"
           go test -race -count=1 . -run '^TestStaticRangeBound$'
           go vet . ./router
+      - name: Verify graceful shutdown without external services
+        run: |
+          test -z "$(gofmt -l common/lifecycle common/scheduler shutdown_test.go model/shutdown.go model/shutdown_test.go providers/gemini/client-cancel.go providers/gemini/client-cancel_test.go providers/gemini/relay.go)"
+          go test -mod=readonly -race -count=1 -timeout=90s ./common/lifecycle ./common/scheduler
+          go test -mod=readonly -race -count=1 -timeout=90s . -run '^TestShutdownUnsupportedBackgroundProfilesFailClosed$'
       - name: Test isolated-smoke fixtures without Docker or external APIs
         if: hashFiles('.github/smoke/run.py') != ''
         run: |
