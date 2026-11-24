@@ -42,12 +42,12 @@ func (p *GeminiProvider) CreateChatCompletion(request *types.ChatCompletionReque
 
 	geminiRequest, errWithCode := ConvertFromChatOpenai(request)
 	if errWithCode != nil {
-		return nil, errWithCode
+		return nil, p.clientCancellationError(errWithCode)
 	}
 
 	req, errWithCode := p.getChatRequest(geminiRequest, false)
 	if errWithCode != nil {
-		return nil, errWithCode
+		return nil, p.clientCancellationError(errWithCode)
 	}
 	defer req.Body.Close()
 
@@ -55,7 +55,7 @@ func (p *GeminiProvider) CreateChatCompletion(request *types.ChatCompletionReque
 	// 发送请求
 	_, errWithCode = p.Requester.SendRequest(req, geminiChatResponse, false)
 	if errWithCode != nil {
-		return nil, errWithCode
+		return nil, p.clientCancellationError(errWithCode)
 	}
 
 	return ConvertToChatOpenai(p, geminiChatResponse, request)
@@ -70,12 +70,12 @@ func (p *GeminiProvider) CreateChatCompletionStream(request *types.ChatCompletio
 
 	geminiRequest, errWithCode := ConvertFromChatOpenai(request)
 	if errWithCode != nil {
-		return nil, errWithCode
+		return nil, p.clientCancellationError(errWithCode)
 	}
 
 	req, errWithCode := p.getChatRequest(geminiRequest, false)
 	if errWithCode != nil {
-		return nil, errWithCode
+		return nil, p.clientCancellationError(errWithCode)
 	}
 	defer req.Body.Close()
 
@@ -103,7 +103,7 @@ func (p *GeminiProvider) CreateChatCompletionStream(request *types.ChatCompletio
 	if errWithCode != nil {
 		// The existing relay error path refunds its reservation. Do not turn this
 		// compatibility fix into a different policy for billing failed requests.
-		return nil, errWithCode
+		return nil, p.clientCancellationError(errWithCode)
 	}
 	// Keep known discarded usage if the accepted attempt has no usage snapshot;
 	// the existing prompt estimate remains its fallback. Snapshots replace it.
@@ -165,7 +165,7 @@ func (p *GeminiProvider) getChatRequest(geminiRequest *GeminiChatRequest, isRela
 		return nil, common.ErrorWrapper(err, "new_request_failed", http.StatusInternalServerError)
 	}
 
-	return req, nil
+	return p.bindClientCancellation(req), nil
 }
 
 func ConvertFromChatOpenai(request *types.ChatCompletionRequest) (*GeminiChatRequest, *types.OpenAIErrorWithStatusCode) {
