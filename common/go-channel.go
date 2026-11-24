@@ -2,19 +2,21 @@ package common
 
 import (
 	"fmt"
+	"one-api/common/lifecycle"
 	"one-api/common/logger"
 	"runtime/debug"
 )
 
 func SafeGoroutine(f func()) {
-	go func() {
+	lifecycle.Background.Go(func() {
 		defer func() {
 			if r := recover(); r != nil {
+				lifecycle.Background.Fail()
 				logger.SysError(fmt.Sprintf("child goroutine panic occured: error: %v, stack: %s", r, string(debug.Stack())))
 			}
 		}()
 		f()
-	}()
+	})
 }
 
 func SafeSend(ch chan bool, value bool) (closed bool) {

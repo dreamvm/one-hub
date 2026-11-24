@@ -544,6 +544,11 @@ func shouldRetryBadRequest(channelType int, apiErr *types.OpenAIErrorWithStatusC
 	}
 }
 
+// Capture arguments before HTTP returns or a retry changes the selected channel.
+func asyncProcessChannelRelayError(ctx context.Context, channelId int, channelName string, err *types.OpenAIErrorWithStatusCode, channelType int) {
+	common.SafeGoroutine(func() { processChannelRelayError(ctx, channelId, channelName, err, channelType) })
+}
+
 func processChannelRelayError(ctx context.Context, channelId int, channelName string, err *types.OpenAIErrorWithStatusCode, channelType int) {
 	logger.LogError(ctx, fmt.Sprintf("relay error (channel #%d(%s)): %s", channelId, channelName, err.Message))
 	if controller.ShouldDisableChannel(channelType, err) {

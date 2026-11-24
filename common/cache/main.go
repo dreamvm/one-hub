@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"one-api/common/config"
+	"one-api/common/lifecycle"
 	"one-api/common/redis"
 	"time"
 
@@ -67,7 +68,15 @@ func GetOrSetCache[T any](key string, expiration time.Duration, fn func() (T, er
 		return *new(T), err
 	}
 
+	background := lifecycle.Background
 	result := sfGroup.DoChan(key, func() (interface{}, error) {
+		// The shared fill can outlive every caller waiting on its result.
+		finish, accepted := background.Register()
+		if !accepted {
+			return *new(T), lifecycle.ErrWorker
+		}
+		defer finish()
+
 		v, err := fn()
 		if err != nil {
 			return nil, err

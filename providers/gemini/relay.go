@@ -21,7 +21,7 @@ type GeminiRelayStreamHandler struct {
 func (p *GeminiProvider) CreateGeminiChat(request *GeminiChatRequest) (*GeminiChatResponse, *types.OpenAIErrorWithStatusCode) {
 	req, errWithCode := p.getChatRequest(request, true)
 	if errWithCode != nil {
-		return nil, errWithCode
+		return nil, p.clientCancellationError(errWithCode)
 	}
 	defer req.Body.Close()
 
@@ -29,7 +29,7 @@ func (p *GeminiProvider) CreateGeminiChat(request *GeminiChatRequest) (*GeminiCh
 	// 发送请求
 	_, errWithCode = p.Requester.SendRequest(req, geminiResponse, false)
 	if errWithCode != nil {
-		return nil, errWithCode
+		return nil, p.clientCancellationError(errWithCode)
 	}
 
 	if len(geminiResponse.Candidates) == 0 {
@@ -45,7 +45,7 @@ func (p *GeminiProvider) CreateGeminiChat(request *GeminiChatRequest) (*GeminiCh
 func (p *GeminiProvider) CreateGeminiChatStream(request *GeminiChatRequest) (requester.StreamReaderInterface[string], *types.OpenAIErrorWithStatusCode) {
 	req, errWithCode := p.getChatRequest(request, true)
 	if errWithCode != nil {
-		return nil, errWithCode
+		return nil, p.clientCancellationError(errWithCode)
 	}
 	defer req.Body.Close()
 
@@ -62,12 +62,12 @@ func (p *GeminiProvider) CreateGeminiChatStream(request *GeminiChatRequest) (req
 	// 发送请求
 	resp, errWithCode := p.Requester.SendRequestRaw(req)
 	if errWithCode != nil {
-		return nil, errWithCode
+		return nil, p.clientCancellationError(errWithCode)
 	}
 
 	stream, errWithCode := requester.RequestNoTrimStream(p.Requester, resp, chatHandler.HandlerStream)
 	if errWithCode != nil {
-		return nil, errWithCode
+		return nil, p.clientCancellationError(errWithCode)
 	}
 
 	return stream, nil

@@ -31,6 +31,7 @@ func setEnv() {
 
 func defaultConfig() {
 	viper.SetDefault("port", "3000")
+	viper.SetDefault("shutdown_timeout", "30s")
 	viper.SetDefault("gin_mode", "release")
 	viper.SetDefault("log_dir", "./logs")
 	viper.SetDefault("sqlite_path", "one-api.db")

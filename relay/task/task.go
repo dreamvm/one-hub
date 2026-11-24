@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"one-api/common"
+	"one-api/common/lifecycle"
 	"one-api/common/logger"
 	"one-api/model"
 )
@@ -27,12 +28,17 @@ func InitTask() {
 }
 
 func Task() {
+	stop := context.AfterFunc(lifecycle.Background.Context(), func() { lock.Lock(); cond.Broadcast(); lock.Unlock() })
+	defer stop()
 	for {
 		lock.Lock()
-		for atomic.LoadInt32(&taskActive) == 0 {
+		for atomic.LoadInt32(&taskActive) == 0 && !lifecycle.Background.Stopping() {
 			cond.Wait() // 等待激活信号
 		}
 		lock.Unlock()
+		if lifecycle.Background.Stopping() {
+			return
+		}
 		UpdateTaskBulk()
 	}
 }
@@ -60,7 +66,7 @@ func DeactivateTask() {
 
 func UpdateTaskBulk() {
 	ctx := context.WithValue(context.Background(), logger.RequestIdKey, "Task")
-	for {
+	for !lifecycle.Background.Stopping() {
 		logger.LogInfo(ctx, "running")
 		allTasks := model.GetAllUnFinishSyncTasks(500)
 		platformTask := make(map[string][]*model.Task)
@@ -95,7 +101,9 @@ func UpdateTaskBulk() {
 				UpdateTaskByPlatform(ctx, platform, map[int][]string{batch.channelID: batch.ids}, batch.tasks)
 			}
 		}
-		time.Sleep(time.Duration(15) * time.Second)
+		if !lifecycle.Background.Sleep(15 * time.Second) {
+			return
+		}
 	}
 }
 
