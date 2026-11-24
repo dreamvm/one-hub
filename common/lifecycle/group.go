@@ -54,10 +54,13 @@ func (g *Group) leave() {
 
 // Register tracks work started by another component. Call the returned finish once.
 func (g *Group) Register() (finish func(), accepted bool) {
-	if !g.enter() {
-		g.Fail()
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if g.closed {
+		g.failed = true
 		return nil, false
 	}
+	g.active++
 	return g.leave, true
 }
 
