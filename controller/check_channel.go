@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"one-api/common"
@@ -40,7 +41,9 @@ func CheckChannel(c *gin.Context) {
 		return
 	}
 
-	ck, err := check_channel.CreateCheckChannel(params.ID, params.Models)
+	ctx, cancel := context.WithCancel(c.Request.Context())
+	defer cancel()
+	ck, err := check_channel.CreateCheckChannel(ctx, params.ID, params.Models)
 	if err != nil {
 		common.APIRespondWithError(c, http.StatusOK, err)
 		return
@@ -49,52 +52,36 @@ func CheckChannel(c *gin.Context) {
 	// 设置 SSE 头信息
 	requester.SetEventStreamHeaders(c)
 
-	// 创建一个通道用于接收结果
 	resultChan := make(chan *check_channel.ModelResult)
-	heartbeatChan := make(chan bool)
-	doneChan := make(chan bool)
+	common.SafeGoroutine(func() { ck.RunStream(ctx, resultChan) })
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
 
-	// 启动检查过程
-	common.SafeGoroutine(func() { ck.RunStream(resultChan, doneChan) })
-
-	// 启动心跳协程
-	go func() {
-		ticker := time.NewTicker(10 * time.Second)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ticker.C:
-				heartbeatChan <- true
-			case <-doneChan:
-				return
-			}
-		}
-	}()
-
-	// 处理结果流
-	clientGone := c.Request.Context().Done()
 	c.Stream(func(w io.Writer) bool {
 		select {
-		case result := <-resultChan:
+		case result, ok := <-resultChan:
+			if ctx.Err() != nil {
+				return false
+			}
+			if !ok {
+				c.SSEvent("message", gin.H{
+					"type": "done",
+					"data": "completed",
+				})
+				return false
+			}
 			c.SSEvent("message", gin.H{
 				"type": "result",
 				"data": result,
 			})
 			return true
-		case <-heartbeatChan:
+		case <-ticker.C:
 			c.SSEvent("message", gin.H{
 				"type": "heartbeat",
 				"data": "ping",
 			})
 			return true
-		case <-doneChan:
-			c.SSEvent("message", gin.H{
-				"type": "done",
-				"data": "completed",
-			})
-			return false
-		case <-clientGone:
-			close(doneChan)
+		case <-ctx.Done():
 			return false
 		}
 	})
