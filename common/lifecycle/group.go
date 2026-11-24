@@ -52,13 +52,22 @@ func (g *Group) leave() {
 	}
 }
 
-// Go registers before starting. Rejected work never executes and blocks success.
-func (g *Group) Go(f func()) bool {
+// Register tracks work started by another component. Call the returned finish once.
+func (g *Group) Register() (finish func(), accepted bool) {
 	if !g.enter() {
 		g.Fail()
+		return nil, false
+	}
+	return g.leave, true
+}
+
+// Go registers before starting. Rejected work never executes and blocks success.
+func (g *Group) Go(f func()) bool {
+	finish, accepted := g.Register()
+	if !accepted {
 		return false
 	}
-	go func() { defer g.leave(); f() }()
+	go func() { defer finish(); f() }()
 	return true
 }
 
